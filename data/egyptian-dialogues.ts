@@ -1,0 +1,132 @@
+import type { DialogueTurn } from './gulf-dialogues';
+
+export const CAFE_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'السلام عليكم',                  transliteration: 'As-salamu alaykum',               english: 'Peace be upon you' },
+  { type: 'waiter', arabic: 'وعليكم السلام! أهلاً وسهلاً، اتفضل', transliteration: 'Wa alaykum as-salam! Ahlan wa sahlan, itfaddal', english: 'Peace be upon you too! Welcome, please sit down' },
+  { type: 'waiter', arabic: 'عايز تشرب إيه؟',                transliteration: 'Ayez tishrab eih?',               english: 'What do you want to drink?' },
+  { type: 'user',   arabic: 'عايز قهوة تركي لو سمحت',        transliteration: 'Ayez ahwa turki law samaht',      english: 'I want Turkish coffee please' },
+  { type: 'waiter', arabic: 'سادة ولا مظبوط؟',               transliteration: 'Sada walla mazboot?',             english: 'Plain or medium sweet?' },
+  { type: 'user',   arabic: 'مظبوط لو سمحت',                 transliteration: 'Mazboot law samaht',              english: 'Medium sweet please' },
+  { type: 'waiter', arabic: 'تمام، حاجة تاني؟',              transliteration: 'Tamam, haga tani?',               english: 'OK, anything else?' },
+  { type: 'user',   arabic: 'لا شكراً، بس كده',              transliteration: "La shukran, bass keda",           english: "No thanks, that's it" },
+  { type: 'waiter', arabic: 'حاضر، دقيقة واحدة',             transliteration: "Hader, da'ii'a wahda",            english: 'Right away, one minute' },
+  { type: 'user',   arabic: 'الحساب بكام؟',                  transliteration: 'El-hisab bikam?',                 english: 'How much is the bill?' },
+  { type: 'waiter', arabic: 'خمسة وعشرين جنيه',              transliteration: 'Khamsa wi ishreen gineih',        english: 'Twenty-five pounds' },
+  { type: 'user',   arabic: 'اتفضل، شكراً يا معلم',          transliteration: 'Itfaddal, shukran ya moallem',    english: 'Here you go, thanks boss' },
+  { type: 'waiter', arabic: 'شكراً يا باشا، نورتنا',         transliteration: 'Shukran ya basha, nawwartina',    english: 'Thanks boss, you honored us' },
+];
+
+export const TAXI_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'السلام عليكم، فاضي يا أسطى؟',  transliteration: 'As-salamu alaykum, fadi ya osta?', english: 'Peace be upon you, are you free driver?' },
+  { type: 'waiter', arabic: 'أيوه اتفضل، رايح فين؟',         transliteration: 'Aywa itfaddal, rayeh fein?',      english: 'Yes, get in. Where are you going?' },
+  { type: 'user',   arabic: 'عايز أروح وسط البلد لو سمحت',  transliteration: 'Ayez arooh wist el-balad law samaht', english: 'I want to go downtown please' },
+  { type: 'waiter', arabic: 'إن شاء الله، بس فيه زحمة شوية دلوقتي', transliteration: "Inshallah, bass fee zahma shwayya dilwa'ti", english: "God willing, but there's some traffic now" },
+  { type: 'user',   arabic: 'مفيش مشكلة',                    transliteration: 'Mafish mushkila',                 english: 'No problem' },
+  { type: 'waiter', arabic: 'هناخد طريق الكورنيش أحسن',      transliteration: "Hanakhod taree' el-kornish ahsan", english: "We'll take the Corniche road, it's better" },
+  { type: 'user',   arabic: 'تمام يا أسطى',                  transliteration: 'Tamam ya osta',                   english: 'OK driver' },
+  { type: 'waiter', arabic: 'وصلنا يا باشا',                 transliteration: 'Wissilna ya basha',               english: 'We arrived boss' },
+  { type: 'user',   arabic: 'الحساب بكام؟',                  transliteration: 'El-hisab bikam?',                 english: 'How much is it?' },
+  { type: 'waiter', arabic: 'خمسة وتلاتين جنيه',             transliteration: 'Khamsa wi talateen gineih',       english: 'Thirty-five pounds' },
+  { type: 'user',   arabic: 'اتفضل، شكراً يا أسطى',          transliteration: 'Itfaddal, shukran ya osta',       english: 'Here you go, thanks driver' },
+  { type: 'waiter', arabic: 'الله يسلمك يا باشا، مع السلامة', transliteration: "Allah yisalmak ya basha, ma'a as-salama", english: 'God keep you safe boss, goodbye' },
+];
+
+export const HOTEL_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'السلام عليكم، عايز أعمل تشيك إن', transliteration: "As-salamu alaykum, ayez a'mel check-in", english: 'Peace be upon you, I want to check in' },
+  { type: 'waiter', arabic: 'أهلاً وسهلاً! عندك حجز؟',       transliteration: 'Ahlan wa sahlan! Andak hagz?',    english: 'Welcome! Do you have a reservation?' },
+  { type: 'user',   arabic: 'أيوه عندي حجز باسم يوسف',        transliteration: 'Aywa andi hagz bi-ism Yusuf',    english: 'Yes I have a reservation under Yusuf' },
+  { type: 'waiter', arabic: 'تمام، لقيته. أوضة لشخصين لمدة تلات ليالي', transliteration: "Tamam, la'eito. Oda li-shakhsein li-muddit talat layali", english: 'OK, found it. Room for two for three nights' },
+  { type: 'user',   arabic: 'أيوه مظبوط',                     transliteration: 'Aywa mazboot',                   english: "Yes that's correct" },
+  { type: 'waiter', arabic: 'محتاج الباسبور لو سمحت',         transliteration: 'Mehtag el-passport law samaht',  english: 'I need the passport please' },
+  { type: 'user',   arabic: 'اتفضل',                           transliteration: 'Itfaddal',                       english: 'Here you go' },
+  { type: 'waiter', arabic: 'شكراً. الأوضة رقم تلتمية واتناشر، الدور التالت', transliteration: "Shukran. El-oda ra'm toltomeyya w-itnashar, ed-dor et-talit", english: 'Thanks. Room 312, third floor' },
+  { type: 'user',   arabic: 'الفطار بيكون الساعة كام؟',        transliteration: "El-fitar biyikon es-sa'a kam?",  english: 'What time is breakfast?' },
+  { type: 'waiter', arabic: 'من سبعة لعشرة الصبح في الدور الأول', transliteration: "Min sab'a li-ashara es-sobh fil-dor el-awwil", english: 'From 7 to 10 AM on the first floor' },
+  { type: 'user',   arabic: 'تمام، شكراً',                    transliteration: 'Tamam, shukran',                 english: 'OK, thanks' },
+  { type: 'waiter', arabic: 'العفو، لو محتاج أي حاجة كلمنا', transliteration: 'El-afw, law mehtag ay haga kalimna', english: "You're welcome, if you need anything call us" },
+];
+
+export const RESTAURANT_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'السلام عليكم، فيه ترابيزة فاضية؟', transliteration: 'As-salamu alaykum, fee tarabeza fadya?', english: 'Peace be upon you, is there an empty table?' },
+  { type: 'waiter', arabic: 'أهلاً وسهلاً! أيوه اتفضل، لكام واحد؟', transliteration: 'Ahlan wa sahlan! Aywa itfaddal, li-kam wahid?', english: 'Welcome! Yes please, for how many?' },
+  { type: 'user',   arabic: 'لاتنين لو سمحت',                 transliteration: 'Li-itnein law samaht',           english: 'For two please' },
+  { type: 'waiter', arabic: 'اتفضلوا هنا. دي المنيو',          transliteration: 'Itfaddalu hina. Di el-menu',     english: "Please sit here. Here's the menu" },
+  { type: 'user',   arabic: 'شكراً. إيه أحسن حاجة عندكم؟',   transliteration: 'Shukran. Eih ahsan haga andokom?', english: "Thanks. What's the best thing you have?" },
+  { type: 'waiter', arabic: 'الكشري بتاعنا مشهور، وكمان الملوخية', transliteration: "El-koshari beta'na mashhoor, wa kaman el-molokheyya", english: 'Our koshari is famous, and also the molokhia' },
+  { type: 'user',   arabic: 'عايز كشري وسلطة لو سمحت',        transliteration: 'Ayez koshari wi salata law samaht', english: 'I want koshari and salad please' },
+  { type: 'waiter', arabic: 'حاضر. عايز تشرب إيه؟',           transliteration: 'Hader. Ayez tishrab eih?',       english: 'Right away. What do you want to drink?' },
+  { type: 'user',   arabic: 'ماية معدنية لو سمحت',             transliteration: "Mayya ma'daneyya law samaht",    english: 'Mineral water please' },
+  { type: 'waiter', arabic: 'حاضر، حاجة تاني؟',               transliteration: 'Hader, haga tani?',              english: 'Sure, anything else?' },
+  { type: 'user',   arabic: 'لا بس كده، شكراً',               transliteration: 'La bass keda, shukran',          english: "No that's it, thanks" },
+  { type: 'user',   arabic: 'الحساب لو سمحت',                 transliteration: 'El-hisab law samaht',            english: 'The bill please' },
+  { type: 'waiter', arabic: 'تمانين جنيه',                    transliteration: 'Tamaneen gineih',                english: 'Eighty pounds' },
+  { type: 'user',   arabic: 'اتفضل. الأكل كان جميل',          transliteration: 'Itfaddal. El-akl kan gameel',    english: 'Here you go. The food was great' },
+  { type: 'waiter', arabic: 'تسلم يا باشا، نورتنا',           transliteration: 'Tislam ya basha, nawwartina',    english: 'Bless you boss, you honored us' },
+];
+
+export const SUPERMARKET_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'لو سمحت، اللبن فين؟',            transliteration: 'Law samaht, el-laban fein?',     english: 'Excuse me, where is the milk?' },
+  { type: 'waiter', arabic: 'آخر ممر على الشمال',              transliteration: 'Akher mamarr ala esh-shimal',   english: 'Last aisle on the left' },
+  { type: 'user',   arabic: 'شكراً. وفين العيش؟',              transliteration: 'Shukran. Wi fein el-eish?',     english: 'Thanks. And where is the bread?' },
+  { type: 'waiter', arabic: 'العيش في أول ممر على اليمين',     transliteration: 'El-eish fi awwil mamarr ala el-yimeen', english: 'The bread is in the first aisle on the right' },
+  { type: 'user',   arabic: 'ده بكام؟',                        transliteration: 'Da bikam?',                      english: 'How much is this?' },
+  { type: 'waiter', arabic: 'اتناشر جنيه',                    transliteration: 'Itnashar gineih',                english: 'Twelve pounds' },
+  { type: 'user',   arabic: 'وفيه عرض على المياه؟',            transliteration: 'Wi fee ard ala el-mayya?',      english: 'And is there a deal on water?' },
+  { type: 'waiter', arabic: 'أيوه، اتنين بعشرة جنيه',          transliteration: 'Aywa, itnein bi-ashara gineih', english: 'Yes, two for ten pounds' },
+  { type: 'user',   arabic: 'تمام، هاخد اتنين',               transliteration: 'Tamam, hakhod itnein',           english: "OK, I'll take two" },
+  { type: 'waiter', arabic: 'عايز كيس؟',                       transliteration: 'Ayez kis?',                      english: 'Do you want a bag?' },
+  { type: 'user',   arabic: 'أيوه لو سمحت. المجموع بكام؟',    transliteration: "Aywa law samaht. El-magmoo' bikam?", english: "Yes please. What's the total?" },
+  { type: 'waiter', arabic: 'خمسة وستين جنيه',                 transliteration: 'Khamsa wi sitteen gineih',       english: 'Sixty-five pounds' },
+  { type: 'user',   arabic: 'اتفضل، شكراً',                   transliteration: 'Itfaddal, shukran',              english: 'Here you go, thanks' },
+  { type: 'waiter', arabic: 'شكراً، مع السلامة',               transliteration: "Shukran, ma'a as-salama",        english: 'Thanks, goodbye' },
+];
+
+export const PHARMACY_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'السلام عليكم، عندكم حاجة للصداع؟', transliteration: "As-salamu alaykum, andokom haga lil-soda'?", english: 'Peace be upon you, do you have something for headache?' },
+  { type: 'waiter', arabic: 'أيوه طبعاً. عايز بنادول ولا بروفين؟', transliteration: 'Aywa tab\'an. Ayez Panadol walla Brufen?', english: 'Yes of course. Do you want Panadol or Brufen?' },
+  { type: 'user',   arabic: 'بنادول لو سمحت. بكام العلبة؟',   transliteration: 'Panadol law samaht. Bikam el-elba?', english: 'Panadol please. How much is the box?' },
+  { type: 'waiter', arabic: 'خمسة وعشرين جنيه',               transliteration: 'Khamsa wi ishreen gineih',        english: 'Twenty-five pounds' },
+  { type: 'user',   arabic: 'تمام. وعندكم كريم للشمس؟',       transliteration: 'Tamam. Wi andokom cream lil-shams?', english: 'OK. And do you have sunscreen?' },
+  { type: 'waiter', arabic: 'أيوه، فيه نوعين. المستورد بميت جنيه والمصري بخمسين', transliteration: "Aywa, fee no'ein. El-mustawrad bi-meet gineih wil-masri bi-khamseen", english: 'Yes, there are two types. Imported for 100 and Egyptian for 50' },
+  { type: 'user',   arabic: 'هاخد المصري',                    transliteration: 'Hakhod el-masri',                english: "I'll take the Egyptian one" },
+  { type: 'waiter', arabic: 'حاجة تاني؟',                     transliteration: 'Haga tani?',                     english: 'Anything else?' },
+  { type: 'user',   arabic: 'لا شكراً، بس كده',               transliteration: "La shukran, bass keda",          english: "No thanks, that's all" },
+  { type: 'waiter', arabic: 'المجموع خمسة وسبعين جنيه',       transliteration: "El-magmoo' khamsa wi sab'een gineih", english: 'The total is seventy-five pounds' },
+  { type: 'user',   arabic: 'اتفضل، شكراً',                   transliteration: 'Itfaddal, shukran',              english: 'Here you go, thanks' },
+  { type: 'waiter', arabic: 'سلامتك يا باشا',                 transliteration: 'Salamtak ya basha',              english: 'Get well soon boss' },
+];
+
+export const BARBERSHOP_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'السلام عليكم، فيه دور كبير؟',    transliteration: 'As-salamu alaykum, fee dor kebeer?', english: 'Peace be upon you, is there a long wait?' },
+  { type: 'waiter', arabic: 'لا يا باشا، اتفضل على طول',       transliteration: 'La ya basha, itfaddal ala tool', english: 'No boss, come right in' },
+  { type: 'user',   arabic: 'عايز أحلق شعري',                  transliteration: "Ayez ahla' sha'ri",             english: 'I want to cut my hair' },
+  { type: 'waiter', arabic: 'عايزه إزاي؟ قصير ولا مدرج؟',     transliteration: 'Ayzu izzay? Osayar walla mudarrag?', english: 'How do you want it? Short or layered?' },
+  { type: 'user',   arabic: 'قصير من الجناب وسيبه طويل من فوق', transliteration: "Osayar min el-ganab wi seebu taweel min fo'", english: 'Short on the sides and leave it long on top' },
+  { type: 'waiter', arabic: 'تمام. عايز تظبط الدقن كمان؟',    transliteration: "Tamam. Ayez tizabbit ed-da'n kaman?", english: 'OK. Do you want to trim the beard too?' },
+  { type: 'user',   arabic: 'أيوه، ظبطها شوية بس',             transliteration: 'Aywa, zabbitha shwayya bass',   english: 'Yes, just trim it a little' },
+  { type: 'waiter', arabic: 'حاضر. عايز جِل ولا سبراي بعد كده؟', transliteration: "Hader. Ayez gel walla spray ba'd keda?", english: 'Sure. Do you want gel or spray after?' },
+  { type: 'user',   arabic: 'لا شكراً، من غير حاجة',          transliteration: 'La shukran, min gheir haga',     english: 'No thanks, without anything' },
+  { type: 'waiter', arabic: 'خلاص كده. عجبك؟',                transliteration: 'Khalas keda. Agabak?',           english: 'All done. Do you like it?' },
+  { type: 'user',   arabic: 'حلو أوي، شكراً. بكام؟',           transliteration: 'Helw awi, shukran. Bikam?',     english: 'Very nice, thanks. How much?' },
+  { type: 'waiter', arabic: 'ستين جنيه',                       transliteration: 'Sitteen gineih',                english: 'Sixty pounds' },
+  { type: 'user',   arabic: 'اتفضل، تسلم إيدك يا معلم',        transliteration: 'Itfaddal, tislam eedak ya moallem', english: 'Here you go, bless your hands boss' },
+  { type: 'waiter', arabic: 'الله يسلمك، نورتنا',              transliteration: 'Allah yisalmak, nawwartina',    english: 'God bless you, you honored us' },
+];
+
+export const AIRPORT_DIALOGUE_EG: DialogueTurn[] = [
+  { type: 'user',   arabic: 'لو سمحت، كاونتر مصر للطيران فين؟', transliteration: 'Law samaht, counter Masr lil-tayaran fein?', english: 'Excuse me, where is the EgyptAir counter?' },
+  { type: 'waiter', arabic: 'على طول وبعدين يمين، هتلاقيه قدامك', transliteration: "Ala tool wi ba'dein yimeen, hatla'eeh oddamak", english: "Straight ahead then right, you'll find it in front of you" },
+  { type: 'user',   arabic: 'شكراً',                            transliteration: 'Shukran',                        english: 'Thanks' },
+  { type: 'waiter', arabic: 'صباح الخير، الباسبور وتذكرة الطيران لو سمحت', transliteration: 'Sabah el-kheir, el-passport wi tazkara et-tayaran law samaht', english: 'Good morning, passport and boarding pass please' },
+  { type: 'user',   arabic: 'اتفضلي',                           transliteration: 'Itfaddali',                      english: 'Here you go (to female)' },
+  { type: 'waiter', arabic: 'عايز مكان شباك ولا ممر؟',          transliteration: 'Ayez makan shibak walla mamarr?', english: 'Do you want window or aisle seat?' },
+  { type: 'user',   arabic: 'شباك لو سمحتي',                   transliteration: 'Shibak law samahti',             english: 'Window please (to female)' },
+  { type: 'waiter', arabic: 'عندك شنط هتشحنها؟',               transliteration: 'Andak shonat hatshahnha?',       english: 'Do you have bags to check in?' },
+  { type: 'user',   arabic: 'أيوه، شنطة واحدة بس',              transliteration: 'Aywa, shanta wahda bass',        english: 'Yes, just one bag' },
+  { type: 'waiter', arabic: 'حطها على الميزان لو سمحت',         transliteration: 'Hottha ala el-mizan law samaht', english: 'Put it on the scale please' },
+  { type: 'waiter', arabic: 'تمام، عشرين كيلو. البوردينج باس بتاعك، البوابة رقم تمنية', transliteration: "Tamam, ishreen kilo. El-boarding pass beta'ak, el-bawwaba ra'm tamanya", english: "OK, twenty kilos. Here's your boarding pass, gate number eight" },
+  { type: 'user',   arabic: 'الطيارة هتقلع الساعة كام؟',        transliteration: "Et-tayyara hat'alla' es-sa'a kam?", english: 'What time does the plane take off?' },
+  { type: 'waiter', arabic: 'الساعة تلاتة ونص، يعني عندك ساعة', transliteration: "Es-sa'a talata wi noss, ya'ni andak sa'a", english: "At 3:30, so you have an hour" },
+  { type: 'user',   arabic: 'تمام، شكراً جزيلاً',              transliteration: 'Tamam, shukran gazeelan',        english: 'OK, thank you very much' },
+  { type: 'waiter', arabic: 'العفو، رحلة سعيدة',               transliteration: "El-afw, rehla sa'eeda",          english: "You're welcome, have a nice trip" },
+];
