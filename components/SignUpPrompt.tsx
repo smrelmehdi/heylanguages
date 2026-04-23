@@ -1,6 +1,7 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
+import { theme } from '../constants/theme';
 
 interface Props {
   visible: boolean;
@@ -62,16 +63,16 @@ export default function SignUpPrompt({ visible, onClose, reason }: Props) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  card: { backgroundColor: '#111', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, alignItems: 'center', borderWidth: 0.5, borderColor: '#222' },
-  title: { fontSize: 22, fontWeight: '800', color: '#FFF', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  overlay: { flex: 1, backgroundColor: 'rgba(31, 29, 39, 0.85)', justifyContent: 'flex-end' },
+  card: { backgroundColor: theme.colors.bgSurface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
+  title: { fontSize: theme.fontSize.title, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: theme.fontSize.body, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   benefits: { width: '100%', gap: 10, marginBottom: 24 },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  benefitCheck: { fontSize: 16, color: '#00897B', fontWeight: '700', width: 20 },
-  benefitText: { fontSize: 15, color: '#FFF', fontWeight: '500' },
-  signUpBtn: { width: '100%', height: 56, backgroundColor: '#00897B', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  signUpBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
+  benefitCheck: { fontSize: 16, color: theme.colors.accentSuccess, fontWeight: theme.fontWeight.medium, width: 20 },
+  benefitText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular },
+  signUpBtn: { width: '100%', minHeight: 52, backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.md, alignItems: 'center', justifyContent: 'center', marginBottom: 12, paddingVertical: 14 },
+  signUpBtnText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
   laterBtn: { paddingVertical: 12 },
-  laterText: { color: '#555', fontSize: 14 },
+  laterText: { color: theme.colors.textSecondary, fontSize: 14 },
 });

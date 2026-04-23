@@ -2,7 +2,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import React from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, Text, View, Image } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View, Image } from 'react-native';
+import { theme } from '../constants/theme';
 
 const { height } = Dimensions.get('window');
 const imageHeight = height * 0.60;
@@ -22,14 +23,14 @@ export default function ScenarioIntroScreen({ image, badge, title, description, 
   const router = useRouter();
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.bgBase }}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Image */}
       <View style={{ height: imageHeight, width: '100%' }}>
         <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         <LinearGradient
-          colors={['transparent', 'rgba(10,10,10,0.7)', '#0A0A0A']}
+          colors={['transparent', 'rgba(31, 29, 39, 0.7)', theme.colors.bgBase]}
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160 }}
         />
         <Pressable
@@ -41,7 +42,7 @@ export default function ScenarioIntroScreen({ image, badge, title, description, 
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <ArrowLeft color="#fff" size={20} />
+          <ArrowLeft color={theme.colors.textPrimary} size={20} />
         </Pressable>
       </View>
 
@@ -85,24 +86,24 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     justifyContent: 'flex-start',
   },
-  badge: { fontSize: 11, color: '#00897B', fontWeight: '600', marginBottom: 6 },
-  title: { fontSize: 24, fontWeight: '800', color: '#FFF', marginBottom: 6 },
-  description: { fontSize: 12, color: '#888', lineHeight: 18, marginBottom: 14 },
+  badge: { fontSize: theme.fontSize.label, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, marginBottom: 6, letterSpacing: 1.5, textTransform: 'uppercase' },
+  title: { fontSize: theme.fontSize.display, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 6 },
+  description: { fontSize: theme.fontSize.body, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 14 },
   pillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   pill: {
-    backgroundColor: '#161616', borderWidth: 1, borderColor: '#2a2a2a',
-    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.pill, paddingHorizontal: 10, paddingVertical: 4,
   },
-  pillText: { fontSize: 11, color: '#FFF' },
+  pillText: { fontSize: theme.fontSize.label, color: theme.colors.textPrimary },
   statPill: {
-    backgroundColor: '#161616', borderWidth: 1, borderColor: '#2a2a2a',
-    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.pill, paddingHorizontal: 10, paddingVertical: 4,
   },
-  statText: { fontSize: 11, color: '#555' },
+  statText: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary },
   startButton: {
-    backgroundColor: '#00897B', height: 52, borderRadius: 16,
+    backgroundColor: theme.colors.accentPrimary, height: 52, borderRadius: theme.radii.md,
     alignItems: 'center', justifyContent: 'center',
     marginTop: 24,
   },
-  startButtonText: { fontSize: 17, fontWeight: '800', color: '#FFF' },
+  startButtonText: { fontSize: 17, fontWeight: theme.fontWeight.medium, color: theme.colors.bgBase },
 });

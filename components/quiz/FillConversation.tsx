@@ -144,8 +144,8 @@ const styles = StyleSheet.create({
   leftRow: { justifyContent: 'flex-start' },
   rightRow: { justifyContent: 'flex-end' },
 
-  yusufDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  yusufDotText: { fontSize: 12, fontWeight: theme.fontWeight.medium, color: theme.colors.bgBase },
+  yusufDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.bgSurface, borderWidth: 1.5, borderColor: theme.colors.borderAccent, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  yusufDotText: { fontSize: 12, fontWeight: theme.fontWeight.medium, color: theme.colors.accentPrimary },
   npcEmoji: { fontSize: 22 },
 
   bubble: { maxWidth: '75%', borderRadius: theme.radii.sm, padding: 12, borderWidth: 1 },

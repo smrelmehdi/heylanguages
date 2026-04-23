@@ -4,7 +4,7 @@ import {
   Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Send, Volume2, X } from 'lucide-react-native';
+import { AlertTriangle, ArrowLeft, Send, Volume2, X } from 'lucide-react-native';
 
 import { useDialect } from '../../contexts/DialectContext';
 import { stripTashkeel } from '../../utils/arabic';
@@ -177,8 +177,8 @@ function UserBubble({ msg }: { msg: UserMsg }) {
 function CorrectionCard({ msg }: { msg: CorrectionMsg }) {
   return (
     <View style={styles.correctionCard}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <View style={styles.errorCircle}><Text style={styles.errorCircleText}>!</Text></View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        <AlertTriangle color={theme.colors.accentDanger} size={16} style={{ marginRight: 8 }} />
         <Text style={styles.correctionLabel}>Small correction</Text>
       </View>
       <Text style={styles.correctionWrong}>
@@ -645,10 +645,10 @@ const styles = StyleSheet.create({
   homeHeader: { alignItems: 'center', marginBottom: 24, gap: 6 },
   yusufCircle: {
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderAccent,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1.5, borderColor: theme.colors.borderAccent,
     alignItems: 'center', justifyContent: 'center', marginBottom: 4,
   },
-  yusufCircleChar: { color: theme.colors.textAccent, fontSize: 24, fontWeight: theme.fontWeight.medium },
+  yusufCircleChar: { color: theme.colors.accentPrimary, fontSize: 24, fontWeight: theme.fontWeight.medium },
   homeTitle:    { color: theme.colors.textPrimary, fontSize: 16, fontWeight: theme.fontWeight.medium },
   homeSubtitle: { color: theme.colors.textTertiary, fontSize: theme.fontSize.caption },
 
@@ -711,10 +711,10 @@ const styles = StyleSheet.create({
   msgRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 },
   avatarSmall: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderAccent,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1.5, borderColor: theme.colors.borderAccent,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2,
   },
-  avatarChar: { color: theme.colors.textAccent, fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium },
+  avatarChar: { color: theme.colors.accentPrimary, fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium },
 
   yusufBubble: {
     maxWidth: '80%', backgroundColor: theme.colors.bgSurface,
@@ -743,11 +743,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(229, 107, 111, 0.15)', borderWidth: 1, borderColor: theme.colors.accentDanger,
     borderRadius: theme.radii.sm, padding: 10,
   },
-  errorCircle: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: theme.colors.accentDanger, alignItems: 'center', justifyContent: 'center',
-  },
-  errorCircleText: { color: theme.colors.bgBase, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium },
   correctionLabel:  { color: theme.colors.accentDanger, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium },
   correctionWrong:  { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption },
   strikethrough:    { color: theme.colors.accentDanger, textDecorationLine: 'line-through' },

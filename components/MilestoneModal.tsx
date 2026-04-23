@@ -1,6 +1,7 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { MILESTONE_MESSAGES } from '../utils/streak';
+import { theme } from '../constants/theme';
 
 interface Props {
   visible: boolean;
@@ -39,31 +40,32 @@ export default function MilestoneModal({ visible, milestone, onClose }: Props) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(31, 29, 39, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   card: {
     width: '100%',
-    backgroundColor: '#111',
-    borderRadius: 24,
+    backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radii.lg,
     padding: 28,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: theme.colors.borderDefault,
   },
   lottie: { width: 140, height: 140, marginBottom: 4 },
   fires: { fontSize: 36, marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '900', color: '#FF9600', marginBottom: 12 },
-  message: { fontSize: 16, color: '#fff', textAlign: 'center', lineHeight: 24, marginBottom: 28, opacity: 0.9 },
+  title: { fontSize: 28, fontWeight: theme.fontWeight.medium, color: theme.colors.accentSuccess, marginBottom: 12 },
+  message: { fontSize: 16, color: theme.colors.textPrimary, textAlign: 'center', lineHeight: 24, marginBottom: 28, opacity: 0.9 },
   btn: {
     width: '100%',
-    height: 54,
-    backgroundColor: '#00897B',
-    borderRadius: 16,
+    minHeight: 52,
+    backgroundColor: theme.colors.accentPrimary,
+    borderRadius: theme.radii.md,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 14,
   },
-  btnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  btnText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
 });

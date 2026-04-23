@@ -1,6 +1,7 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { getWeekDays } from '../utils/streak';
 import type { StreakData } from '../utils/streak';
+import { theme } from '../constants/theme';
 
 interface Props {
   visible: boolean;
@@ -70,79 +71,79 @@ export default function StreakModal({ visible, streakData, onClose }: Props) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(31, 29, 39, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   card: {
     width: '100%',
-    backgroundColor: '#111',
-    borderRadius: 24,
+    backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radii.lg,
     padding: 28,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1e1e1e',
+    borderColor: theme.colors.borderDefault,
   },
   fireEmoji: { fontSize: 48, marginBottom: 4 },
-  streakNum: { fontSize: 64, fontWeight: '900', color: '#FF9600', lineHeight: 72 },
-  streakLabel: { fontSize: 14, color: '#888', fontWeight: '600', marginBottom: 24, textTransform: 'uppercase', letterSpacing: 1 },
+  streakNum: { fontSize: 64, fontWeight: theme.fontWeight.medium, color: theme.colors.accentWarm, lineHeight: 72 },
+  streakLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium, marginBottom: 24, textTransform: 'uppercase', letterSpacing: 1.5 },
 
   weekRow: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 24,
-    backgroundColor: '#161616',
-    borderRadius: 16,
+    backgroundColor: theme.colors.bgBase,
+    borderRadius: theme.radii.lg,
     padding: 16,
     alignSelf: 'stretch',
     justifyContent: 'space-between',
-    borderWidth: 0.5,
-    borderColor: '#2a2a2a',
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
   },
   dayCol: { alignItems: 'center', gap: 6 },
   dot: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1e1e1e',
-    borderWidth: 1.5,
-    borderColor: '#2a2a2a',
+    backgroundColor: theme.colors.bgSurface,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
   },
   dotActive: {
-    backgroundColor: '#FF9600',
-    borderColor: '#FF9600',
+    backgroundColor: theme.colors.accentWarm,
+    borderColor: theme.colors.accentWarm,
   },
   dotToday: {
-    borderColor: '#00897B',
+    borderColor: theme.colors.borderAccent,
     borderWidth: 2,
   },
-  dayLabel: { fontSize: 11, color: '#555', fontWeight: '600' },
-  dayLabelToday: { color: '#00897B' },
+  dayLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium },
+  dayLabelToday: { color: theme.colors.textAccent },
 
   longestRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignSelf: 'stretch',
-    backgroundColor: '#161616',
-    borderRadius: 12,
+    backgroundColor: theme.colors.bgBase,
+    borderRadius: theme.radii.md,
     padding: 14,
     marginBottom: 20,
-    borderWidth: 0.5,
-    borderColor: '#2a2a2a',
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
   },
-  longestLabel: { fontSize: 14, color: '#888' },
-  longestVal: { fontSize: 14, color: '#fff', fontWeight: '700' },
+  longestLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  longestVal: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.medium },
 
-  msg: { fontSize: 13, color: '#555', textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  msg: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
 
   closeBtn: {
     width: '100%',
-    height: 50,
-    backgroundColor: '#00897B',
-    borderRadius: 14,
+    height: 52,
+    backgroundColor: theme.colors.accentPrimary,
+    borderRadius: theme.radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  closeBtnText: { color: theme.colors.bgBase, fontSize: 16, fontWeight: theme.fontWeight.medium },
 });

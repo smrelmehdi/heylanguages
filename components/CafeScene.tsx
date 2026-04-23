@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
+import { theme } from '../constants/theme';
 
 interface CafeSceneProps {
   arabic: string;
@@ -39,14 +40,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   bubble: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.bgSurface,
     padding: 10,
-    borderRadius: 14,
+    borderRadius: theme.radii.md,
     maxWidth: '70%',
     position: 'absolute',
     alignSelf: 'center',
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: theme.colors.borderDefault,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -55,6 +56,7 @@ const styles = StyleSheet.create({
   yusufBubble: {
     top: 16,
     left: '15%',
+    borderColor: theme.colors.borderAccent,
   },
   waiterBubble: {
     top: 16,
@@ -62,13 +64,13 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: theme.fontWeight.medium,
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   translationText: {
-    fontSize: 11,
-    color: '#555',
+    fontSize: theme.fontSize.label,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
   },

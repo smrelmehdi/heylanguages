@@ -7,6 +7,7 @@ import Animated, {
     withRepeat,
     withTiming,
 } from 'react-native-reanimated';
+import { theme } from '../constants/theme';
 
 interface YusufAvatarProps {
   isListening?: boolean;
@@ -42,7 +43,7 @@ const YusufAvatar: React.FC<YusufAvatarProps> = ({ isListening }) => {
       borderColor: interpolateColor(
         glow.value,
         [0, 1],
-        ['#50C87800', '#50C878FF']
+        ['rgba(61, 212, 192, 0)', theme.colors.borderAccent]
       ),
       borderWidth: isListening ? 4 : 0,
     };
@@ -50,7 +51,7 @@ const YusufAvatar: React.FC<YusufAvatarProps> = ({ isListening }) => {
 
   return (
     <View style={styles.container}>
-      <Animated.View 
+      <Animated.View
         style={[styles.avatarContainer, animatedStyle]}
       >
         <Image
