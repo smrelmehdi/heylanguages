@@ -28,6 +28,7 @@ import { useDialect } from '../contexts/DialectContext';
 import { playLocalAudio, stopAudio } from '../utils/tts';
 import { supabase } from '../utils/supabase';
 import SignUpPrompt from '../components/SignUpPrompt';
+import { theme } from '../constants/theme';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -511,7 +512,7 @@ Rules:
             style={styles.iconBtn}
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/chat' as any)}
           >
-            <ArrowLeft color="#fff" size={18} />
+            <ArrowLeft color={theme.colors.textPrimary} size={18} />
           </Pressable>
           <Text style={styles.headerTitle} numberOfLines={1}>{screenTitle}</Text>
           <LottieView
@@ -528,7 +529,7 @@ Rules:
             style={styles.headerLottie}
           />
           <Pressable style={styles.iconBtn} onPress={handleNewConversation}>
-            <Plus color="#00897B" size={18} />
+            <Plus color={theme.colors.accentPrimary} size={18} />
           </Pressable>
         </View>
 
@@ -556,7 +557,7 @@ Rules:
                     onPress={() => msg.arabic && speakInDialect(msg.arabic)}
                   >
                     <View style={styles.tapHint}>
-                      <Volume2 color="#444" size={10} />
+                      <Volume2 color={theme.colors.textTertiary} size={10} />
                       <Text style={styles.tapHintText}>Tap to hear</Text>
                     </View>
                     {msg.arabic ? (
@@ -587,7 +588,7 @@ Rules:
                     style={styles.voiceBubble}
                     onPress={() => msg.voiceUri && playVoice(msg.voiceUri)}
                   >
-                    <Volume2 color="#fff" size={16} />
+                    <Volume2 color={theme.colors.textPrimary} size={16} />
                     <Text style={styles.voiceText}>Voice message · tap to play</Text>
                   </Pressable>
                 )}
@@ -635,14 +636,14 @@ Rules:
               onPressIn={handleMicPressIn}
               onPressOut={handleMicPressOut}
             >
-              <Mic color={isRecording ? '#fff' : '#666'} size={18} />
+              <Mic color={isRecording ? theme.colors.textPrimary : theme.colors.textTertiary} size={18} />
             </Pressable>
 
             <View style={styles.textWrap}>
               <TextInput
                 style={styles.textInput}
                 placeholder="Type in Arabic or English…"
-                placeholderTextColor="#3a3a3a"
+                placeholderTextColor={theme.colors.textTertiary}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -655,7 +656,7 @@ Rules:
               onPress={() => sendMessage(inputText)}
               disabled={!inputText.trim() || isLoading}
             >
-              <Send color={inputText.trim() && !isLoading ? '#fff' : '#333'} size={18} />
+              <Send color={inputText.trim() && !isLoading ? theme.colors.bgBase : theme.colors.textTertiary} size={18} />
             </Pressable>
           </View>
 
@@ -674,21 +675,21 @@ Rules:
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
   flex:      { flex: 1 },
 
   // header
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#1a1a1a',
+    borderBottomWidth: 1, borderBottomColor: theme.colors.borderDefault,
   },
   iconBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 0.5, borderColor: '#2a2a2a',
+    backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
-  headerTitle:  { flex: 1, fontSize: 15, fontWeight: '700', color: '#fff' },
+  headerTitle:  { flex: 1, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
   headerLottie: { width: 36, height: 36 },
 
   // message list
@@ -701,49 +702,51 @@ const styles = StyleSheet.create({
   // Yusuf bubble
   yusufBubble: {
     maxWidth: '84%',
-    backgroundColor: '#1A1A1A', borderRadius: 20, borderBottomLeftRadius: 4,
+    backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderBottomLeftRadius: 4,
     padding: 14, gap: 3,
-    borderWidth: 0.5, borderColor: '#2a2a2a',
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
   tapHint: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  tapHintText: { fontSize: 10, color: '#3a3a3a' },
-  arabicText:    { fontSize: 20, fontWeight: '700', color: '#fff', textAlign: 'right', lineHeight: 30 },
-  translitText:  { fontSize: 13, color: '#888', fontStyle: 'italic', lineHeight: 20 },
-  englishText:   { fontSize: 13, color: '#555', lineHeight: 20 },
-  noteSep:       { borderTopWidth: 0.5, borderTopColor: '#2a2a2a', paddingTop: 8, marginTop: 4 },
-  noteText:      { fontSize: 12, color: '#666', lineHeight: 18 },
-  loadingText:   { fontSize: 13, color: '#444', fontStyle: 'italic' },
+  tapHintText: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary },
+  arabicText:    { fontSize: 20, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 30 },
+  translitText:  { fontSize: theme.fontSize.body, color: theme.colors.textSecondary, fontStyle: 'italic', lineHeight: 20 },
+  englishText:   { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, lineHeight: 20 },
+  noteSep:       { borderTopWidth: 1, borderTopColor: theme.colors.borderDefault, paddingTop: 8, marginTop: 4 },
+  noteText:      { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary, lineHeight: 18 },
+  loadingText:   { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, fontStyle: 'italic' },
 
   // user bubble
   userBubble: {
     maxWidth: '84%',
-    backgroundColor: '#00897B', borderRadius: 20, borderBottomRightRadius: 4,
+    backgroundColor: theme.colors.bgElevated, borderRadius: theme.radii.lg, borderBottomRightRadius: 4,
     padding: 14,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
-  userText: { fontSize: 15, color: '#fff', fontWeight: '500', lineHeight: 22 },
+  userText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular, lineHeight: 22 },
 
   // voice bubble
   voiceBubble: {
     maxWidth: '84%',
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#00897B', borderRadius: 20, borderBottomRightRadius: 4,
+    backgroundColor: theme.colors.bgElevated, borderRadius: theme.radii.lg, borderBottomRightRadius: 4,
     padding: 14,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
-  voiceText: { fontSize: 13, color: '#fff', fontWeight: '500' },
+  voiceText: { fontSize: theme.fontSize.body, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular },
 
   // suggestion chips
-  chipsBar:    { borderTopWidth: 0.5, borderTopColor: '#1a1a1a', paddingVertical: 10 },
+  chipsBar:    { borderTopWidth: 1, borderTopColor: theme.colors.borderDefault, paddingVertical: 10 },
   chipsScroll: { paddingHorizontal: 14, gap: 8 },
   chip: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333',
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.pill, paddingHorizontal: 14, paddingVertical: 8,
   },
-  chipText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  chipText: { color: theme.colors.textPrimary, fontSize: 14, fontWeight: theme.fontWeight.regular },
 
   // guest counter
   guestCounter: {
-    textAlign: 'center', fontSize: 11, color: '#383838',
-    paddingBottom: 4, backgroundColor: '#0A0A0A',
+    textAlign: 'center', fontSize: theme.fontSize.label, color: theme.colors.textTertiary,
+    paddingBottom: 4, backgroundColor: theme.colors.bgBase,
   },
 
   // input bar
@@ -751,13 +754,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-end', gap: 8,
     padding: 12,
     paddingBottom: Platform.OS === 'ios' ? 16 : 12,
-    backgroundColor: '#111',
-    borderTopWidth: 0.5, borderTopColor: '#1a1a1a',
+    backgroundColor: theme.colors.bgSurface,
+    borderTopWidth: 1, borderTopColor: theme.colors.borderDefault,
   },
-  micBtn:      { width: 42, height: 42, borderRadius: 21, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#2a2a2a' },
-  micBtnActive:{ backgroundColor: '#00897B', borderColor: '#00897B' },
-  textWrap:    { flex: 1, backgroundColor: '#1a1a1a', borderRadius: 20, borderWidth: 0.5, borderColor: '#2a2a2a', paddingHorizontal: 14, paddingVertical: 10, minHeight: 42, justifyContent: 'center' },
-  textInput:   { color: '#fff', fontSize: 15, maxHeight: 90, lineHeight: 22 },
-  sendBtn:     { width: 42, height: 42, borderRadius: 21, backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center' },
-  sendBtnOff:  { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a' },
+  micBtn:      { width: 42, height: 42, borderRadius: 21, backgroundColor: theme.colors.bgElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
+  micBtnActive:{ backgroundColor: theme.colors.accentDanger, borderColor: theme.colors.accentDanger },
+  textWrap:    { flex: 1, backgroundColor: theme.colors.bgElevated, borderRadius: theme.radii.pill, borderWidth: 1, borderColor: theme.colors.borderDefault, paddingHorizontal: 14, paddingVertical: 10, minHeight: 42, justifyContent: 'center' },
+  textInput:   { color: theme.colors.textPrimary, fontSize: 15, maxHeight: 90, lineHeight: 22 },
+  sendBtn:     { width: 42, height: 42, borderRadius: 21, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  sendBtnOff:  { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderDefault },
 });

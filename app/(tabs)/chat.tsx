@@ -16,6 +16,7 @@ import {
   SCENARIO_CONFIG, SCENARIO_KEYS, SCENARIO_OPENERS, FREE_CHAT_OPENER,
 } from '../../data/chat-scenarios';
 import type { ScenarioKey, SuggestedReply } from '../../data/chat-scenarios';
+import { theme } from '../../constants/theme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ function TappableArabicText({ text, fontSize, onWordTap }: {
           activeOpacity={0.55}
           style={{ paddingHorizontal: 1, paddingVertical: 2 }}
         >
-          <Text style={{ color: '#fff', fontSize, writingDirection: 'rtl' }}>{word}</Text>
+          <Text style={{ color: theme.colors.textPrimary, fontSize, writingDirection: 'rtl' }}>{word}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -145,7 +146,7 @@ function YusufBubble({ msg, voiceId, onWordTap }: {
           style={styles.speakerBtn}
           onPress={() => speakArabic(msg.arabicTashkeel || msg.arabic, voiceId)}
         >
-          <Volume2 color="#00897B" size={13} />
+          <Volume2 color={theme.colors.accentPrimary} size={13} />
         </TouchableOpacity>
       </View>
     </View>
@@ -503,7 +504,7 @@ export default function ChatTab() {
         {/* Top bar */}
         <View style={styles.convTopBar}>
           <Pressable onPress={() => setScreen('home')} style={styles.convBackBtn} hitSlop={12}>
-            <ArrowLeft color="#fff" size={22} />
+            <ArrowLeft color={theme.colors.textPrimary} size={22} />
           </Pressable>
           <View style={styles.convTitleArea}>
             <View style={styles.avatarSmall}><Text style={styles.avatarChar}>ي</Text></View>
@@ -513,7 +514,7 @@ export default function ChatTab() {
             </View>
           </View>
           <Pressable onPress={() => setScreen('home')} style={styles.convBackBtn} hitSlop={12}>
-            <X color="#555" size={20} />
+            <X color={theme.colors.textTertiary} size={20} />
           </Pressable>
         </View>
 
@@ -602,7 +603,7 @@ export default function ChatTab() {
                 value={inputText}
                 onChangeText={setInputText}
                 placeholder="Or type your own..."
-                placeholderTextColor="#444"
+                placeholderTextColor={theme.colors.textTertiary}
                 style={styles.textInput}
                 multiline={false}
                 returnKeyType="send"
@@ -613,7 +614,7 @@ export default function ChatTab() {
                 onPress={() => handleSend(inputText)}
                 disabled={!inputText.trim() || isLoading}
               >
-                <Send color="#fff" size={16} />
+                <Send color={theme.colors.bgBase} size={16} />
               </Pressable>
             </View>
           )}
@@ -636,7 +637,7 @@ export default function ChatTab() {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
 
   // ── Home ──────────────────────────────────────────────────────────────────
   homeScroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 120 },
@@ -644,65 +645,65 @@ const styles = StyleSheet.create({
   homeHeader: { alignItems: 'center', marginBottom: 24, gap: 6 },
   yusufCircle: {
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#111', borderWidth: 2, borderColor: '#00897B',
+    backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderAccent,
     alignItems: 'center', justifyContent: 'center', marginBottom: 4,
   },
-  yusufCircleChar: { color: '#00897B', fontSize: 24, fontWeight: '700' },
-  homeTitle:    { color: '#fff', fontSize: 16, fontWeight: '500' },
-  homeSubtitle: { color: '#666', fontSize: 12 },
+  yusufCircleChar: { color: theme.colors.textAccent, fontSize: 24, fontWeight: theme.fontWeight.medium },
+  homeTitle:    { color: theme.colors.textPrimary, fontSize: 16, fontWeight: theme.fontWeight.medium },
+  homeSubtitle: { color: theme.colors.textTertiary, fontSize: theme.fontSize.caption },
 
   dialectRow: { flexDirection: 'row', gap: 8, marginBottom: 24, justifyContent: 'center' },
   dialectPill: {
-    flex: 1, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333',
+    flex: 1, paddingVertical: 8, borderRadius: theme.radii.pill,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
     alignItems: 'center',
   },
-  dialectPillActive: { backgroundColor: '#0d3b34', borderColor: '#00897B' },
-  dialectPillText: { color: '#666', fontSize: 13, fontWeight: '600' },
-  dialectPillTextActive: { color: '#00897B' },
+  dialectPillActive: { backgroundColor: theme.colors.bgElevated, borderColor: theme.colors.borderAccent },
+  dialectPillText: { color: theme.colors.textTertiary, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium },
+  dialectPillTextActive: { color: theme.colors.textAccent },
 
   sectionLabel: {
-    color: '#888', fontSize: 11, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12,
+    color: theme.colors.textSecondary, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium,
+    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12,
   },
 
   scenarioGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   scenarioCard: {
-    width: '47%', backgroundColor: '#111', borderWidth: 1, borderColor: '#222',
-    borderRadius: 12, padding: 14, alignItems: 'center', gap: 6,
+    width: '47%', backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md, padding: 14, alignItems: 'center', gap: 6,
   },
   scenarioEmoji: { fontSize: 26 },
-  scenarioCardLabel: { color: '#ddd', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  scenarioCardLabel: { color: theme.colors.textPrimary, fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium, textAlign: 'center' },
 
   freeChatBtn: {
-    backgroundColor: '#0d3b34', borderWidth: 1, borderColor: '#00897B',
-    borderRadius: 24, paddingVertical: 14, alignItems: 'center', marginBottom: 24,
+    backgroundColor: theme.colors.accentPrimary,
+    borderRadius: theme.radii.md, paddingVertical: 14, alignItems: 'center', marginBottom: 24,
   },
-  freeChatBtnText: { color: '#00897B', fontSize: 15, fontWeight: '600' },
+  freeChatBtnText: { color: theme.colors.bgBase, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium },
 
   difficultyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  difficultyRowLabel: { color: '#666', fontSize: 12 },
+  difficultyRowLabel: { color: theme.colors.textTertiary, fontSize: theme.fontSize.caption },
   difficultyStops: { flex: 1, flexDirection: 'row', gap: 6 },
   difficultyStop: {
-    flex: 1, paddingVertical: 7, borderRadius: 20,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333',
+    flex: 1, paddingVertical: 7, borderRadius: theme.radii.pill,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
     alignItems: 'center',
   },
-  difficultyStopActive: { backgroundColor: '#0d3b34', borderColor: '#00897B' },
-  difficultyStopText: { color: '#555', fontSize: 11, fontWeight: '600' },
-  difficultyStopTextActive: { color: '#00897B' },
+  difficultyStopActive: { backgroundColor: theme.colors.bgElevated, borderColor: theme.colors.borderAccent },
+  difficultyStopText: { color: theme.colors.textTertiary, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium },
+  difficultyStopTextActive: { color: theme.colors.textAccent },
 
   // ── Conversation ──────────────────────────────────────────────────────────
   convTopBar: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
-    backgroundColor: '#0A0A0A',
+    borderBottomWidth: 1, borderBottomColor: theme.colors.borderDefault,
+    backgroundColor: theme.colors.bgBase,
   },
   convBackBtn: { padding: 4 },
   convTitleArea: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 8 },
-  convTitle: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  convWith:  { color: '#555', fontSize: 11 },
+  convTitle: { color: theme.colors.textPrimary, fontSize: 14, fontWeight: theme.fontWeight.medium },
+  convWith:  { color: theme.colors.textTertiary, fontSize: theme.fontSize.label },
 
   messagesContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
 
@@ -710,136 +711,138 @@ const styles = StyleSheet.create({
   msgRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 },
   avatarSmall: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#0d3b34', borderWidth: 1.5, borderColor: '#00897B',
+    backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderAccent,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2,
   },
-  avatarChar: { color: '#00897B', fontSize: 12, fontWeight: '700' },
+  avatarChar: { color: theme.colors.textAccent, fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium },
 
   yusufBubble: {
-    maxWidth: '80%', backgroundColor: '#111', borderRadius: 4,
-    borderTopLeftRadius: 0, borderTopRightRadius: 12, borderBottomRightRadius: 12, borderBottomLeftRadius: 12,
+    maxWidth: '80%', backgroundColor: theme.colors.bgSurface,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md, borderTopLeftRadius: 4,
     padding: 12, gap: 4,
   },
-  translit:   { color: '#00897B', fontSize: 12, marginTop: 2 },
-  englishSub: { color: '#666',    fontSize: 12 },
+  translit:   { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption, marginTop: 2 },
+  englishSub: { color: theme.colors.textTertiary, fontSize: theme.fontSize.caption },
   speakerBtn: { alignSelf: 'flex-end', marginTop: 4, padding: 2 },
 
   userMsgRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
   userBubble: {
-    maxWidth: '80%', backgroundColor: '#0d3b34',
-    borderWidth: 1, borderColor: 'rgba(0,137,123,0.25)',
-    borderRadius: 12, borderTopRightRadius: 0,
+    maxWidth: '80%', backgroundColor: theme.colors.bgElevated,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md, borderTopRightRadius: 4,
     padding: 12, gap: 3,
   },
-  userArabic:  { color: '#fff', textAlign: 'right', writingDirection: 'rtl' },
-  userLatin:   { color: '#fff', fontSize: 14 },
-  userTranslit:{ color: '#00897B', fontSize: 11 },
+  userArabic:  { color: theme.colors.textPrimary, textAlign: 'right', writingDirection: 'rtl' },
+  userLatin:   { color: theme.colors.textPrimary, fontSize: 14 },
+  userTranslit:{ color: theme.colors.textSecondary, fontSize: theme.fontSize.label },
 
   // Correction
   correctionCard: {
     marginLeft: 36, marginBottom: 10, marginRight: 8,
-    backgroundColor: '#1e1010', borderWidth: 1, borderColor: '#5a2a2a',
-    borderRadius: 10, padding: 10,
+    backgroundColor: 'rgba(229, 107, 111, 0.15)', borderWidth: 1, borderColor: theme.colors.accentDanger,
+    borderRadius: theme.radii.sm, padding: 10,
   },
   errorCircle: {
     width: 18, height: 18, borderRadius: 9,
-    backgroundColor: '#5a2a2a', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.accentDanger, alignItems: 'center', justifyContent: 'center',
   },
-  errorCircleText: { color: '#E24B4A', fontSize: 11, fontWeight: '700' },
-  correctionLabel:  { color: '#E24B4A', fontSize: 11, fontWeight: '600' },
-  correctionWrong:  { color: '#888', fontSize: 12 },
-  strikethrough:    { color: '#E24B4A', textDecorationLine: 'line-through' },
-  correctionRight:  { color: '#ccc', fontSize: 12 },
-  correctText:      { color: '#00897B', fontWeight: '600' },
-  correctionExplain:{ color: '#666' },
+  errorCircleText: { color: theme.colors.bgBase, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium },
+  correctionLabel:  { color: theme.colors.accentDanger, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium },
+  correctionWrong:  { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption },
+  strikethrough:    { color: theme.colors.accentDanger, textDecorationLine: 'line-through' },
+  correctionRight:  { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption },
+  correctText:      { color: theme.colors.accentSuccess, fontWeight: theme.fontWeight.medium },
+  correctionExplain:{ color: theme.colors.textTertiary },
 
   // Typing indicator
   typingBubble: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#111', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
   typingDot: {
-    width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#00897B',
+    width: 7, height: 7, borderRadius: 3.5, backgroundColor: theme.colors.accentPrimary,
   },
 
   // Suggestions
   suggestionsContainer: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 4, gap: 6 },
   suggestionsLabel: {
-    color: '#888', fontSize: 10, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2,
+    color: theme.colors.textSecondary, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium,
+    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 2,
   },
   suggestionCard: {
-    backgroundColor: '#111', borderWidth: 1, borderColor: '#2a2a2a',
-    borderRadius: 10, padding: 10,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.sm, padding: 10,
   },
-  suggestionArabic:  { color: '#fff', fontSize: 14, textAlign: 'right', writingDirection: 'rtl' },
-  suggestionEnglish: { color: '#666', fontSize: 11, marginTop: 2 },
+  suggestionArabic:  { color: theme.colors.textPrimary, fontSize: 14, textAlign: 'right', writingDirection: 'rtl' },
+  suggestionEnglish: { color: theme.colors.textTertiary, fontSize: theme.fontSize.label, marginTop: 2 },
 
   // Word bank
-  wordBankRow: { maxHeight: 40, borderTopWidth: 1, borderTopColor: '#181818' },
+  wordBankRow: { maxHeight: 40, borderTopWidth: 1, borderTopColor: theme.colors.borderDefault },
   wordBankContent: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 6, gap: 8, alignItems: 'center' },
   wordBankPill: {
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333',
-    borderRadius: 14, paddingHorizontal: 12, paddingVertical: 4,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md, paddingHorizontal: 12, paddingVertical: 4,
   },
-  wordBankPillText: { color: '#ccc', fontSize: 12 },
+  wordBankPillText: { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption },
 
   // Input row
   inputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: '#181818',
-    backgroundColor: '#0A0A0A',
+    borderTopWidth: 1, borderTopColor: theme.colors.borderDefault,
+    backgroundColor: theme.colors.bgBase,
   },
   textInput: {
-    flex: 1, backgroundColor: '#111', borderWidth: 1, borderColor: '#333',
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-    color: '#fff', fontSize: 15,
+    flex: 1, backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.pill, paddingHorizontal: 14, paddingVertical: 8,
+    color: theme.colors.textPrimary, fontSize: 15,
   },
   sendBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center',
   },
 
   // Error bar
   errorBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#1e1010', borderTopWidth: 1, borderTopColor: '#5a2a2a',
+    backgroundColor: 'rgba(229, 107, 111, 0.12)', borderTopWidth: 1, borderTopColor: theme.colors.accentDanger,
     paddingHorizontal: 16, paddingVertical: 8,
   },
-  errorBarText: { color: '#E24B4A', fontSize: 13, flex: 1 },
+  errorBarText: { color: theme.colors.accentDanger, fontSize: theme.fontSize.body, flex: 1 },
   retryBtn: {
-    backgroundColor: '#5a2a2a', borderRadius: 8,
+    backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.accentDanger, borderRadius: theme.radii.xs,
     paddingHorizontal: 12, paddingVertical: 4, marginLeft: 10,
   },
-  retryBtnText: { color: '#E24B4A', fontSize: 12, fontWeight: '600' },
+  retryBtnText: { color: theme.colors.accentDanger, fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium },
 
   // Completion card
   completionCard: {
-    margin: 16, backgroundColor: '#111', borderWidth: 1, borderColor: '#222',
-    borderRadius: 20, padding: 24, alignItems: 'center',
+    margin: 16, backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.lg, padding: 24, alignItems: 'center',
   },
-  completionTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 10 },
+  completionTitle: { color: theme.colors.textPrimary, fontSize: 20, fontWeight: theme.fontWeight.medium, marginBottom: 10 },
   xpBadge: {
-    backgroundColor: '#0d3b34', borderWidth: 1, borderColor: '#00897B',
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 5, marginBottom: 16,
+    backgroundColor: 'rgba(61, 212, 192, 0.12)', borderWidth: 1, borderColor: theme.colors.borderAccent,
+    borderRadius: theme.radii.md, paddingHorizontal: 14, paddingVertical: 5, marginBottom: 16,
   },
-  xpText: { color: '#00897B', fontSize: 14, fontWeight: '700' },
+  xpText: { color: theme.colors.textAccent, fontSize: 14, fontWeight: theme.fontWeight.medium },
   learnedSection: { width: '100%', gap: 8 },
-  learnedLabel: { color: '#888', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  learnedLabel: { color: theme.colors.textSecondary, fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, textTransform: 'uppercase', letterSpacing: 1.5 },
   learnedPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   learnedPill: {
-    backgroundColor: '#1A1A1A', borderRadius: 12,
-    paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: '#333',
+    backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.sm,
+    paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
-  learnedPillText: { color: '#ccc', fontSize: 12 },
+  learnedPillText: { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption },
   chatAgainBtn: {
-    backgroundColor: '#00897B', borderRadius: 24,
+    backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.md,
     paddingVertical: 13, alignItems: 'center',
   },
-  chatAgainText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  chatAgainText: { color: theme.colors.bgBase, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium },
   backBtn: { paddingVertical: 10, alignItems: 'center' },
-  backBtnText: { color: '#555', fontSize: 14 },
+  backBtnText: { color: theme.colors.textTertiary, fontSize: 14 },
 
   // Word tooltip modal
   tooltipOverlay: {
@@ -847,13 +850,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', padding: 32,
   },
   tooltipCard: {
-    backgroundColor: '#111', borderWidth: 1.5, borderColor: '#00897B',
-    borderRadius: 14, padding: 16, minWidth: 200, gap: 6,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent,
+    borderRadius: theme.radii.md, padding: 16, minWidth: 200, gap: 6,
   },
-  tooltipArabic: { color: '#00897B', fontSize: 22, fontWeight: '700' },
-  tooltipSub:    { color: '#ccc', fontSize: 14 },
+  tooltipArabic: { color: theme.colors.textAccent, fontSize: 22, fontWeight: theme.fontWeight.medium },
+  tooltipSub:    { color: theme.colors.textSecondary, fontSize: 14 },
   miniAudioBtn: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#0d3b34', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
 });

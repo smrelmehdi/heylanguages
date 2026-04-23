@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pre
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
+import { theme } from '../constants/theme';
 
 async function mergeGuestProgress(userId: string) {
   const guestProgress = await AsyncStorage.getItem('guest_progress');
@@ -122,7 +123,7 @@ export default function LoginScreen() {
           <Text style={styles.title}>Check your email</Text>
           <Text style={styles.subtitle}>
             We sent a confirmation link to{' '}
-            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>{email}</Text>.
+            <Text style={{ color: theme.colors.textPrimary, fontWeight: theme.fontWeight.medium }}>{email}</Text>.
             {' '}Click it to verify your account.
           </Text>
           <Pressable
@@ -144,12 +145,12 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <Pressable onPress={() => router.replace('/(tabs)')} style={styles.closeButton}>
-          <X color="#FFF" size={24} />
+          <X color={theme.colors.textPrimary} size={24} />
         </Pressable>
 
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Lock color="#00897B" size={48} />
+            <Lock color={theme.colors.accentPrimary} size={48} />
           </View>
 
           <Text style={styles.title}>{isLoginMode ? 'Welcome Back' : 'Create Account'}</Text>
@@ -159,11 +160,11 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <View style={[styles.inputWrapper, focusedInput === 'email' && styles.inputFocused]}>
-              <Mail color={focusedInput === 'email' ? '#00897B' : '#888'} size={20} style={styles.inputIcon} />
+              <Mail color={focusedInput === 'email' ? theme.colors.accentPrimary : theme.colors.textTertiary} size={20} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email address"
-                placeholderTextColor="#666"
+                placeholderTextColor={theme.colors.textTertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -175,11 +176,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={[styles.inputWrapper, focusedInput === 'password' && styles.inputFocused]}>
-              <Key color={focusedInput === 'password' ? '#00897B' : '#888'} size={20} style={styles.inputIcon} />
+              <Key color={focusedInput === 'password' ? theme.colors.accentPrimary : theme.colors.textTertiary} size={20} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor="#666"
+                placeholderTextColor={theme.colors.textTertiary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -196,7 +197,7 @@ export default function LoginScreen() {
               disabled={loading}
             >
               {loading
-                ? <ActivityIndicator color="#000" />
+                ? <ActivityIndicator color={theme.colors.bgBase} />
                 : <Text style={styles.primaryButtonText}>{isLoginMode ? 'Log In' : 'Sign Up'}</Text>
               }
             </Pressable>
@@ -209,11 +210,11 @@ export default function LoginScreen() {
 
             <View style={styles.socialRow}>
               <Pressable style={styles.socialButton} onPress={() => handleSocialMock('Google')}>
-                <Ionicons name="logo-google" size={20} color="#FFF" />
+                <Ionicons name="logo-google" size={20} color={theme.colors.textPrimary} />
                 <Text style={styles.socialText}>Google</Text>
               </Pressable>
               <Pressable style={styles.socialButton} onPress={() => handleSocialMock('Apple')}>
-                <Ionicons name="logo-apple" size={20} color="#FFF" />
+                <Ionicons name="logo-apple" size={20} color={theme.colors.textPrimary} />
                 <Text style={styles.socialText}>Apple</Text>
               </Pressable>
             </View>
@@ -236,28 +237,28 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
   flex: { flex: 1 },
   closeButton: { padding: 8, alignSelf: 'flex-start' },
   content: { flex: 1, padding: 32, justifyContent: 'center', alignItems: 'center', width: '100%' },
-  iconContainer: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(0, 137, 123, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 12 },
-  subtitle: { fontSize: 16, color: '#888', textAlign: 'center', lineHeight: 24, marginBottom: 40 },
+  iconContainer: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(61, 212, 192, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 12 },
+  subtitle: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, marginBottom: 40 },
   form: { width: '100%' },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', borderWidth: 2, borderColor: '#222', borderRadius: 16, paddingHorizontal: 16, height: 60, marginBottom: 16 },
-  inputFocused: { borderColor: '#00897B', backgroundColor: '#1A1A1A' },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault, borderRadius: theme.radii.lg, paddingHorizontal: 16, height: 60, marginBottom: 16 },
+  inputFocused: { borderColor: theme.colors.borderAccent },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, color: '#FFF', fontSize: 16, height: '100%' },
-  primaryButton: { backgroundColor: '#00897B', width: '100%', height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  input: { flex: 1, color: theme.colors.textPrimary, fontSize: 16, height: '100%' },
+  primaryButton: { backgroundColor: theme.colors.accentPrimary, width: '100%', height: 60, borderRadius: theme.radii.lg, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.7 },
-  primaryButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  primaryButtonText: { color: theme.colors.bgBase, fontSize: 18, fontWeight: theme.fontWeight.medium },
   dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#333' },
-  dividerText: { color: '#666', paddingHorizontal: 16, fontSize: 14, fontWeight: '500' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: theme.colors.borderDefault },
+  dividerText: { color: theme.colors.textTertiary, paddingHorizontal: 16, fontSize: 14, fontWeight: theme.fontWeight.regular },
   socialRow: { flexDirection: 'row', gap: 16 },
-  socialButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111', height: 56, borderRadius: 16, borderWidth: 1, borderColor: '#333' },
-  socialText: { color: '#FFF', fontSize: 16, fontWeight: '600', marginLeft: 10 },
+  socialButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.bgSurface, height: 56, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault },
+  socialText: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: theme.fontWeight.medium, marginLeft: 10 },
   toggleContainer: { marginTop: 32, padding: 10, alignItems: 'center' },
-  toggleText: { color: '#888', fontSize: 15 },
-  toggleTextBold: { color: '#00897B', fontWeight: 'bold' },
+  toggleText: { color: theme.colors.textSecondary, fontSize: 15 },
+  toggleTextBold: { color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
 });

@@ -16,6 +16,7 @@ import Animated, {
   withDelay, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '../constants/theme';
 
 function useTypewriter(text: string, speed = 30) {
   const [displayedText, setDisplayedText] = useState('');
@@ -61,11 +62,11 @@ function BounceDot({ color, delay }: { color: string; delay: number }) {
 
 function BouncingDots() {
   const DOTS = [
-    { color: '#00897B', delay: 0 },
-    { color: '#FFD900', delay: 110 },
-    { color: '#FF6B6B', delay: 220 },
-    { color: '#00897B', delay: 330 },
-    { color: '#FFD900', delay: 440 },
+    { color: theme.colors.accentPrimary, delay: 0 },
+    { color: theme.colors.accentWarm,    delay: 110 },
+    { color: theme.colors.accentDanger,  delay: 220 },
+    { color: theme.colors.accentPrimary, delay: 330 },
+    { color: theme.colors.accentWarm,    delay: 440 },
   ];
   return (
     <View style={styles.bouncingDotsRow}>
@@ -130,7 +131,7 @@ export default function OnboardingWizard() {
   }, [step]);
 
   const bubbleAnimatedStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(glow.value, [0, 1], ['rgba(38,38,38,0.6)', '#00897B']),
+    borderColor: interpolateColor(glow.value, [0, 1], [theme.colors.borderDefault, theme.colors.borderAccent]),
     borderWidth: 2,
   }));
 
@@ -251,7 +252,7 @@ export default function OnboardingWizard() {
             <TextInput
               style={styles.textInput}
               placeholder="Your name..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={theme.colors.textTertiary}
               value={name}
               onChangeText={setName}
               autoCorrect={false}
@@ -294,10 +295,10 @@ export default function OnboardingWizard() {
                   onPress={() => handleDialectSelect(d)}
                   style={({ pressed }) => ({
                     width: '47%',
-                    backgroundColor: dialect === d.value ? 'rgba(0,137,123,0.15)' : '#1a1a1a',
-                    borderWidth: 1.5,
-                    borderColor: dialect === d.value ? '#00897B' : '#2a2a2a',
-                    borderRadius: 14,
+                    backgroundColor: theme.colors.bgSurface,
+                    borderWidth: 1,
+                    borderColor: dialect === d.value ? theme.colors.borderAccent : theme.colors.borderDefault,
+                    borderRadius: theme.radii.md,
                     padding: 14,
                     alignItems: 'center' as const,
                     opacity: d.disabled ? 0.4 : 1,
@@ -310,8 +311,8 @@ export default function OnboardingWizard() {
                     </View>
                   )}
                   <Text style={{ fontSize: 24, marginBottom: 4 }}>{d.flag}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{d.label}</Text>
-                  <Text style={{ fontSize: 10, color: '#555', textAlign: 'center', marginTop: 2 }}>{d.sublabel}</Text>
+                  <Text style={{ fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary }}>{d.label}</Text>
+                  <Text style={{ fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 2 }}>{d.sublabel}</Text>
                 </Pressable>
               ))}
             </View>
@@ -369,14 +370,14 @@ export default function OnboardingWizard() {
                 onPressOut={handlePressOut}
                 style={({ pressed }) => [styles.micButton, pressed && { transform: [{ scale: 0.95 }] }]}
               >
-                <Mic size={36} color="#FFFFFF" />
+                <Mic size={36} color={theme.colors.bgBase} />
               </Pressable>
             </View>
           </View>
         );
       case 7: {
         const score = pronScore ?? 0;
-        const scoreColor = score >= 85 ? '#00897B' : score >= 65 ? '#F59E0B' : '#FFFFFF';
+        const scoreColor = score >= 85 ? theme.colors.accentPrimary : score >= 65 ? theme.colors.accentWarm : theme.colors.textPrimary;
         const praiseArabic = score >= 85 ? 'ممتاز!' : score >= 65 ? 'زين!' : 'حاول مرة ثانية';
         return (
           <View style={styles.controlsWrapper}>
@@ -430,7 +431,7 @@ export default function OnboardingWizard() {
               setStep(s => s - 1);
             }}
           >
-            <ArrowLeft color="#fff" size={18} />
+            <ArrowLeft color={theme.colors.textPrimary} size={18} />
           </Pressable>
         ) : (
           <View style={styles.backBtnPlaceholder} />
@@ -500,7 +501,7 @@ export default function OnboardingWizard() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: theme.colors.bgBase,
   },
 
   // ── Wizard header ──────────────────────────────────────────────────────────
@@ -514,11 +515,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: theme.colors.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 0.5,
-    borderColor: '#2a2a2a',
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
   },
   backBtnPlaceholder: {
     width: 36,
@@ -535,19 +536,20 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: theme.colors.bgElevated,
   },
   progressDotActive: {
     width: 20,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#00897B',
+    backgroundColor: theme.colors.accentPrimary,
   },
   progressDotDone: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2a6b63',
+    backgroundColor: theme.colors.accentPrimary,
+    opacity: 0.5,
   },
 
   // ── Main layout ────────────────────────────────────────────────────────────
@@ -587,7 +589,7 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     width: '100%',
-    borderRadius: 24,
+    borderRadius: theme.radii.lg,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -602,9 +604,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bubbleText: {
-    color: '#FFFFFF',
+    color: theme.colors.textPrimary,
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: theme.fontWeight.medium,
     textAlign: 'center',
     lineHeight: 32,
   },
@@ -618,7 +620,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 16,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: 'rgba(38,38,38,0.4)',
+    borderTopColor: theme.colors.borderDefault,
     alignSelf: 'center',
   },
 
@@ -634,43 +636,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#00897B',
+    backgroundColor: theme.colors.accentPrimary,
     width: '100%',
     height: 60,
-    borderRadius: 16,
+    borderRadius: theme.radii.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.bgBase,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: theme.fontWeight.medium,
   },
   ghostButton: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#00897B',
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
     width: '100%',
     height: 60,
-    borderRadius: 16,
+    borderRadius: theme.radii.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   ghostButtonText: {
-    color: '#00897B',
+    color: theme.colors.textPrimary,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: theme.fontWeight.medium,
   },
   textInput: {
     width: '100%',
     height: 60,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
+    backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radii.md,
     paddingHorizontal: 20,
-    color: '#FFFFFF',
+    color: theme.colors.textPrimary,
     fontSize: 18,
     borderWidth: 1,
-    borderColor: '#333333',
+    borderColor: theme.colors.borderDefault,
     marginBottom: 24,
   },
   optionsList: {
@@ -680,23 +682,22 @@ const styles = StyleSheet.create({
   outlineButton: {
     width: '100%',
     paddingVertical: 18,
-    borderRadius: 16,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: theme.colors.borderDefault,
+    backgroundColor: theme.colors.bgSurface,
     alignItems: 'center',
   },
   outlineButtonActive: {
-    borderColor: '#00897B',
-    backgroundColor: 'rgba(0,137,123,0.1)',
+    borderColor: theme.colors.borderAccent,
   },
   outlineButtonText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: theme.colors.textSecondary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.fontWeight.medium,
   },
   outlineButtonTextActive: {
-    color: '#00897B',
+    color: theme.colors.textAccent,
   },
   micContainer: {
     alignItems: 'center',
@@ -706,10 +707,10 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#00897B',
+    backgroundColor: theme.colors.accentPrimary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00897B',
+    shadowColor: theme.colors.accentPrimary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -725,38 +726,38 @@ const styles = StyleSheet.create({
   },
   scoreNumber: {
     fontSize: 72,
-    fontWeight: '900',
+    fontWeight: theme.fontWeight.medium,
     lineHeight: 80,
   },
   scoreLabel: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: theme.fontWeight.medium,
     marginTop: 4,
   },
   replayBtn: {
     width: '100%',
     height: 52,
-    borderRadius: 14,
-    backgroundColor: '#1a1a1a',
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#00897B',
+    borderColor: theme.colors.borderAccent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   replayBtnText: {
-    color: '#00897B',
+    color: theme.colors.textAccent,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.fontWeight.medium,
   },
 
   // ── Soon badge ─────────────────────────────────────────────────────────────
   soonBadge: {
     position: 'absolute', top: 8, right: 8,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.radii.xs, paddingHorizontal: 6, paddingVertical: 2,
   },
-  soonText: { fontSize: 9, color: '#555', fontWeight: '700' },
+  soonText: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium, textTransform: 'uppercase', letterSpacing: 1 },
 
   // ── Bouncing dots ──────────────────────────────────────────────────────────
   bouncingDotsRow: {
