@@ -5,6 +5,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { ListeningQuestion } from '../../data/quiz-types';
 import { speakArabic, playLocalAudio } from '../../utils/tts';
+import { theme } from '../../constants/theme';
 
 const MAX_REPLAYS = 3;
 
@@ -62,7 +63,7 @@ export default function ListeningChallenge({ question, answerResult, onAnswer }:
             <Text style={styles.speakerIcon}>🔊</Text>
           </Animated.View>
         </Pressable>
-        <Text style={[styles.replayCount, replaysLeft === 0 && { color: '#555' }]}>
+        <Text style={[styles.replayCount, replaysLeft === 0 && { color: theme.colors.textTertiary }]}>
           {replaysLeft > 0
             ? `${replaysLeft} replay${replaysLeft !== 1 ? 's' : ''} left`
             : 'No replays left'}
@@ -72,19 +73,19 @@ export default function ListeningChallenge({ question, answerResult, onAnswer }:
       {/* Options */}
       <View style={styles.options}>
         {question.options.map((opt, i) => {
-          let bg = '#161616';
-          let border = '#2a2a2a';
-          let textColor = '#fff';
-          let romanColor = '#555';
+          let bg: string = theme.colors.bgSurface;
+          let border: string = theme.colors.borderDefault;
+          let textColor: string = theme.colors.textPrimary;
+          let romanColor: string = theme.colors.textTertiary;
 
           if (answerResult !== 'none' && selected !== null) {
             if (opt.isCorrect) {
-              bg = 'rgba(0,115,47,0.15)'; border = '#00732F'; textColor = '#00732F'; romanColor = '#00732F';
+              bg = 'rgba(125, 217, 154, 0.15)'; border = theme.colors.accentSuccess; textColor = theme.colors.accentSuccess; romanColor = theme.colors.accentSuccess;
             } else if (i === selected && !opt.isCorrect) {
-              bg = 'rgba(211,47,47,0.15)'; border = '#D32F2F'; textColor = '#D32F2F'; romanColor = '#D32F2F';
+              bg = 'rgba(229, 107, 111, 0.15)'; border = theme.colors.accentDanger; textColor = theme.colors.accentDanger; romanColor = theme.colors.accentDanger;
             }
           } else if (i === selected) {
-            border = '#00897B';
+            border = theme.colors.borderAccent;
           }
 
           return (
@@ -106,21 +107,21 @@ export default function ListeningChallenge({ question, answerResult, onAnswer }:
 
 const styles = StyleSheet.create({
   container: { gap: 16 },
-  prompt: { fontSize: 15, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  prompt: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
   playArea: { alignItems: 'center', gap: 12, paddingVertical: 8 },
   playBtn: {
-    width: 90, height: 90, borderRadius: 45, backgroundColor: '#00897B',
+    width: 90, height: 90, borderRadius: 45, backgroundColor: theme.colors.accentPrimary,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#00897B', shadowOpacity: 0.4, shadowRadius: 16, elevation: 8,
+    shadowColor: theme.colors.accentPrimary, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8,
   },
-  playBtnDisabled: { backgroundColor: '#1a1a1a', shadowOpacity: 0 },
+  playBtnDisabled: { backgroundColor: theme.colors.bgSurface, shadowOpacity: 0 },
   speakerIcon: { fontSize: 38 },
-  replayCount: { fontSize: 13, color: '#00897B', fontWeight: '600' },
+  replayCount: { fontSize: theme.fontSize.body, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
   options: { gap: 10 },
   option: {
-    minHeight: 56, borderRadius: 12, borderWidth: 1.5,
+    minHeight: 56, borderRadius: theme.radii.sm, borderWidth: 1,
     paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center',
   },
-  optionArabic: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
-  optionRoman: { fontSize: 12, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },
+  optionArabic: { fontSize: 17, fontWeight: theme.fontWeight.medium, textAlign: 'center' },
+  optionRoman: { fontSize: theme.fontSize.caption, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },
 });

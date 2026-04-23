@@ -32,6 +32,7 @@ import { useDialect } from '../contexts/DialectContext';
 import type { DialogueTurn } from '../data/content-registry';
 import { DIALECT_LABELS } from '../data/content-registry';
 import { recordActivity } from '../utils/streak';
+import { theme } from '../constants/theme';
 
 type RecordingState = 'idle' | 'recording' | 'playing' | 'feedback';
 
@@ -433,8 +434,8 @@ export default function ScenarioScreen() {
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
-          <Text style={{ fontSize: 15, color: '#555', textAlign: 'center', marginBottom: 32 }}>
+          <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
+          <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
             This scenario is not available for your selected dialect yet. We're working on it!
           </Text>
           <Pressable style={styles.completionButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
@@ -459,7 +460,7 @@ export default function ScenarioScreen() {
             ]
           );
         }} style={styles.backButton}>
-          <ArrowLeft color="#FFF" size={22} />
+          <ArrowLeft color={theme.colors.textPrimary} size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>{getSceneBadge()}</Text>
         <View style={styles.headerRight}>
@@ -558,7 +559,7 @@ export default function ScenarioScreen() {
           <View style={styles.levelUpCard}>
             <Text style={styles.levelUpEmoji}>{levelUpData?.icon}</Text>
             <Text style={styles.levelUpTitle}>Level Up!</Text>
-            <Text style={[styles.levelUpLevel, { color: levelUpData?.color ?? '#00897B' }]}>{levelUpData?.newLevel}</Text>
+            <Text style={[styles.levelUpLevel, { color: levelUpData?.color ?? theme.colors.accentPrimary }]}>{levelUpData?.newLevel}</Text>
             <Text style={styles.levelUpSub}>You reached a new level. Keep going!</Text>
             <Pressable style={styles.levelUpButton} onPress={() => setShowLevelUp(false)}>
               <Text style={styles.levelUpButtonText}>Continue 🎉</Text>
@@ -605,8 +606,8 @@ export default function ScenarioScreen() {
                   onPress={handleSpeak}
                 >
                   {isSpeaking
-                    ? <ActivityIndicator size="small" color="#888" />
-                    : <Volume2 color="#888" size={20} />
+                    ? <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+                    : <Volume2 color={theme.colors.textSecondary} size={20} />
                   }
                 </Pressable>
                 <Pressable style={styles.gotItButton} onPress={handleAdvance}>
@@ -622,13 +623,13 @@ export default function ScenarioScreen() {
                     onPress={handleSpeak}
                   >
                     {isSpeaking
-                      ? <ActivityIndicator size="small" color="#888" />
-                      : <Volume2 color="#888" size={20} />
+                      ? <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+                      : <Volume2 color={theme.colors.textSecondary} size={20} />
                     }
                   </Pressable>
 
                   <Pressable style={styles.iconButton}>
-                    <Lightbulb color="#888" size={20} />
+                    <Lightbulb color={theme.colors.textSecondary} size={20} />
                   </Pressable>
 
                   <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -638,32 +639,32 @@ export default function ScenarioScreen() {
                       disabled={recordingState === 'playing'}
                       style={[
                         styles.micButton,
-                        recordingState === 'recording' && { backgroundColor: '#FF4444' },
-                        recordingState === 'playing'   && { backgroundColor: '#555' },
-                        recordingState === 'feedback'  && { backgroundColor: '#00732F' },
+                        recordingState === 'recording' && { backgroundColor: theme.colors.accentDanger },
+                        recordingState === 'playing'   && { backgroundColor: theme.colors.textTertiary },
+                        recordingState === 'feedback'  && { backgroundColor: theme.colors.accentSuccess },
                       ]}
                     >
-                      {recordingState === 'idle'      && <Mic color="#FFF" size={26} />}
-                      {recordingState === 'recording' && <StopCircle color="#FFF" size={26} />}
-                      {recordingState === 'playing'   && <ActivityIndicator color="#FFF" />}
-                      {recordingState === 'feedback'  && <CheckCircle color="#FFF" size={26} />}
+                      {recordingState === 'idle'      && <Mic color={theme.colors.bgBase} size={26} />}
+                      {recordingState === 'recording' && <StopCircle color={theme.colors.textPrimary} size={26} />}
+                      {recordingState === 'playing'   && <ActivityIndicator color={theme.colors.textPrimary} />}
+                      {recordingState === 'feedback'  && <CheckCircle color={theme.colors.textPrimary} size={26} />}
                     </Pressable>
                   </Animated.View>
 
                   <Pressable style={styles.iconButton}>
-                    <BookOpen color="#888" size={20} />
+                    <BookOpen color={theme.colors.textSecondary} size={20} />
                   </Pressable>
 
                   <Pressable
                     style={[
                       styles.iconButton,
                       !showNext && { opacity: 0.3 },
-                      showNext && { borderColor: '#00897B' },
+                      showNext && { borderColor: theme.colors.borderAccent },
                     ]}
                     onPress={showNext ? handleAdvance : undefined}
                     disabled={!showNext}
                   >
-                    <ArrowRight color="#FFF" size={20} />
+                    <ArrowRight color={theme.colors.textPrimary} size={20} />
                   </Pressable>
                 </View>
 
@@ -686,7 +687,7 @@ export default function ScenarioScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: theme.colors.bgBase,
   },
   header: {
     height: 48,
@@ -699,9 +700,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
-    color: '#FFF',
+    color: theme.colors.textPrimary,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: theme.fontWeight.medium,
   },
   headerRight: {
     flexDirection: 'row',
@@ -711,22 +712,22 @@ const styles = StyleSheet.create({
   headerLottie: { width: 36, height: 36 },
   partPill: {
     borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 20,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.bgSurface,
   },
   partPillText: {
-    color: '#888',
-    fontSize: 11,
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.label,
   },
   sceneArea: {
     flex: 0.52,
   },
   bottomPanel: {
     flex: 0.48,
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.bgSurface,
     paddingBottom: 24,
   },
   progressRow: {
@@ -740,74 +741,72 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   partLabel: {
-    fontSize: 11,
-    color: '#00897B',
+    fontSize: theme.fontSize.label,
+    color: theme.colors.textAccent,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   progressBarBg: {
     height: 4,
-    backgroundColor: '#222',
+    backgroundColor: theme.colors.bgBase,
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#00897B',
+    backgroundColor: theme.colors.accentPrimary,
     borderRadius: 2,
   },
   progressLabel: {
-    fontSize: 11,
-    color: '#555',
+    fontSize: theme.fontSize.label,
+    color: theme.colors.textTertiary,
   },
   phraseCard: {
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: 16,
+    borderRadius: theme.radii.md,
     padding: 14,
     borderWidth: 1,
     minHeight: 90,
   },
   waiterCard: {
-    backgroundColor: '#1A1A1A',
-    borderColor: '#2A2A2A',
-    borderLeftWidth: 3,
-    borderLeftColor: '#FAC775',
+    backgroundColor: theme.colors.bgSurface,
+    borderColor: theme.colors.borderDefault,
   },
   userCard: {
-    backgroundColor: 'rgba(0, 137, 123, 0.08)',
-    borderColor: '#1A3330',
-    borderLeftWidth: 3,
-    borderLeftColor: '#00897B',
+    backgroundColor: theme.colors.bgElevated,
+    borderColor: theme.colors.borderAccent,
   },
   turnLabelWaiter: {
-    fontSize: 12,
-    color: '#888',
+    fontSize: theme.fontSize.caption,
+    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   turnLabelUser: {
-    fontSize: 12,
-    color: '#00897B',
+    fontSize: theme.fontSize.caption,
+    color: theme.colors.textAccent,
     marginBottom: 6,
   },
   contextText: {
-    fontSize: 11,
-    color: '#555',
+    fontSize: theme.fontSize.label,
+    color: theme.colors.textTertiary,
     fontStyle: 'italic',
     marginBottom: 4,
   },
   arabicText: {
     textAlign: 'right',
-    color: '#FFF',
-    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    fontWeight: theme.fontWeight.medium,
     marginBottom: 4,
   },
   transliterationText: {
     fontSize: 14,
-    color: '#00897B',
+    color: theme.colors.textAccent,
     marginBottom: 2,
   },
   englishText: {
-    fontSize: 13,
-    color: '#555',
+    fontSize: theme.fontSize.body,
+    color: theme.colors.textTertiary,
   },
   // Waiter turn controls
   waiterControls: {
@@ -819,17 +818,17 @@ const styles = StyleSheet.create({
   gotItButton: {
     flex: 1,
     height: 48,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.bgElevated,
     borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 14,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   gotItText: {
-    color: '#FFF',
+    color: theme.colors.textPrimary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.fontWeight.medium,
   },
   // User turn controls
   controlsRow: {
@@ -843,9 +842,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: theme.colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#2A2A2A',
+    borderColor: theme.colors.borderDefault,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -853,7 +852,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#00897B',
+    backgroundColor: theme.colors.accentPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -863,15 +862,15 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     height: 44,
-    backgroundColor: '#00897B',
-    borderRadius: 14,
+    backgroundColor: theme.colors.accentPrimary,
+    borderRadius: theme.radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nextButtonText: {
-    color: '#FFF',
+    color: theme.colors.bgBase,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: theme.fontWeight.medium,
   },
   // Completion overlay
   completionOverlay: {
@@ -882,53 +881,53 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   completionCard: {
-    backgroundColor: '#111',
-    borderRadius: 24,
+    backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radii.lg,
     padding: 32,
     width: '100%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: theme.colors.borderDefault,
   },
   completionLottie: { width: 120, height: 120, marginBottom: 8 },
-  completionTitle: { fontSize: 36, fontWeight: '800', color: '#FFF', marginBottom: 4 },
-  completionSubtitle: { fontSize: 16, color: '#666', marginBottom: 32 },
+  completionTitle: { fontSize: 36, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 4 },
+  completionSubtitle: { fontSize: 16, color: theme.colors.textTertiary, marginBottom: 32 },
   completionStats: {
     flexDirection: 'row',
     marginBottom: 32,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.radii.lg,
     padding: 20,
     width: '100%',
     justifyContent: 'space-around',
   },
   statItem: { alignItems: 'center' },
-  statValue: { fontSize: 24, fontWeight: '800', color: '#00897B' },
-  statLabel: { fontSize: 11, color: '#666', marginTop: 4 },
-  statDivider: { width: 1, backgroundColor: '#333' },
+  statValue: { fontSize: 24, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
+  statLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1.5 },
+  statDivider: { width: 1, backgroundColor: theme.colors.borderDefault },
   completionButton: {
-    backgroundColor: '#00897B',
+    backgroundColor: theme.colors.accentPrimary,
     width: '100%',
     height: 56,
-    borderRadius: 16,
+    borderRadius: theme.radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  completionButtonText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
+  completionButtonText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
   tryAgainButton: {
     width: '100%',
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tryAgainText: { color: '#555', fontSize: 15 },
+  tryAgainText: { color: theme.colors.textTertiary, fontSize: 15 },
   levelUpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  levelUpCard: { backgroundColor: '#111', borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: '#222' },
+  levelUpCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 32, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   levelUpEmoji: { fontSize: 64, marginBottom: 8 },
-  levelUpTitle: { fontSize: 18, color: '#888', marginBottom: 4 },
-  levelUpLevel: { fontSize: 36, fontWeight: '800', marginBottom: 8 },
-  levelUpSub: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 24 },
-  levelUpButton: { backgroundColor: '#00897B', width: '100%', height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  levelUpButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  levelUpTitle: { fontSize: 18, color: theme.colors.textTertiary, marginBottom: 4 },
+  levelUpLevel: { fontSize: 36, fontWeight: theme.fontWeight.medium, marginBottom: 8 },
+  levelUpSub: { fontSize: 14, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 24 },
+  levelUpButton: { backgroundColor: theme.colors.accentPrimary, width: '100%', height: 52, borderRadius: theme.radii.md, alignItems: 'center', justifyContent: 'center' },
+  levelUpButtonText: { color: theme.colors.bgBase, fontSize: 16, fontWeight: theme.fontWeight.medium },
 });

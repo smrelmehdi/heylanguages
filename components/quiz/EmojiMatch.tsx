@@ -3,8 +3,11 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-na
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
 import type { EmojiMatchQuestion } from '../../data/quiz-types';
+import { theme } from '../../constants/theme';
 
-const MATCH_COLORS = ['#00897B', '#FFD900', '#9C27B0', '#FF9800'];
+// Match identifier colors — intentionally distinct hues so each connection line is visually separable.
+// First two tokens align with the theme (teal + amber); purple and orange stay literal as game distinguishers.
+const MATCH_COLORS = [theme.colors.accentPrimary, theme.colors.accentWarm, '#9C27B0', '#FF9800'];
 const ITEM_HEIGHT = 64;
 const ITEM_GAP = 10;
 const COL_GAP = 20;
@@ -194,24 +197,24 @@ function MatchItem({
 
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  let borderColor = '#2a2a2a';
-  let bg = '#161616';
+  let borderColor: string = theme.colors.borderDefault;
+  let bg: string = theme.colors.bgSurface;
 
   if (isSelected) {
-    borderColor = '#00897B';
-    bg = 'rgba(0,137,123,0.12)';
+    borderColor = theme.colors.borderAccent;
+    bg = 'rgba(61, 212, 192, 0.12)';
   }
   if (matchColor) {
     borderColor = matchColor;
     bg = `${matchColor}18`;
   }
   if (answerResult !== 'none' && isCorrect === true) {
-    borderColor = '#00732F';
-    bg = 'rgba(0,115,47,0.15)';
+    borderColor = theme.colors.accentSuccess;
+    bg = 'rgba(125, 217, 154, 0.15)';
   }
   if (answerResult !== 'none' && isCorrect === false && matchColor) {
-    borderColor = '#D32F2F';
-    bg = 'rgba(211,47,47,0.15)';
+    borderColor = theme.colors.accentDanger;
+    bg = 'rgba(229, 107, 111, 0.15)';
   }
 
   return (
@@ -234,28 +237,28 @@ function MatchItem({
 
 const styles = StyleSheet.create({
   container: { gap: 12 },
-  prompt: { fontSize: 15, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  prompt: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
   grid: { flexDirection: 'row', justifyContent: 'space-between' },
   column: { gap: ITEM_GAP },
   matchItem: {
-    borderRadius: 12,
-    borderWidth: 1.5,
+    borderRadius: theme.radii.sm,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
   matchPrimary: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: theme.fontWeight.medium,
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   matchSecondary: {
-    fontSize: 10,
-    color: '#666',
+    fontSize: theme.fontSize.caption,
+    color: theme.colors.textTertiary,
     fontStyle: 'italic',
     marginTop: 2,
     textAlign: 'center',
   },
-  hint: { fontSize: 12, color: '#555', textAlign: 'center', fontStyle: 'italic' },
+  hint: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'center', fontStyle: 'italic' },
 });

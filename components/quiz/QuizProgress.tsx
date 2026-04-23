@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { theme } from '../../constants/theme';
 
 interface Props {
   current: number;
@@ -23,7 +24,7 @@ export default function QuizProgress({ current, total }: Props) {
 
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 10 },
-  barBg: { flex: 1, height: 4, backgroundColor: '#1e1e1e', borderRadius: 2, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: '#00897B', borderRadius: 2 },
-  label: { fontSize: 12, fontWeight: '700', color: '#555', minWidth: 40, textAlign: 'right' },
+  barBg: { flex: 1, height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
+  barFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
+  label: { fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, minWidth: 40, textAlign: 'right' },
 });

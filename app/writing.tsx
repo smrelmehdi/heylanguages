@@ -15,6 +15,7 @@ import { supabase } from '../utils/supabase';
 import { useDialect } from '../contexts/DialectContext';
 import { recordActivity } from '../utils/streak';
 import { stripTashkeel } from '../utils/arabic';
+import { theme } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 const CANVAS_W = width - 48;
@@ -580,7 +581,7 @@ export default function WritingScreen() {
       <View style={styles.nameRow}>
         <Text style={styles.nameTrans}>{letter.name} · /{letter.transliteration}/</Text>
         <Pressable style={styles.audioCircle} onPress={() => speakArabic(letter.nameAudio)}>
-          <Ionicons name="volume-high" size={14} color="#FFF" />
+          <Ionicons name="volume-high" size={14} color={theme.colors.bgBase} />
         </Pressable>
       </View>
 
@@ -617,7 +618,7 @@ export default function WritingScreen() {
             <Text style={styles.wordMeaning}>{letter.word.meaning}</Text>
           </View>
           <Pressable style={styles.audioBtn} onPress={() => speakArabic(letter.word.arabic)}>
-            <Ionicons name="volume-high" size={18} color="#FFF" />
+            <Ionicons name="volume-high" size={18} color={theme.colors.bgBase} />
           </Pressable>
         </View>
       </View>
@@ -646,7 +647,7 @@ export default function WritingScreen() {
               `${j === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`
             ).join(' ');
             return (
-              <Path key={`s${i}`} d={d} stroke="#00732F" strokeWidth={3}
+              <Path key={`s${i}`} d={d} stroke={theme.colors.accentSuccess} strokeWidth={3}
                 fill="none" strokeLinecap="round" strokeLinejoin="round" />
             );
           })}
@@ -723,12 +724,12 @@ export default function WritingScreen() {
 
         <View style={styles.quizOptions}>
           {q.options.map((option, i) => {
-            let bg = '#1A1A1A', border = '#333', textColor = '#FFF', icon = '';
+            let bg: string = theme.colors.bgSurface, border: string = theme.colors.borderDefault, textColor: string = theme.colors.textPrimary, icon = '';
             if (selectedAns) {
               if (option === q.correctAnswer) {
-                bg = 'rgba(0,115,47,0.15)'; border = '#00732F'; textColor = '#00732F'; icon = '✓';
+                bg = 'rgba(125, 217, 154, 0.15)'; border = theme.colors.accentSuccess; textColor = theme.colors.accentSuccess; icon = '✓';
               } else if (option === selectedAns) {
-                bg = 'rgba(198,40,40,0.15)'; border = '#C62828'; textColor = '#C62828'; icon = '✗';
+                bg = 'rgba(229, 107, 111, 0.15)'; border = theme.colors.accentDanger; textColor = theme.colors.accentDanger; icon = '✗';
               }
             }
             return (
@@ -796,8 +797,8 @@ export default function WritingScreen() {
               </Text>
               <Text style={[
                 styles.familyLabel,
-                cur  && { color: '#00897B' },
-                done && { color: '#00732F' },
+                cur  && { color: theme.colors.textAccent },
+                done && { color: theme.colors.accentSuccess },
               ]}>
                 {l.name}
               </Text>
@@ -829,115 +830,116 @@ export default function WritingScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
 
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#1e1e1e',
+    borderBottomWidth: 1, borderBottomColor: theme.colors.borderDefault,
   },
   backBtn:     { width: 60 },
-  backText:    { color: '#00897B', fontSize: 17, fontWeight: '600' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#FFF' },
+  backText:    { color: theme.colors.textAccent, fontSize: 17, fontWeight: theme.fontWeight.medium },
+  headerTitle: { fontSize: 18, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
 
   // Family strip
   familyStrip: {
     flexDirection: 'row', gap: 10,
     paddingHorizontal: 20, paddingVertical: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#1e1e1e',
+    borderBottomWidth: 1, borderBottomColor: theme.colors.borderDefault,
   },
   familyCard: {
-    flex: 1, alignItems: 'center', backgroundColor: '#111',
-    borderRadius: 12, paddingVertical: 10,
-    borderWidth: 1, borderColor: '#1e1e1e',
+    flex: 1, alignItems: 'center', backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radii.sm, paddingVertical: 10,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
-  familyCardActive:  { backgroundColor: '#0d1a19', borderColor: '#00897B' },
-  familyCardDone:    { backgroundColor: '#0a1a10', borderColor: '#00732F' },
+  familyCardActive:  { borderColor: theme.colors.borderAccent },
+  familyCardDone:    { borderColor: theme.colors.accentSuccess },
   checkmark: {
     position: 'absolute', top: 3, right: 3,
     width: 14, height: 14, borderRadius: 7,
-    backgroundColor: '#00732F', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.accentSuccess, alignItems: 'center', justifyContent: 'center',
   },
-  checkmarkText:     { fontSize: 8, color: '#FFF', fontWeight: '800', lineHeight: 10 },
-  familyGlyph:       { fontSize: 26, color: '#444' },
-  familyGlyphActive: { color: '#FFF' },
-  familyLabel:       { fontSize: 11, color: '#333', marginTop: 4, fontWeight: '600' },
+  checkmarkText:     { fontSize: 8, color: theme.colors.bgBase, fontWeight: theme.fontWeight.medium, lineHeight: 10 },
+  familyGlyph:       { fontSize: 26, color: theme.colors.textTertiary },
+  familyGlyphActive: { color: theme.colors.textPrimary },
+  familyLabel:       { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 4, fontWeight: theme.fontWeight.medium },
 
   // Phase indicator
   phaseRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, gap: 6,
   },
-  phaseStep:       { fontSize: 12, color: '#333', fontWeight: '600' },
-  phaseStepActive: { color: '#00897B' },
-  phaseLine:       { width: 20, height: 1, backgroundColor: '#222' },
+  phaseStep:       { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5, textTransform: 'uppercase' },
+  phaseStepActive: { color: theme.colors.textAccent },
+  phaseLine:       { width: 20, height: 1, backgroundColor: theme.colors.borderDefault },
 
   // Learn
   learnContent: { paddingHorizontal: 20, paddingBottom: 32 },
 
   bigLetter: {
-    fontSize: 80, color: '#FFF', textAlign: 'center',
+    fontSize: 80, color: theme.colors.textPrimary, textAlign: 'center',
     paddingTop: 20, paddingBottom: 4,
   },
   nameRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10, marginBottom: 16,
   },
-  nameTrans: { fontSize: 15, color: '#AAA', fontWeight: '600' },
+  nameTrans: { fontSize: 15, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium },
   audioCircle: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center',
   },
 
   card: {
-    backgroundColor: '#111', borderRadius: 12, padding: 14, marginBottom: 12,
+    backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.sm, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
   cardLabel: {
-    fontSize: 10, color: '#555', fontWeight: '700',
-    letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8,
+    fontSize: theme.fontSize.label, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium,
+    letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8,
   },
-  soundDesc: { fontSize: 15, color: '#CCC', lineHeight: 22 },
-  soundTeal: { color: '#00897B', fontWeight: '700' },
+  soundDesc: { fontSize: 15, color: theme.colors.textSecondary, lineHeight: 22 },
+  soundTeal: { color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
 
   formsRow:        { flexDirection: 'row', justifyContent: 'space-around' },
   formCol:         { alignItems: 'center', flex: 1 },
-  formGlyph:       { fontSize: 28, color: '#FFF', marginBottom: 4 },
-  formGlyphActive: { color: '#00897B' },
-  formLabel:       { fontSize: 10, color: '#555' },
+  formGlyph:       { fontSize: 28, color: theme.colors.textPrimary, marginBottom: 4 },
+  formGlyphActive: { color: theme.colors.textAccent },
+  formLabel:       { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1.5 },
 
   wordRow:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  wordArabic:  { fontSize: 30, color: '#FFF', fontWeight: '300' },
-  wordTranslit:{ fontSize: 15, fontWeight: '700', color: '#00897B' },
-  wordMeaning: { fontSize: 12, color: '#555', marginTop: 2 },
+  wordArabic:  { fontSize: 30, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular },
+  wordTranslit:{ fontSize: 15, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
+  wordMeaning: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, marginTop: 2 },
   audioBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center',
   },
 
   btnPrimary: {
-    height: 48, borderRadius: 24, backgroundColor: '#00897B',
+    height: 48, borderRadius: theme.radii.pill, backgroundColor: theme.colors.accentPrimary,
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
   },
-  btnPrimaryText:  { color: '#FFF', fontSize: 15, fontWeight: '700' },
+  btnPrimaryText:  { color: theme.colors.bgBase, fontSize: 15, fontWeight: theme.fontWeight.medium },
   btnSecondary: {
-    flex: 1, height: 48, borderRadius: 24,
-    backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333',
+    flex: 1, height: 48, borderRadius: theme.radii.pill,
+    backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault,
     alignItems: 'center', justifyContent: 'center',
   },
-  btnSecondaryText: { color: '#00897B', fontSize: 15, fontWeight: '600' },
+  btnSecondaryText: { color: theme.colors.textAccent, fontSize: 15, fontWeight: theme.fontWeight.medium },
 
   // Practice
   practiceWrap: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
-  practiceHint: { fontSize: 13, color: '#555', textAlign: 'center', marginBottom: 12 },
+  practiceHint: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 12 },
   canvas: {
     alignSelf: 'center', width: CANVAS_W, height: CANVAS_H,
-    backgroundColor: '#111', borderRadius: 16,
-    borderWidth: 1, borderColor: '#1e1e1e', overflow: 'hidden',
+    backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg,
+    borderWidth: 1, borderColor: theme.colors.borderDefault, overflow: 'hidden',
     marginBottom: 16,
   },
   ghostLetter: {
-    fontSize: 140, color: '#FFF', opacity: 0.15,
+    fontSize: 140, color: 'rgba(61, 212, 192, 0.25)',
     textAlign: 'center', width: CANVAS_W, height: CANVAS_H,
     lineHeight: CANVAS_H, includeFontPadding: false,
   },
@@ -946,44 +948,44 @@ const styles = StyleSheet.create({
   // Quiz
   quizWrap: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
   quizProgress: { flexDirection: 'row', gap: 4, marginBottom: 12 },
-  quizSeg:     { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#222' },
-  quizSegDone: { backgroundColor: '#00732F' },
-  quizSegCur:  { backgroundColor: '#00897B' },
+  quizSeg:     { flex: 1, height: 4, borderRadius: 2, backgroundColor: theme.colors.bgBase },
+  quizSegDone: { backgroundColor: theme.colors.accentSuccess },
+  quizSegCur:  { backgroundColor: theme.colors.accentPrimary },
 
   quizQuestion: {
-    fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 8,
+    fontSize: theme.fontSize.body, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 8,
   },
   quizContent: {
-    fontSize: 80, color: '#FFF', textAlign: 'center',
+    fontSize: 80, color: theme.colors.textPrimary, textAlign: 'center',
     marginBottom: 20, lineHeight: 100, includeFontPadding: false,
   },
   quizOptions: { gap: 10 },
   quizOption: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 14, borderRadius: 12, borderWidth: 1.5,
+    padding: 14, borderRadius: theme.radii.sm, borderWidth: 1,
   },
   optBadge: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#333',
+    width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.bgElevated,
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  optBadgeCorrect: { backgroundColor: '#00732F' },
-  optBadgeWrong:   { backgroundColor: '#C62828' },
-  optBadgeText: { fontSize: 12, color: '#FFF', fontWeight: '700' },
-  optText:      { flex: 1, fontSize: 15, fontWeight: '600' },
-  quizCounter:  { textAlign: 'center', fontSize: 12, color: '#444', marginTop: 10 },
+  optBadgeCorrect: { backgroundColor: theme.colors.accentSuccess },
+  optBadgeWrong:   { backgroundColor: theme.colors.accentDanger },
+  optBadgeText: { fontSize: 12, color: theme.colors.bgBase, fontWeight: theme.fontWeight.medium },
+  optText:      { flex: 1, fontSize: 15, fontWeight: theme.fontWeight.medium },
+  quizCounter:  { textAlign: 'center', fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, marginTop: 10 },
 
   // Quiz done
   quizDoneWrap: {
     flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32,
   },
-  quizScoreText: { fontSize: 32, fontWeight: '800', color: '#FFF', marginTop: 8 },
-  quizPassText:  { fontSize: 18, color: '#00897B', fontWeight: '700', marginTop: 4 },
-  quizFailText:  { fontSize: 16, color: '#888', marginTop: 4 },
+  quizScoreText: { fontSize: 32, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginTop: 8 },
+  quizPassText:  { fontSize: 18, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, marginTop: 4 },
+  quizFailText:  { fontSize: 16, color: theme.colors.textTertiary, marginTop: 4 },
   xpBadge: {
-    backgroundColor: 'rgba(0,137,123,0.15)', borderWidth: 0.5,
-    borderColor: '#00897B', borderRadius: 20,
+    backgroundColor: 'rgba(61, 212, 192, 0.12)', borderWidth: 1,
+    borderColor: theme.colors.borderAccent, borderRadius: theme.radii.pill,
     paddingHorizontal: 20, paddingVertical: 8, marginVertical: 12,
   },
-  xpBadgeText:    { fontSize: 18, color: '#00897B', fontWeight: '800' },
-  quizReturnText: { fontSize: 13, color: '#444', marginTop: 6 },
+  xpBadgeText:    { fontSize: 18, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
+  quizReturnText: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, marginTop: 6 },
 });

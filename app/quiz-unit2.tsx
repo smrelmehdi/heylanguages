@@ -23,6 +23,7 @@ import SceneReplay from '../components/quiz/SceneReplay';
 import FillConversation from '../components/quiz/FillConversation';
 import ListeningChallenge from '../components/quiz/ListeningChallenge';
 import EmojiMatch from '../components/quiz/EmojiMatch';
+import { theme } from '../constants/theme';
 
 type Phase = 'intro' | 'quiz' | 'results';
 
@@ -251,7 +252,7 @@ export default function QuizUnit2Screen() {
               ]
             )}
           >
-            <ArrowLeft color="#fff" size={18} />
+            <ArrowLeft color={theme.colors.textPrimary} size={18} />
           </Pressable>
 
           <Text style={styles.headerTitle}>{quizTitle}</Text>
@@ -373,29 +374,29 @@ function formatBadgeLabel(format: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#2a2a2a' },
-  headerTitle: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  xpCounter: { backgroundColor: '#151515', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#2a2a2a' },
-  xpCounterText: { color: '#FFD900', fontSize: 13, fontWeight: '700' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
+  headerTitle: { fontSize: 14, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  xpCounter: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: theme.colors.borderDefault },
+  xpCounterText: { color: theme.colors.accentWarm, fontSize: 13, fontWeight: theme.fontWeight.medium },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 40, gap: 12 },
 
-  card: { backgroundColor: '#111', borderRadius: 20, padding: 20, borderWidth: 0.5, borderColor: '#1e1e1e', gap: 16 },
-  formatBadge: { alignSelf: 'flex-start', backgroundColor: '#1a1a1a', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 0.5, borderColor: '#2a2a2a' },
-  formatBadgeText: { fontSize: 12, color: '#888', fontWeight: '600' },
+  card: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, gap: 16 },
+  formatBadge: { alignSelf: 'flex-start', backgroundColor: theme.colors.bgElevated, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: theme.colors.borderDefault },
+  formatBadgeText: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5, textTransform: 'uppercase' },
 
-  resultBanner: { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', gap: 4 },
+  resultBanner: { borderRadius: theme.radii.sm, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', gap: 4 },
   resultLottie: { width: 56, height: 56 },
-  correctBanner: { backgroundColor: 'rgba(0,115,47,0.12)', borderWidth: 1, borderColor: '#00732F' },
-  wrongBanner: { backgroundColor: 'rgba(211,47,47,0.12)', borderWidth: 1, borderColor: '#D32F2F' },
-  resultBannerText: { fontSize: 14, fontWeight: '700' },
-  correctText: { color: '#00732F' },
-  wrongText: { color: '#D32F2F' },
+  correctBanner: { backgroundColor: 'rgba(125, 217, 154, 0.12)', borderWidth: 1, borderColor: theme.colors.accentSuccess },
+  wrongBanner: { backgroundColor: 'rgba(229, 107, 111, 0.12)', borderWidth: 1, borderColor: theme.colors.accentDanger },
+  resultBannerText: { fontSize: 14, fontWeight: theme.fontWeight.medium },
+  correctText: { color: theme.colors.accentSuccess },
+  wrongText: { color: theme.colors.accentDanger },
 
   xpFloatWrap: { alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 160 },
-  xpFloatText: { fontSize: 22, fontWeight: '800', color: '#FFD900' },
+  xpFloatText: { fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.accentWarm },
 });

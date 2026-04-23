@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
+import { theme } from '../../constants/theme';
 
 const PASSING_SCORE = 14;
 
@@ -23,7 +24,7 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, onRet
     stars === 2 ? 'Great work! 👍' :
     'Keep practicing 💪';
 
-  const circleColor = passed ? '#00897B' : '#D32F2F';
+  const circleColor = passed ? theme.colors.accentPrimary : theme.colors.accentDanger;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -64,12 +65,12 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, onRet
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statVal, { color: '#00732F' }]}>{correct}</Text>
+            <Text style={[styles.statVal, { color: theme.colors.accentSuccess }]}>{correct}</Text>
             <Text style={styles.statLabel}>Correct</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statVal, { color: '#D32F2F' }]}>{total - correct}</Text>
+            <Text style={[styles.statVal, { color: theme.colors.accentDanger }]}>{total - correct}</Text>
             <Text style={styles.statLabel}>Missed</Text>
           </View>
         </View>
@@ -96,27 +97,27 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, onRet
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl },
   lottie: { width: 120, height: 120, marginBottom: 4 },
-  grade: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 12 },
+  grade: { fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 12 },
   stars: { flexDirection: 'row', gap: 4, marginBottom: 20 },
   star: { fontSize: 32 },
   starActive: { opacity: 1 },
   starInactive: { opacity: 0.2 },
   scoreCircle: { width: 130, height: 130, borderRadius: 65, borderWidth: 4, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  scoreNum: { fontSize: 44, fontWeight: '800', lineHeight: 46 },
-  scoreDivider: { fontSize: 16, color: '#555', fontWeight: '600' },
-  scorePct: { fontSize: 13, color: '#555', marginTop: 2 },
-  statsRow: { flexDirection: 'row', backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 16, gap: 24, borderWidth: 0.5, borderColor: '#1e1e1e', width: '100%', justifyContent: 'center' },
+  scoreNum: { fontSize: 44, fontWeight: theme.fontWeight.medium, lineHeight: 46 },
+  scoreDivider: { fontSize: theme.fontSize.heading, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium },
+  scorePct: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, marginTop: 2 },
+  statsRow: { flexDirection: 'row', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: theme.spacing.xl, marginBottom: 16, gap: 24, borderWidth: 1, borderColor: theme.colors.borderDefault, width: '100%', justifyContent: 'center' },
   statItem: { alignItems: 'center' },
-  statVal: { fontSize: 22, fontWeight: '800', color: '#00897B' },
-  statLabel: { fontSize: 11, color: '#555', textTransform: 'uppercase', marginTop: 2 },
-  statDivider: { width: 0.5, backgroundColor: '#2a2a2a' },
-  passMsg: { fontSize: 13, color: '#00897B', fontWeight: '600', marginBottom: 20, textAlign: 'center' },
-  failMsg: { fontSize: 13, color: '#888', marginBottom: 20, textAlign: 'center' },
-  homeBtn: { width: '100%', height: 56, backgroundColor: '#00897B', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  homeBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  retryBtn: { width: '100%', height: 50, backgroundColor: '#161616', borderRadius: 16, borderWidth: 1, borderColor: '#2a2a2a', alignItems: 'center', justifyContent: 'center' },
-  retryBtnText: { color: '#00897B', fontSize: 15, fontWeight: '700' },
+  statVal: { fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
+  statLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, textTransform: 'uppercase', marginTop: 2, letterSpacing: 1.5 },
+  statDivider: { width: 0.5, backgroundColor: theme.colors.borderDefault },
+  passMsg: { fontSize: theme.fontSize.body, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, marginBottom: 20, textAlign: 'center' },
+  failMsg: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, marginBottom: 20, textAlign: 'center' },
+  homeBtn: { width: '100%', height: 56, backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  homeBtnText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
+  retryBtn: { width: '100%', height: 50, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, alignItems: 'center', justifyContent: 'center' },
+  retryBtnText: { color: theme.colors.textAccent, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium },
 });

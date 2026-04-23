@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
+import { theme } from '../../constants/theme';
 
 interface Props {
   title: string;
@@ -44,17 +45,17 @@ export default function QuizIntro({ title, onStart }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl },
   lottie: { width: 160, height: 160, marginBottom: 8 },
-  title: { fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 15, color: '#888', marginBottom: 24 },
+  title: { fontSize: 26, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 6 },
+  subtitle: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, marginBottom: 24 },
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  pill: { backgroundColor: '#161616', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 0.5, borderColor: '#2a2a2a' },
-  pillText: { fontSize: 13, color: '#ccc' },
-  xpCard: { backgroundColor: 'rgba(0,137,123,0.08)', borderWidth: 1, borderColor: '#00897B', borderRadius: 16, padding: 16, alignItems: 'center', marginTop: 20, marginBottom: 32, width: '100%' },
-  xpText: { fontSize: 18, fontWeight: '700', color: '#00897B', marginBottom: 4 },
-  xpSub: { fontSize: 12, color: '#555' },
-  startBtn: { width: '100%', height: 58, backgroundColor: '#00897B', borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  startBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  pill: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.pill, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: theme.colors.borderDefault },
+  pillText: { fontSize: theme.fontSize.body, color: theme.colors.textSecondary },
+  xpCard: { backgroundColor: 'rgba(61, 212, 192, 0.08)', borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.lg, padding: theme.spacing.lg, alignItems: 'center', marginTop: 20, marginBottom: 32, width: '100%' },
+  xpText: { fontSize: 18, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent, marginBottom: 4 },
+  xpSub: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary },
+  startBtn: { width: '100%', height: 58, backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center' },
+  startBtnText: { color: theme.colors.bgBase, fontSize: 18, fontWeight: theme.fontWeight.medium },
 });

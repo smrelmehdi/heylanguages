@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { ArrowLeft } from 'lucide-react-native';
 import { speakArabic, playLocalAudio, stopAudio } from '../utils/tts';
 import { stripTashkeel } from '../utils/arabic';
+import { theme } from '../constants/theme';
 import {
   BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS,
   NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
@@ -274,7 +275,7 @@ export default function QuizScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.backBtn}>
-          <ArrowLeft color="#fff" size={18} />
+          <ArrowLeft color={theme.colors.textPrimary} size={18} />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{
@@ -343,7 +344,7 @@ export default function QuizScreen() {
       {/* Feedback banner */}
       {selectedAnswer && (
         <Animated.View entering={FadeIn} style={styles.feedbackBanner}>
-          <Text style={[styles.feedbackText, { color: isCorrect ? '#00732F' : '#E24B4A' }]}>
+          <Text style={[styles.feedbackText, { color: isCorrect ? theme.colors.accentSuccess : theme.colors.accentDanger }]}>
             {feedbackRef.current}
           </Text>
         </Animated.View>
@@ -352,22 +353,22 @@ export default function QuizScreen() {
       {/* Answer options */}
       <View style={styles.optionsContainer}>
         {currentQuestion.options.map((option, i) => {
-          let bgColor = '#161616';
-          let borderColor = '#2a2a2a';
-          let textColor = '#fff';
+          let bgColor: string = theme.colors.bgSurface;
+          let borderColor: string = theme.colors.borderDefault;
+          let textColor: string = theme.colors.textPrimary;
           let isOptionCorrect = false;
           let isOptionWrong = false;
 
           if (selectedAnswer) {
             if (option === currentQuestion.correctAnswer) {
-              bgColor = 'rgba(0,115,47,0.15)';
-              borderColor = '#00732F';
-              textColor = '#00732F';
+              bgColor = 'rgba(125, 217, 154, 0.15)';
+              borderColor = theme.colors.accentSuccess;
+              textColor = theme.colors.accentSuccess;
               isOptionCorrect = true;
             } else if (option === selectedAnswer && !isCorrect) {
-              bgColor = 'rgba(226,75,74,0.15)';
-              borderColor = '#E24B4A';
-              textColor = '#E24B4A';
+              bgColor = 'rgba(229, 107, 111, 0.15)';
+              borderColor = theme.colors.accentDanger;
+              textColor = theme.colors.accentDanger;
               isOptionWrong = true;
             }
           }
@@ -398,66 +399,66 @@ export default function QuizScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
 
   // Header
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 8 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#2a2a2a' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   headerCenter: { alignItems: 'center' },
-  headerTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 11, color: '#555', marginTop: 1 },
+  headerTitle: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  headerSub: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 1 },
   scoreCounter: { flexDirection: 'row', alignItems: 'center' },
-  scoreCorrect: { fontSize: 14, fontWeight: '700', color: '#00732F' },
-  scoreWrong: { fontSize: 14, fontWeight: '700', color: '#E24B4A' },
+  scoreCorrect: { fontSize: 14, fontWeight: theme.fontWeight.medium, color: theme.colors.accentSuccess },
+  scoreWrong: { fontSize: 14, fontWeight: theme.fontWeight.medium, color: theme.colors.accentDanger },
 
   // Progress
   progressWrap: { paddingHorizontal: 20, marginBottom: 12 },
-  progressBg: { height: 4, backgroundColor: '#1a1a1a', borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#00897B', borderRadius: 2 },
+  progressBg: { height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
 
   // Yusuf section
   yusufSection: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12, gap: 12 },
-  yusufBubble: { flex: 1, backgroundColor: '#1A1A1A', borderRadius: 16, borderWidth: 1, borderColor: '#2a2a2a', padding: 14 },
-  yusufBubbleText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  yusufBubble: { flex: 1, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, padding: 14 },
+  yusufBubbleText: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
 
   // Question card
-  questionCard: { marginHorizontal: 20, backgroundColor: '#111', borderRadius: 20, padding: 24, marginBottom: 8, borderWidth: 0.5, borderColor: '#1e1e1e', minHeight: 120, alignItems: 'center', justifyContent: 'center' },
+  questionCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 24, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.borderDefault, minHeight: 120, alignItems: 'center', justifyContent: 'center' },
   arabicQuestion: { alignItems: 'center' },
-  arabicBig: { fontSize: 48, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 8 },
-  romanText: { fontSize: 16, color: '#00897B', fontWeight: '500' },
+  arabicBig: { fontSize: 48, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 8 },
+  romanText: { fontSize: 16, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
   englishQuestion: { alignItems: 'center' },
-  englishBig: { fontSize: 28, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  englishBig: { fontSize: 28, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
   audioButton: { alignItems: 'center', padding: 12 },
   audioIcon: { fontSize: 44, marginBottom: 8 },
-  audioText: { fontSize: 14, color: '#00897B', fontWeight: '600' },
+  audioText: { fontSize: 14, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
 
   // Feedback
   feedbackBanner: { paddingHorizontal: 20, paddingVertical: 8, marginBottom: 4, alignItems: 'center' },
-  feedbackText: { fontSize: 16, fontWeight: '700' },
+  feedbackText: { fontSize: 16, fontWeight: theme.fontWeight.medium },
 
   // Options
   optionsContainer: { paddingHorizontal: 20, gap: 10 },
-  optionBtn: { padding: 18, borderRadius: 16, borderWidth: 2, borderColor: '#2a2a2a', backgroundColor: '#161616', flexDirection: 'row', alignItems: 'center', minHeight: 64 },
-  optionLetter: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#2a2a2a', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  optionLetterCorrect: { backgroundColor: '#00732F' },
-  optionLetterWrong: { backgroundColor: '#E24B4A' },
-  optionLetterText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  optionText: { fontSize: 16, fontWeight: '600', flex: 1 },
-  correctIcon: { fontSize: 18, color: '#00732F' },
-  wrongIcon: { fontSize: 18, color: '#E24B4A' },
+  optionBtn: { padding: 18, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, backgroundColor: theme.colors.bgSurface, flexDirection: 'row', alignItems: 'center', minHeight: 64 },
+  optionLetter: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.bgElevated, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  optionLetterCorrect: { backgroundColor: theme.colors.accentSuccess },
+  optionLetterWrong: { backgroundColor: theme.colors.accentDanger },
+  optionLetterText: { fontSize: 13, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  optionText: { fontSize: 16, fontWeight: theme.fontWeight.medium, flex: 1 },
+  correctIcon: { fontSize: 18, color: theme.colors.accentSuccess },
+  wrongIcon: { fontSize: 18, color: theme.colors.accentDanger },
 
   // Completion
   completionContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  gradeText: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  scoreText: { fontSize: 64, fontWeight: '800', color: '#00897B', lineHeight: 72 },
-  scoreSub: { fontSize: 16, color: '#555', marginBottom: 32 },
-  completionStats: { flexDirection: 'row', backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 32, gap: 24, borderWidth: 0.5, borderColor: '#1e1e1e' },
+  gradeText: { fontSize: 24, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8 },
+  scoreText: { fontSize: 64, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent, lineHeight: 72 },
+  scoreSub: { fontSize: 16, color: theme.colors.textTertiary, marginBottom: 32 },
+  completionStats: { flexDirection: 'row', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, marginBottom: 32, gap: 24, borderWidth: 1, borderColor: theme.colors.borderDefault },
   statItem: { alignItems: 'center' },
-  statVal: { fontSize: 24, fontWeight: '800', color: '#00897B' },
-  statLabel: { fontSize: 11, color: '#555', textTransform: 'uppercase', marginTop: 2 },
-  statDivider: { width: 0.5, backgroundColor: '#2a2a2a' },
-  doneButton: { width: '100%', height: 56, backgroundColor: '#00897B', borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  doneButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  statVal: { fontSize: 24, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
+  statLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, textTransform: 'uppercase', marginTop: 2, letterSpacing: 1.5 },
+  statDivider: { width: 0.5, backgroundColor: theme.colors.borderDefault },
+  doneButton: { width: '100%', height: 56, backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  doneButtonText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
   retryButton: { width: '100%', height: 48, alignItems: 'center', justifyContent: 'center' },
-  retryText: { color: '#555', fontSize: 15 },
+  retryText: { color: theme.colors.textTertiary, fontSize: 15 },
 });

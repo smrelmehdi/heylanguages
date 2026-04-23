@@ -5,6 +5,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { SceneReplayQuestion } from '../../data/quiz-types';
 import { speakArabic, playLocalAudio } from '../../utils/tts';
+import { theme } from '../../constants/theme';
 
 interface Props {
   question: SceneReplayQuestion;
@@ -50,19 +51,19 @@ export default function SceneReplay({ question, answerResult, onAnswer }: Props)
 
       {/* Options */}
       {question.options.map((opt, i) => {
-        let bg = '#161616';
-        let border = '#2a2a2a';
-        let textColor = '#fff';
-        let romanColor = '#555';
+        let bg = theme.colors.bgSurface;
+        let border = theme.colors.borderDefault;
+        let textColor = theme.colors.textPrimary;
+        let romanColor = theme.colors.textTertiary;
 
         if (answerResult !== 'none' && selected !== null) {
           if (opt.isCorrect) {
-            bg = 'rgba(0,115,47,0.15)'; border = '#00732F'; textColor = '#00732F'; romanColor = '#00732F';
+            bg = 'rgba(125, 217, 154, 0.15)'; border = theme.colors.accentSuccess; textColor = theme.colors.accentSuccess; romanColor = theme.colors.accentSuccess;
           } else if (i === selected && !opt.isCorrect) {
-            bg = 'rgba(211,47,47,0.15)'; border = '#D32F2F'; textColor = '#D32F2F'; romanColor = '#D32F2F';
+            bg = 'rgba(229, 107, 111, 0.15)'; border = theme.colors.accentDanger; textColor = theme.colors.accentDanger; romanColor = theme.colors.accentDanger;
           }
         } else if (i === selected) {
-          border = '#00897B';
+          border = theme.colors.borderAccent;
         }
 
         return (
@@ -126,11 +127,11 @@ function OptionCard({ arabic, transliteration, bg, border, textColor, romanColor
 
 const styles = StyleSheet.create({
   container: { gap: 10 },
-  image: { width: '100%', height: 180, borderRadius: 16, marginBottom: 4 },
-  replayBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  replayText: { color: '#fff', fontSize: 11 },
-  prompt: { fontSize: 15, fontWeight: '700', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  option: { minHeight: 56, borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
-  optionArabic: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
-  optionRoman: { fontSize: 12, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },
+  image: { width: '100%', height: 180, borderRadius: theme.radii.lg, marginBottom: 4 },
+  replayBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: theme.radii.sm, paddingHorizontal: 10, paddingVertical: 4 },
+  replayText: { color: theme.colors.textPrimary, fontSize: theme.fontSize.label },
+  prompt: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 4 },
+  option: { minHeight: 56, borderRadius: theme.radii.sm, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
+  optionArabic: { fontSize: 17, fontWeight: theme.fontWeight.medium, textAlign: 'center' },
+  optionRoman: { fontSize: theme.fontSize.caption, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },
 });

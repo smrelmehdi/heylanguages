@@ -28,6 +28,7 @@ import {
 import type { Word } from '../constants/words';
 import { ArrowLeft, Volume2, ChevronRight } from 'lucide-react-native';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
+import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
 import { recordActivity } from '../utils/streak';
 
@@ -339,8 +340,8 @@ export default function LessonScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
-          <Text style={{ fontSize: 15, color: '#555', textAlign: 'center', marginBottom: 32 }}>
+          <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
+          <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
             This lesson is not available for your selected dialect yet. We're working on it!
           </Text>
           <Pressable style={[styles.doneButton]} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
@@ -386,7 +387,7 @@ export default function LessonScreen() {
             <View style={styles.levelUpCard}>
               <Text style={styles.levelUpEmoji}>{levelUpData?.icon}</Text>
               <Text style={styles.levelUpTitle}>Level Up!</Text>
-              <Text style={[styles.levelUpLevel, { color: levelUpData?.color ?? '#00897B' }]}>{levelUpData?.newLevel}</Text>
+              <Text style={[styles.levelUpLevel, { color: levelUpData?.color ?? theme.colors.accentPrimary }]}>{levelUpData?.newLevel}</Text>
               <Text style={styles.levelUpSub}>You reached a new level. Keep going!</Text>
               <Pressable style={styles.levelUpButton} onPress={() => setShowLevelUp(false)}>
                 <Text style={styles.levelUpButtonText}>Continue 🎉</Text>
@@ -416,7 +417,7 @@ export default function LessonScreen() {
             ]
           );
         }}>
-          <ArrowLeft color="#fff" size={18} />
+          <ArrowLeft color={theme.colors.textPrimary} size={18} />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.lessonName}>{lessonTitle}</Text>
@@ -469,7 +470,7 @@ export default function LessonScreen() {
       {/* Controls */}
       <View style={styles.controls}>
         <Pressable style={styles.ctrlBtn} onPress={handleSpeak}>
-          <Volume2 color="#00897B" size={22} />
+          <Volume2 color={theme.colors.accentPrimary} size={22} />
         </Pressable>
 
         <Pressable
@@ -484,7 +485,7 @@ export default function LessonScreen() {
           style={[styles.ctrlBtn, hasAttempted && styles.nextBtnActive]}
           onPress={handleNext}
         >
-          <ChevronRight color={hasAttempted ? '#00897B' : '#333'} size={22} />
+          <ChevronRight color={hasAttempted ? theme.colors.accentPrimary : theme.colors.textTertiary} size={22} />
         </Pressable>
       </View>
 
@@ -497,52 +498,52 @@ export default function LessonScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'space-between' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase, justifyContent: 'space-between' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 8 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#2a2a2a' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   headerCenter: { alignItems: 'center' },
-  lessonName: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  lessonSub: { fontSize: 11, color: '#555', marginTop: 1 },
-  xpPill: { backgroundColor: 'rgba(0,137,123,0.15)', borderWidth: 0.5, borderColor: '#00897B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  xpText: { fontSize: 11, color: '#00897B', fontWeight: '700' },
+  lessonName: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  lessonSub: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 1 },
+  xpPill: { backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 5 },
+  xpText: { fontSize: theme.fontSize.label, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5 },
   progressWrap: { paddingHorizontal: 20, marginBottom: 8 },
-  progressBg: { height: 4, backgroundColor: '#1a1a1a', borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#00897B', borderRadius: 2 },
-  progressLabel: { fontSize: 10, color: '#555', textAlign: 'right', marginTop: 4 },
+  progressBg: { height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
+  progressLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'right', marginTop: 4 },
   yusufWrap: { alignItems: 'center', height: 200, justifyContent: 'center' },
   lottie: { width: 200, height: 200 },
-  wordCard: { marginHorizontal: 20, backgroundColor: '#111', borderRadius: 24, padding: 20, borderWidth: 0.5, borderColor: '#1e1e1e', marginBottom: 16, minHeight: 180 },
-  contextLabel: { fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 },
-  arabicBig: { fontSize: 56, fontWeight: '800', color: '#fff', textAlign: 'right', lineHeight: 72, marginBottom: 4, paddingHorizontal: 8 },
-  roman: { fontSize: 20, color: '#00897B', fontWeight: '500', marginBottom: 4 },
-  english: { fontSize: 15, color: '#666' },
-  exampleWrap: { marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: '#1e1e1e' },
-  exampleAr: { fontSize: 14, color: '#00897B', marginBottom: 2 },
-  exampleEn: { fontSize: 12, color: '#444', fontStyle: 'italic' },
+  wordCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 16, minHeight: 180 },
+  contextLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 },
+  arabicBig: { fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 72, marginBottom: 4, paddingHorizontal: 8 },
+  roman: { fontSize: 20, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular, marginBottom: 4 },
+  english: { fontSize: theme.fontSize.heading, color: theme.colors.textTertiary },
+  exampleWrap: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.borderDefault },
+  exampleAr: { fontSize: 14, color: theme.colors.textAccent, marginBottom: 2 },
+  exampleEn: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, fontStyle: 'italic' },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 20, marginBottom: 8 },
-  ctrlBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#2a2a2a' },
-  nextBtnActive: { borderColor: '#00897B', backgroundColor: 'rgba(0,137,123,0.1)' },
-  micBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center' },
-  micBtnRecording: { backgroundColor: '#FF4444' },
+  ctrlBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
+  nextBtnActive: { borderColor: theme.colors.borderAccent, backgroundColor: 'rgba(61, 212, 192, 0.1)' },
+  micBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  micBtnRecording: { backgroundColor: theme.colors.accentDanger },
   micIcon: { fontSize: 26 },
-  hint: { textAlign: 'center', fontSize: 12, color: '#333', paddingBottom: 40 },
+  hint: { textAlign: 'center', fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, paddingBottom: 40 },
   completionContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   completionEmoji: { fontSize: 56, marginBottom: 8 },
-  completionTitle: { fontSize: 36, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  completionSub: { fontSize: 16, color: '#666', marginBottom: 32 },
-  completionStats: { flexDirection: 'row', backgroundColor: '#111', borderRadius: 16, padding: 20, marginBottom: 32, gap: 32, borderWidth: 0.5, borderColor: '#1e1e1e' },
+  completionTitle: { fontSize: 36, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 4 },
+  completionSub: { fontSize: 16, color: theme.colors.textTertiary, marginBottom: 32 },
+  completionStats: { flexDirection: 'row', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, marginBottom: 32, gap: 32, borderWidth: 1, borderColor: theme.colors.borderDefault },
   statItem: { alignItems: 'center' },
-  statVal: { fontSize: 28, fontWeight: '800', color: '#00897B' },
-  statLabel: { fontSize: 11, color: '#555', textTransform: 'uppercase', marginTop: 2 },
-  statDivider: { width: 0.5, backgroundColor: '#2a2a2a' },
-  doneButton: { width: '100%', height: 56, backgroundColor: '#00897B', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  doneButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  statVal: { fontSize: 28, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
+  statLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, textTransform: 'uppercase', marginTop: 2, letterSpacing: 1.5 },
+  statDivider: { width: 0.5, backgroundColor: theme.colors.borderDefault },
+  doneButton: { width: '100%', height: 56, backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center' },
+  doneButtonText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
   levelUpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  levelUpCard: { backgroundColor: '#111', borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: '#222' },
+  levelUpCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 32, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   levelUpEmoji: { fontSize: 64, marginBottom: 8 },
-  levelUpTitle: { fontSize: 18, color: '#888', marginBottom: 4 },
-  levelUpLevel: { fontSize: 36, fontWeight: '800', marginBottom: 8 },
-  levelUpSub: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 24 },
-  levelUpButton: { backgroundColor: '#00897B', width: '100%', height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  levelUpButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  levelUpTitle: { fontSize: 18, color: theme.colors.textTertiary, marginBottom: 4 },
+  levelUpLevel: { fontSize: 36, fontWeight: theme.fontWeight.medium, marginBottom: 8 },
+  levelUpSub: { fontSize: 14, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 24 },
+  levelUpButton: { backgroundColor: theme.colors.accentPrimary, width: '100%', height: 52, borderRadius: theme.radii.md, alignItems: 'center', justifyContent: 'center' },
+  levelUpButtonText: { color: theme.colors.bgBase, fontSize: 16, fontWeight: theme.fontWeight.medium },
 });
