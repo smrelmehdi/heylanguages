@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0A' },
 
   // ── Home ──────────────────────────────────────────────────────────────────
-  homeScroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 60 },
+  homeScroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 120 },
 
   homeHeader: { alignItems: 'center', marginBottom: 24, gap: 6 },
   yusufCircle: {

@@ -261,7 +261,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0A' },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20, paddingBottom: 120 },
   pageTitle: { fontSize: 28, fontWeight: '800', color: '#FFF', marginBottom: 16 },
   avatarCard: { backgroundColor: '#111', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 0.5, borderColor: '#1e1e1e', marginBottom: 14 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center' },

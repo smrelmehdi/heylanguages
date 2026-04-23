@@ -1884,7 +1884,7 @@ function LessonRow({ label, meta, icon, status, onPress, guestLocked, comingSoon
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
-  scroll: { padding: theme.spacing.xl, paddingBottom: 60 },
+  scroll: { padding: theme.spacing.xl, paddingBottom: 120 },
 
   // Header
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.xl },
