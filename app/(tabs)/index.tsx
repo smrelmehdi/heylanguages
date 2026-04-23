@@ -1,14 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Mic, Coffee, Plane, Car, ShoppingBag,
   Flame, Lock, ChevronRight,
-  Play, Check, Activity, BookOpen, User,
+  Check, Activity, BookOpen, User,
   Utensils, ShoppingCart, Heart, Scissors, Pencil, Hash, MapPin,
 } from 'lucide-react-native';
-import LottieView from 'lottie-react-native';
 import { supabase } from '../../utils/supabase';
 import { getLevelFromXP } from '../../constants/levels';
 import SignUpPrompt from '../../components/SignUpPrompt';
@@ -18,6 +17,7 @@ import { getLocalStreakData, getPendingMilestone, clearPendingMilestone } from '
 import type { StreakData } from '../../utils/streak';
 import { useState, useCallback } from 'react';
 import { useDialect } from '../../contexts/DialectContext';
+import { theme } from '../../constants/theme';
 
 // TODO: Re-enable lesson locking and guest restrictions before production release
 const TESTING_UNLOCK_ALL = true;
@@ -155,6 +155,23 @@ export default function HomeScreen() {
   const dialectLabel = DIALECT_LABELS[contextDialect] ?? contextDialect;
   const currentLevel = getLevelFromXP(xpTotal);
 
+  // Continue card — points to first incomplete lesson in the curriculum.
+  // Minimal priority list covering the start of the path; progress is measured against it.
+  const CONTINUE_PATH: Array<{ id: string; title: string; unit: string; href: string }> = [
+    { id: 'basic_words',  title: 'Basic Words',       unit: 'Unit 1 · First Words',          href: '/lesson?type=basic_words' },
+    { id: 'greetings',    title: 'Common Greetings',  unit: 'Unit 1 · First Words',          href: '/lesson?type=greetings' },
+    { id: 'intro',        title: 'Introduce Yourself',unit: 'Unit 1 · First Words',          href: '/lesson?type=intro' },
+    { id: 'cafe',         title: 'Café Ordering',     unit: 'Unit 2 · Real Life Situations', href: '/scenario-intro?type=Cafe' },
+    { id: 'taxi',         title: 'Taxi Ride',         unit: 'Unit 2 · Real Life Situations', href: '/scenario-intro-taxi' },
+    { id: 'hotel',        title: 'Hotel Check-in',    unit: 'Unit 2 · Real Life Situations', href: '/scenario-intro-hotel' },
+  ];
+  const completedInPath = CONTINUE_PATH.filter(p => scenarioProgress[p.id]).length;
+  const nextInPath = CONTINUE_PATH.find(p => !scenarioProgress[p.id]) ?? CONTINUE_PATH[0];
+  const continuePercent = Math.round((completedInPath / CONTINUE_PATH.length) * 100);
+  const continueTitle = completedInPath === CONTINUE_PATH.length ? 'Keep practising' : nextInPath.title;
+  const continueMeta = nextInPath.unit;
+  const continueHref = nextInPath.href;
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -162,8 +179,11 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Ahlan, {userName}!</Text>
-            <Text style={styles.dialectBadge}>{dialectFlag} {dialectLabel} · {currentLevel.icon} {currentLevel.name}</Text>
+            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={styles.greetingAhlan}>Ahlan, </Text>
+              {userName}
+            </Text>
+            <Text style={styles.dialectBadge}>{dialectFlag} {dialectLabel} · {currentLevel.name}</Text>
           </View>
           <View style={styles.headerRight}>
             <Pressable
@@ -171,11 +191,11 @@ export default function HomeScreen() {
               onPress={() => setShowStreakModal(true)}
             >
               <Flame
-                color={streakCount > 0 ? '#FF9600' : '#444'}
+                color={streakCount > 0 ? theme.colors.accentWarm : theme.colors.textTertiary}
                 size={14}
-                fill={streakCount > 0 ? '#FF9600' : '#444'}
+                fill={streakCount > 0 ? theme.colors.accentWarm : 'transparent'}
               />
-              <Text style={[styles.statPillText, streakCount === 0 && { color: '#555' }]}>
+              <Text style={[styles.statPillText, streakCount === 0 && { color: theme.colors.textTertiary }]}>
                 {streakCount}
               </Text>
             </Pressable>
@@ -186,7 +206,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Guest banner */}
+        {/* Guest banner (guests only) */}
         {isGuest && !showExpiryWarning && (
           <Pressable
             style={styles.guestBanner}
@@ -210,59 +230,47 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* Daily Quest card */}
-        <View style={styles.questCard}>
-          <View style={styles.questTop}>
-            <View style={styles.questLeft}>
-              <Text style={styles.questLabel}>DAILY QUEST</Text>
-              <Text style={styles.questTitle}>
-                {questComplete ? '✓ Quest complete! Come back tomorrow' : 'Complete 1 lesson today'}
-              </Text>
+        {/* Continue hero card */}
+        <Pressable
+          style={styles.continueCard}
+          onPress={() => router.push(continueHref as any)}
+        >
+          <View style={styles.continueGlow} pointerEvents="none" />
+          <View style={styles.continueHeader}>
+            <View style={styles.continueIconWell}>
+              <Mic color={theme.colors.accentPrimary} size={24} />
             </View>
-            <Activity color={questComplete ? '#00732F' : '#00897B'} size={22} />
-          </View>
-          <View style={styles.questBarRow}>
-            <View style={styles.questBarBg}>
-              <View style={[
-                styles.questBarFill,
-                { width: questComplete ? '100%' : '0%', backgroundColor: questComplete ? '#00732F' : '#00897B' }
-              ]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.continueLabel}>CONTINUE</Text>
+              <Text style={styles.continueTitle}>{continueTitle}</Text>
             </View>
-            <Text style={[styles.questFraction, questComplete && { color: '#00732F' }]}>
-              {questComplete ? 'Done! ✓' : '0 / 1'}
-            </Text>
           </View>
-        </View>
-
-        {/* Yusuf Chat card */}
-        <Pressable style={styles.yusufCard} onPress={() => router.push('/chat')}>
-          <LottieView
-            source={require('../../assets/images/animations/yusuf-thinking.json')}
-            autoPlay
-            loop
-            style={{ width: 100, height: 100 }}
-          />
-          <Text style={styles.yusufTitle}>Free Chat with Yusuf</Text>
-          <Text style={styles.yusufSubtitle}>
-            Real-time conversation practice. No judgment, just fluency.
-          </Text>
-          <View style={styles.xpPill}>
-            <Text style={styles.xpPillText}>⚡ EARN +10 XP PER MINUTE</Text>
+          <Text style={styles.continueMeta}>{continueMeta}</Text>
+          <View style={styles.continueProgressRow}>
+            <View style={styles.continueProgressBg}>
+              <View style={[styles.continueProgressFill, { width: `${continuePercent}%` }]} />
+            </View>
+            <Text style={styles.continuePercent}>{continuePercent}%</Text>
           </View>
         </Pressable>
 
-        {/* Yusuf says */}
-        <View style={styles.tipCard}>
-          <View style={styles.tipAvatar}>
-            <Text style={styles.tipAvatarText}>Y</Text>
+        {/* Daily Quest — single row */}
+        <View style={styles.questCard}>
+          <View style={styles.questIconWell}>
+            <Activity color={questComplete ? theme.colors.accentSuccess : theme.colors.accentPrimary} size={18} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tipLabel}>💡 Yusuf says</Text>
-            <Text style={styles.tipText}>
-              Don't stress about the alphabet yet. Just listen and repeat after me — your brain does the rest!
+          <View style={styles.questBody}>
+            <Text style={styles.questLabel}>DAILY QUEST</Text>
+            <Text style={styles.questTitle}>
+              {questComplete ? 'Quest complete!' : 'Complete 1 lesson today'}
             </Text>
           </View>
+          <Text style={[styles.questFraction, questComplete && { color: theme.colors.accentSuccess }]}>
+            {questComplete ? '✓' : '0 / 1'}
+          </Text>
         </View>
+
+        <Text style={styles.pathLabel}>YOUR PATH</Text>
 
         {/* Unit 1 */}
         <View style={styles.unitRow}>
@@ -272,16 +280,16 @@ export default function HomeScreen() {
         <LessonRow
           label="Basic Words"
           meta="Lesson 1 of 3 · 3 mins"
-          icon={<BookOpen color="#00897B" size={20} />}
+          icon={<BookOpen color={theme.colors.accentPrimary} size={20} />}
           status={getStatus('basic_words')}
           onPress={() => router.push('/lesson?type=basic_words' as any)}
           comingSoon={!content.availableLessons.includes('basic')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['basic_words'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['basic_words'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Common Greetings"
           meta="Lesson 2 of 3 · 3 mins"
-          icon={<Mic color="#00897B" size={20} />}
+          icon={<Mic color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('greetings', 'basic_words')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -290,11 +298,11 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableLessons.includes('greetings')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['greetings'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['greetings'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Introduce Yourself"
           meta="Lesson 3 of 3 · 4 mins"
-          icon={<User color="#00897B" size={20} />}
+          icon={<User color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('intro', 'greetings')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -303,7 +311,7 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableLessons.includes('intro')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['intro'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['intro'] && styles.lessonConnectorDone]} />
 
         {/* Unit 1 Quiz */}
         {(() => {
@@ -318,27 +326,27 @@ export default function HomeScreen() {
             >
               <Text style={styles.quizButtonIcon}>🎯</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 1 Quiz</Text>
-                <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 1 Quiz</Text>
+                <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                   {effectiveIsGuest ? 'Create account to unlock' : 'Test what you learned · +150 XP'}
                 </Text>
               </View>
               {quizUnlocked
-                ? <ChevronRight color="#00897B" size={20} />
-                : <Lock color="#444" size={18} />}
+                ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                : <Lock color={theme.colors.textTertiary} size={18} />}
             </Pressable>
           );
         })()}
 
         {/* Unit 2 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 2: Real Life Situations</Text>
         </View>
 
         <LessonRow
           label="Café Ordering"
           meta="Lesson 1 of 8 · 4 mins"
-          icon={<Coffee color="#00897B" size={20} />}
+          icon={<Coffee color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('cafe', 'intro')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -347,11 +355,11 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Cafe')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['cafe'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['cafe'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Taxi Ride"
           meta="Lesson 2 of 8 · 4 mins"
-          icon={<Car color="#00897B" size={20} />}
+          icon={<Car color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('taxi', 'cafe')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -360,11 +368,11 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Taxi')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['taxi'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['taxi'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Hotel Check-in"
           meta="Lesson 3 of 8 · 3 mins"
-          icon={<ShoppingBag color="#00897B" size={20} />}
+          icon={<ShoppingBag color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('hotel', 'taxi')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -373,7 +381,7 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Hotel')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['hotel'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['hotel'] && styles.lessonConnectorDone]} />
 
         {/* Unit 2 Quiz · Part 1 — unlocks after Hotel */}
         {(() => {
@@ -389,25 +397,25 @@ export default function HomeScreen() {
             >
               <Text style={styles.quizButtonIcon}>{done ? '✅' : '🎯'}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.quizButtonTitle, !unlocked && { color: '#666' }]}>Unit 2 Quiz · Part 1</Text>
-                <Text style={[styles.quizButtonSub, !unlocked && { color: '#444' }]}>
+                <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>Unit 2 Quiz · Part 1</Text>
+                <Text style={[styles.quizButtonSub, !unlocked && { color: theme.colors.textTertiary }]}>
                   {effectiveIsGuest ? 'Create account to unlock' : 'Café, Taxi, Hotel · +150 XP'}
                 </Text>
               </View>
               {done
-                ? <Check color="#FFD900" size={20} />
+                ? <Check color={theme.colors.accentSuccess} size={20} />
                 : unlocked
-                  ? <ChevronRight color="#00897B" size={20} />
-                  : <Lock color="#444" size={18} />}
+                  ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                  : <Lock color={theme.colors.textTertiary} size={18} />}
             </Pressable>
           );
         })()}
 
-        <View style={[styles.lessonConnector, scenarioProgress['quiz_u2_p1'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['quiz_u2_p1'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Restaurant"
           meta="Lesson 4 of 8 · 3 mins"
-          icon={<Utensils color="#00897B" size={20} />}
+          icon={<Utensils color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('restaurant', 'quiz_u2_p1')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -416,11 +424,11 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Restaurant')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['restaurant'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['restaurant'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Supermarket"
           meta="Lesson 5 of 8 · 3 mins"
-          icon={<ShoppingCart color="#00897B" size={20} />}
+          icon={<ShoppingCart color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('supermarket', 'restaurant')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -429,11 +437,11 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Supermarket')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['supermarket'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['supermarket'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Pharmacy"
           meta="Lesson 6 of 8 · 3 mins"
-          icon={<Heart color="#00897B" size={20} />}
+          icon={<Heart color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('pharmacy', 'supermarket')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -442,7 +450,7 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Pharmacy')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['pharmacy'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['pharmacy'] && styles.lessonConnectorDone]} />
 
         {/* Unit 2 Quiz · Part 2 — unlocks after Pharmacy */}
         {(() => {
@@ -458,25 +466,25 @@ export default function HomeScreen() {
             >
               <Text style={styles.quizButtonIcon}>{done ? '✅' : '🎯'}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.quizButtonTitle, !unlocked && { color: '#666' }]}>Unit 2 Quiz · Part 2</Text>
-                <Text style={[styles.quizButtonSub, !unlocked && { color: '#444' }]}>
+                <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>Unit 2 Quiz · Part 2</Text>
+                <Text style={[styles.quizButtonSub, !unlocked && { color: theme.colors.textTertiary }]}>
                   {effectiveIsGuest ? 'Create account to unlock' : 'Restaurant, Supermarket, Pharmacy · +150 XP'}
                 </Text>
               </View>
               {done
-                ? <Check color="#FFD900" size={20} />
+                ? <Check color={theme.colors.accentSuccess} size={20} />
                 : unlocked
-                  ? <ChevronRight color="#00897B" size={20} />
-                  : <Lock color="#444" size={18} />}
+                  ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                  : <Lock color={theme.colors.textTertiary} size={18} />}
             </Pressable>
           );
         })()}
 
-        <View style={[styles.lessonConnector, scenarioProgress['quiz_u2_p2'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['quiz_u2_p2'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Barbershop"
           meta="Lesson 7 of 8 · 3 mins"
-          icon={<Scissors color="#00897B" size={20} />}
+          icon={<Scissors color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('barbershop', 'quiz_u2_p2')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -485,11 +493,11 @@ export default function HomeScreen() {
           }}
           comingSoon={!content.availableScenarios.includes('Barbershop')}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['barbershop'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['barbershop'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Airport"
           meta="Lesson 8 of 8 · 3 mins"
-          icon={<Plane color="#00897B" size={20} />}
+          icon={<Plane color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('airport', 'barbershop')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -500,22 +508,22 @@ export default function HomeScreen() {
         />
 
         {/* Unit 3 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 3: Writing Arabic</Text>
         </View>
 
         <LessonRow
           label="The ا Family"
           meta="Lesson 1 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={getStatus('alif_family')}
           onPress={() => router.push('/writing?family=alif' as any)}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['alif_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['alif_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ب Family"
           meta="Lesson 2 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('ba_family', 'alif_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -523,11 +531,11 @@ export default function HomeScreen() {
             router.push('/writing' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['ba_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['ba_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ج Family"
           meta="Lesson 3 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('jeem_family', 'ba_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -535,11 +543,11 @@ export default function HomeScreen() {
             router.push('/writing?family=jeem' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['jeem_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['jeem_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The د Family"
           meta="Lesson 4 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('dal_family', 'jeem_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -547,11 +555,11 @@ export default function HomeScreen() {
             router.push('/writing?family=dal' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['dal_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['dal_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ر Family"
           meta="Lesson 5 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('ra_family', 'dal_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -559,11 +567,11 @@ export default function HomeScreen() {
             router.push('/writing?family=ra' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['ra_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['ra_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The س Family"
           meta="Lesson 6 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('seen_family', 'ra_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -571,11 +579,11 @@ export default function HomeScreen() {
             router.push('/writing?family=seen' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['seen_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['seen_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ص Family"
           meta="Lesson 7 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('sad_family', 'seen_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -583,11 +591,11 @@ export default function HomeScreen() {
             router.push('/writing?family=sad' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['sad_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['sad_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ط Family"
           meta="Lesson 8 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('taa_family', 'sad_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -595,11 +603,11 @@ export default function HomeScreen() {
             router.push('/writing?family=taa' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['taa_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['taa_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ع Family"
           meta="Lesson 9 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('ayn_family', 'taa_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -607,11 +615,11 @@ export default function HomeScreen() {
             router.push('/writing?family=ayn' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['ayn_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['ayn_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ف Family"
           meta="Lesson 10 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('fa_family', 'ayn_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -619,11 +627,11 @@ export default function HomeScreen() {
             router.push('/writing?family=fa' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['fa_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['fa_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ك Family"
           meta="Lesson 11 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('kaf_family', 'fa_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -631,11 +639,11 @@ export default function HomeScreen() {
             router.push('/writing?family=kaf' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['kaf_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['kaf_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The م Family"
           meta="Lesson 12 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('meem_family', 'kaf_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -643,11 +651,11 @@ export default function HomeScreen() {
             router.push('/writing?family=meem' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['meem_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['meem_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ه Family"
           meta="Lesson 13 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('ha_family', 'meem_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -655,11 +663,11 @@ export default function HomeScreen() {
             router.push('/writing?family=ha' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['ha_family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['ha_family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="The ي Family"
           meta="Lesson 14 of 14 · 3 mins"
-          icon={<Pencil color="#00897B" size={20} />}
+          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('ya_family', 'ha_family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -680,11 +688,11 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u3'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['ya_family'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['ya_family'] && styles.lessonConnectorDone]} />
               <LessonRow
                 label="Unit 3 Quiz"
                 meta="Test what you learned · +150 XP"
-                icon={<Pencil color="#00897B" size={20} />}
+                icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
                 status={quizDone ? 'completed' : (effectiveIsGuest ? 'locked' : (quizUnlocked ? 'current' : 'locked'))}
                 guestLocked={effectiveIsGuest}
                 onPress={() => {
@@ -697,14 +705,14 @@ export default function HomeScreen() {
         })()}
 
         {/* Unit 4 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 4: Numbers & Counting</Text>
         </View>
 
         <LessonRow
           label="Numbers 1–5"
           meta="Lesson 1 of 14 · 2 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-1-5')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -712,11 +720,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-1-5' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-1-5'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-1-5'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Numbers 6–10"
           meta="Lesson 2 of 14 · 2 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-6-10', 'numbers-1-5')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -724,11 +732,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-6-10' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-6-10'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-6-10'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Numbers 11–20"
           meta="Lesson 3 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-11-20', 'numbers-6-10')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -736,11 +744,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-11-20' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-11-20'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-11-20'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Tens & Hundreds"
           meta="Lesson 4 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-tens', 'numbers-11-20')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -748,11 +756,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-tens' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-tens'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-tens'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Talking About Age"
           meta="Lesson 5 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-age', 'numbers-tens')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -760,11 +768,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-age' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-age'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-age'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Prices & Money"
           meta="Lesson 6 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-prices', 'numbers-age')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -772,11 +780,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-prices' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-prices'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-prices'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Phone Numbers"
           meta="Lesson 7 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-phone', 'numbers-prices')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -784,11 +792,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-phone' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-phone'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-phone'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Telling the Time"
           meta="Lesson 8 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-hours', 'numbers-phone')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -796,11 +804,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-hours' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-hours'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-hours'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Minutes & Fractions"
           meta="Lesson 9 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-minutes', 'numbers-hours')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -808,11 +816,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-minutes' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-minutes'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-minutes'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Days of the Week"
           meta="Lesson 10 of 14 · 2 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-days', 'numbers-minutes')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -820,11 +828,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-days' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-days'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-days'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Months of the Year"
           meta="Lesson 11 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-months', 'numbers-days')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -832,11 +840,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-months' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-months'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-months'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Dates & Calendar"
           meta="Lesson 12 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-dates', 'numbers-months')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -844,11 +852,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-dates' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-dates'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-dates'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Ordinal Numbers"
           meta="Lesson 13 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-ordering', 'numbers-dates')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -856,11 +864,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=numbers-ordering' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-ordering'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['numbers-ordering'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Big Numbers"
           meta="Lesson 14 of 14 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('numbers-together', 'numbers-ordering')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -882,7 +890,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u4'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['numbers-together'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['numbers-together'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -892,30 +900,30 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 4 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 4 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Numbers & Counting · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
         })()}
 
         {/* Unit 5 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 5: Grammar Basics</Text>
         </View>
 
         <LessonRow
           label="Pronouns"
           meta="Lesson 1 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-pronouns')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -923,11 +931,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-pronouns' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-pronouns'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-pronouns'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="This & That"
           meta="Lesson 2 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-this-that', 'grammar-pronouns')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -935,11 +943,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-this-that' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-this-that'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-this-that'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="My, Your, His, Her"
           meta="Lesson 3 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-possessives', 'grammar-this-that')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -947,11 +955,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-possessives' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-possessives'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-possessives'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Common Verbs (Present)"
           meta="Lesson 4 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-present-verbs', 'grammar-possessives')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -959,11 +967,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-present-verbs' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-present-verbs'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-present-verbs'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Common Verbs (Past)"
           meta="Lesson 5 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-past-verbs', 'grammar-present-verbs')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -971,11 +979,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-past-verbs' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-past-verbs'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-past-verbs'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Wanting & Needing"
           meta="Lesson 6 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-want-need', 'grammar-past-verbs')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -983,11 +991,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-want-need' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-want-need'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-want-need'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Asking Questions"
           meta="Lesson 7 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-questions', 'grammar-want-need')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -995,11 +1003,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-questions' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-questions'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-questions'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Saying No & Not"
           meta="Lesson 8 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-negation', 'grammar-questions')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1007,11 +1015,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-negation' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-negation'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-negation'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Describing Things"
           meta="Lesson 9 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-adjectives', 'grammar-negation')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1019,11 +1027,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=grammar-adjectives' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-adjectives'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['grammar-adjectives'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Building Sentences"
           meta="Lesson 10 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('grammar-sentences', 'grammar-adjectives')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1044,7 +1052,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u5'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['grammar-sentences'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['grammar-sentences'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -1054,30 +1062,30 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 5 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 5 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Grammar Basics · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
         })()}
 
         {/* Unit 6 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 6: Daily Life Scenarios</Text>
         </View>
 
         <LessonRow
           label="Morning Routine"
           meta="Lesson 1 of 8 · 3 mins"
-          icon={<Coffee color="#00897B" size={20} />}
+          icon={<Coffee color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('morningroutine')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1085,11 +1093,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-morning-routine' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['morningroutine'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['morningroutine'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="At the Gym"
           meta="Lesson 2 of 8 · 3 mins"
-          icon={<Activity color="#00897B" size={20} />}
+          icon={<Activity color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('atgym', 'morningroutine')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1097,11 +1105,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-gym' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['atgym'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['atgym'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Cooking at Home"
           meta="Lesson 3 of 8 · 3 mins"
-          icon={<Utensils color="#00897B" size={20} />}
+          icon={<Utensils color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('cookinghome', 'atgym')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1109,11 +1117,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-cooking-home' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['cookinghome'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['cookinghome'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Weather Chat"
           meta="Lesson 4 of 8 · 3 mins"
-          icon={<Mic color="#00897B" size={20} />}
+          icon={<Mic color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('weatherchat', 'cookinghome')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1121,11 +1129,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-weather-chat' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['weatherchat'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['weatherchat'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Doctor Visit"
           meta="Lesson 5 of 8 · 3 mins"
-          icon={<Heart color="#00897B" size={20} />}
+          icon={<Heart color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('doctorvisit', 'weatherchat')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1133,11 +1141,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-doctor-visit' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['doctorvisit'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['doctorvisit'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="At the Bank"
           meta="Lesson 6 of 8 · 3 mins"
-          icon={<ShoppingBag color="#00897B" size={20} />}
+          icon={<ShoppingBag color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('atbank', 'doctorvisit')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1145,11 +1153,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-bank' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['atbank'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['atbank'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Friday Gathering"
           meta="Lesson 7 of 8 · 3 mins"
-          icon={<User color="#00897B" size={20} />}
+          icon={<User color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('fridaygathering', 'atbank')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1157,11 +1165,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friday-gathering' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['fridaygathering'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['fridaygathering'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Neighbour Visit"
           meta="Lesson 8 of 8 · 3 mins"
-          icon={<Coffee color="#00897B" size={20} />}
+          icon={<Coffee color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('neighborvisit', 'fridaygathering')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1181,7 +1189,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u6'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['neighborvisit'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['neighborvisit'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -1191,30 +1199,30 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 6 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 6 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Daily Life Scenarios · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
         })()}
 
         {/* Unit 8 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 8: Emergencies & Help</Text>
         </View>
 
         <LessonRow
           label="Lost in the City"
           meta="Lesson 1 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('lostincity')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1222,11 +1230,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-lost-in-city' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['lostincity'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['lostincity'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Car Breakdown"
           meta="Lesson 2 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('carbreakdown', 'lostincity')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1234,11 +1242,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-car-breakdown' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['carbreakdown'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['carbreakdown'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="At the Police Station"
           meta="Lesson 3 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('policestation', 'carbreakdown')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1246,11 +1254,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-police-station' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['policestation'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['policestation'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Hospital Emergency"
           meta="Lesson 4 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('hospitalemergency', 'policestation')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1258,11 +1266,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-hospital-emergency' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['hospitalemergency'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['hospitalemergency'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Lost Wallet"
           meta="Lesson 5 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('lostwallet', 'hospitalemergency')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1270,11 +1278,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-lost-wallet' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['lostwallet'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['lostwallet'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Phone Stolen"
           meta="Lesson 6 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('phonestolen', 'lostwallet')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1282,11 +1290,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-phone-stolen' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['phonestolen'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['phonestolen'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Flight Problem"
           meta="Lesson 7 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('flightproblem', 'phonestolen')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1294,11 +1302,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-flight-problem' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['flightproblem'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['flightproblem'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Asking Strangers for Help"
           meta="Lesson 8 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('askingforhelp', 'flightproblem')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1318,7 +1326,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u8'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['askingforhelp'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['askingforhelp'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -1328,30 +1336,30 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 8 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 8 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Emergencies & Help · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
         })()}
 
         {/* Unit 7 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 7: Work & Business</Text>
         </View>
 
         <LessonRow
           label="At the Office"
           meta="Lesson 1 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-office')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1359,11 +1367,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-office' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-office'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-office'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Work Greetings"
           meta="Lesson 2 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-greetings', 'work-office')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1371,11 +1379,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-greetings' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-greetings'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-greetings'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="In a Meeting"
           meta="Lesson 3 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-meeting', 'work-greetings')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1383,11 +1391,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-meeting' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-meeting'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-meeting'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Phone Calls"
           meta="Lesson 4 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-phone', 'work-meeting')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1395,11 +1403,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-phone' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-phone'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-phone'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Email & Messages"
           meta="Lesson 5 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-email', 'work-phone')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1407,11 +1415,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-email' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-email'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-email'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Schedule & Deadlines"
           meta="Lesson 6 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-schedule', 'work-email')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1419,11 +1427,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-schedule' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-schedule'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-schedule'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Reporting Problems"
           meta="Lesson 7 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-problems', 'work-schedule')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1431,11 +1439,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-problems' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-problems'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-problems'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Office Small Talk"
           meta="Lesson 8 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-smalltalk', 'work-problems')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1443,11 +1451,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-smalltalk' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-smalltalk'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-smalltalk'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Salary & Benefits"
           meta="Lesson 9 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-salary', 'work-smalltalk')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1455,11 +1463,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=work-salary' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['work-salary'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['work-salary'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="End of Day"
           meta="Lesson 10 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('work-leaving', 'work-salary')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1479,7 +1487,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u7'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['work-leaving'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['work-leaving'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -1489,30 +1497,30 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 7 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 7 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Work & Business · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
         })()}
 
         {/* Unit 9 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 9: Social & Culture</Text>
         </View>
 
         <LessonRow
           label="Greetings & Farewells"
           meta="Lesson 1 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-greetings')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1520,11 +1528,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-greetings' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-greetings'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-greetings'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Family & Relationships"
           meta="Lesson 2 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-family', 'social-greetings')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1532,11 +1540,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-family' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-family'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-family'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Invitations & Plans"
           meta="Lesson 3 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-invitations', 'social-family')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1544,11 +1552,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-invitations' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-invitations'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-invitations'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Ramadan & Eid"
           meta="Lesson 4 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-ramadan', 'social-invitations')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1556,11 +1564,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-ramadan' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-ramadan'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-ramadan'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Compliments & Praise"
           meta="Lesson 5 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-compliments', 'social-ramadan')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1568,11 +1576,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-compliments' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-compliments'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-compliments'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Feelings & Emotions"
           meta="Lesson 6 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-emotions', 'social-compliments')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1580,11 +1588,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-emotions' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-emotions'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-emotions'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Weddings & Celebrations"
           meta="Lesson 7 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-weddings', 'social-emotions')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1592,11 +1600,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-weddings' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-weddings'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-weddings'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Condolences & Sympathy"
           meta="Lesson 8 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-condolences', 'social-weddings')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1604,11 +1612,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-condolences' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-condolences'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-condolences'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Religion & Daily Phrases"
           meta="Lesson 9 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-religion', 'social-condolences')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1616,11 +1624,11 @@ export default function HomeScreen() {
             router.push('/lesson?type=social-religion' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['social-religion'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['social-religion'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Manners & Etiquette"
           meta="Lesson 10 of 10 · 3 mins"
-          icon={<Hash color="#00897B" size={20} />}
+          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('social-manners', 'social-religion')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1641,7 +1649,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u9'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['social-manners'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['social-manners'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -1651,30 +1659,30 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 9 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 9 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Social & Culture · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
         })()}
 
         {/* Unit 10 */}
-        <View style={[styles.unitRow, { marginTop: 24 }]}>
+        <View style={styles.unitRow}>
           <Text style={styles.unitTitle}>Unit 10: Making Friends</Text>
         </View>
 
         <LessonRow
           label="New Neighbor"
           meta="Lesson 1 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsnewneighbor')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1682,11 +1690,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-new-neighbor' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsnewneighbor'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendsnewneighbor'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Watching Football"
           meta="Lesson 2 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsfootball', 'friendsnewneighbor')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1694,11 +1702,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-football' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsfootball'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendsfootball'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Gaming Night"
           meta="Lesson 3 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsgaming', 'friendsfootball')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1706,11 +1714,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-gaming' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsgaming'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendsgaming'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Weekend Plans"
           meta="Lesson 4 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsweekend', 'friendsgaming')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1718,11 +1726,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-weekend' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsweekend'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendsweekend'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Social Media"
           meta="Lesson 5 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendssocialmedia', 'friendsweekend')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1730,11 +1738,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-social-media' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendssocialmedia'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendssocialmedia'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Road Trip"
           meta="Lesson 6 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsroadtrip', 'friendssocialmedia')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1742,11 +1750,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-road-trip' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsroadtrip'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendsroadtrip'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Birthday Party"
           meta="Lesson 7 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsbirthday', 'friendsroadtrip')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1754,11 +1762,11 @@ export default function HomeScreen() {
             router.push('/scenario-intro-friends-birthday' as any);
           }}
         />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsbirthday'] && { backgroundColor: '#00897B' }]} />
+        <View style={[styles.lessonConnector, scenarioProgress['friendsbirthday'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Saying Goodbye"
           meta="Lesson 8 of 8 · 5 mins"
-          icon={<MapPin color="#00897B" size={20} />}
+          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('friendsfarewell', 'friendsbirthday')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
@@ -1778,7 +1786,7 @@ export default function HomeScreen() {
           const quizDone = !!scenarioProgress['quiz_u10'];
           return (
             <>
-              <View style={[styles.lessonConnector, scenarioProgress['friendsfarewell'] && { backgroundColor: '#00897B' }]} />
+              <View style={[styles.lessonConnector, scenarioProgress['friendsfarewell'] && styles.lessonConnectorDone]} />
               <Pressable
                 style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
                 onPress={() => {
@@ -1788,16 +1796,16 @@ export default function HomeScreen() {
               >
                 <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: '#666' }]}>Unit 10 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: '#444' }]}>
+                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 10 Quiz</Text>
+                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
                     {effectiveIsGuest ? 'Create account to unlock' : 'Making Friends · +150 XP'}
                   </Text>
                 </View>
                 {quizDone
-                  ? <Check color="#FFD900" size={20} />
+                  ? <Check color={theme.colors.accentSuccess} size={20} />
                   : quizUnlocked
-                    ? <ChevronRight color="#00897B" size={20} />
-                    : <Lock color="#444" size={18} />}
+                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+                    : <Lock color={theme.colors.textTertiary} size={18} />}
               </Pressable>
             </>
           );
@@ -1840,117 +1848,107 @@ function LessonRow({ label, meta, icon, status, onPress, guestLocked, comingSoon
   const isCompleted = effectiveStatus === 'completed';
   const isLocked = effectiveStatus === 'locked';
 
-  const iconBg = isCompleted ? '#1a1500' : isActive ? '#0a1f1a' : '#161616';
-  const iconColor = isCompleted ? '#FFD900' : isActive ? '#00897B' : '#444';
-
   const effectiveMeta = comingSoon ? 'Coming Soon' : (isLocked && guestLocked ? '🔒 Sign up to unlock' : meta);
 
   return (
     <Pressable
       style={[
         styles.lessonRow,
-        isCompleted && styles.lessonRowCompleted,
         isActive && styles.lessonRowActive,
         isLocked && styles.lessonRowLocked,
       ]}
       onPress={comingSoon ? undefined : onPress}
     >
-      <View style={[styles.lessonIconCircle, { backgroundColor: iconBg }]}>
-        {isLocked ? <Lock color={iconColor} size={18} /> : icon}
+      <View style={[
+        styles.lessonIconWell,
+        isActive && styles.lessonIconWellActive,
+      ]}>
+        {isCompleted
+          ? <Check color={theme.colors.accentSuccess} size={18} />
+          : isLocked
+            ? <Lock color={theme.colors.textTertiary} size={16} />
+            : icon}
       </View>
       <View style={styles.lessonMiddle}>
-        <Text style={[
-          styles.lessonLabel,
-          isLocked && { color: '#666' },
-        ]}>{label}</Text>
-        <Text style={[
-          styles.lessonMeta,
-          isActive && { color: '#00897B' },
-          isLocked && { color: '#444' },
-        ]}>
+        <Text style={styles.lessonLabel}>{label}</Text>
+        <Text style={[styles.lessonMeta, isActive && styles.lessonMetaActive]}>
           {effectiveMeta}
         </Text>
       </View>
-      <View style={[
-        styles.lessonPlayBtn,
-        isCompleted && { backgroundColor: '#FFD900' },
-        isActive && { backgroundColor: '#00897B' },
-        isLocked && { backgroundColor: '#1a1a1a' },
-      ]}>
-        {isCompleted && <Check color="#000" size={16} />}
-        {isActive && !comingSoon && <Play color="#FFF" size={16} />}
-        {comingSoon && <Text style={{ fontSize: 14 }}>🔜</Text>}
-        {isLocked && !comingSoon && <Lock color="#444" size={14} />}
-      </View>
+      {isActive && !comingSoon && <ChevronRight color={theme.colors.textAccent} size={18} />}
+      {isLocked && !comingSoon && <Lock color={theme.colors.textTertiary} size={16} />}
+      {comingSoon && <Text style={{ fontSize: 14 }}>🔜</Text>}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0A' },
-  scroll: { padding: 20, paddingBottom: 60 },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
+  scroll: { padding: theme.spacing.xl, paddingBottom: 60 },
 
   // Header
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.xl },
   headerLeft: { flex: 1 },
-  greeting: { fontSize: 28, fontWeight: '800', color: '#00897B' },
-  dialectBadge: { fontSize: 12, color: '#00897B', fontWeight: '600', marginTop: 4, opacity: 0.75 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 4 },
-  statPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#151515', borderWidth: 1, borderColor: '#2a2a2a', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, gap: 4 },
-  statPillDim: { borderColor: '#1e1e1e', opacity: 0.6 },
-  statPillText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  greeting: { fontSize: theme.fontSize.display, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  greetingAhlan: { color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
+  dialectBadge: { fontSize: theme.fontSize.body, color: theme.colors.textSecondary, marginTop: theme.spacing.xs, fontWeight: theme.fontWeight.regular },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingTop: theme.spacing.xs },
+  statPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault, borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.md, paddingVertical: 6, gap: theme.spacing.xs },
+  statPillDim: { opacity: 0.5 },
+  statPillText: { color: theme.colors.textPrimary, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium },
 
-  // Guest banner
-  guestBanner: { backgroundColor: '#111', borderLeftWidth: 3, borderLeftColor: '#00897B', borderRadius: 8, padding: 12, marginBottom: 16 },
-  guestBannerText: { color: '#00897B', fontSize: 13, fontWeight: '500' },
-  expiryBanner: { backgroundColor: '#1a0a00', borderLeftWidth: 3, borderLeftColor: '#FF9600', borderRadius: 8, padding: 12, marginBottom: 16 },
-  expiryBannerText: { color: '#FF9600', fontSize: 13, fontWeight: '500' },
+  // Banners
+  guestBanner: { backgroundColor: theme.colors.bgSurface, borderLeftWidth: 3, borderLeftColor: theme.colors.accentPrimary, borderRadius: theme.radii.xs, padding: theme.spacing.md, marginBottom: theme.spacing.lg },
+  guestBannerText: { color: theme.colors.textAccent, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.regular },
+  expiryBanner: { backgroundColor: theme.colors.bgSurface, borderLeftWidth: 3, borderLeftColor: theme.colors.accentWarm, borderRadius: theme.radii.xs, padding: theme.spacing.md, marginBottom: theme.spacing.lg },
+  expiryBannerText: { color: theme.colors.accentWarm, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.regular },
 
-  // Daily Quest
-  questCard: { backgroundColor: '#161616', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1e1e1e' },
-  questTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  questLeft: { flex: 1, paddingRight: 12 },
-  questLabel: { fontSize: 10, fontWeight: '700', color: '#00897B', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-  questTitle: { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
-  questBarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  questBarBg: { flex: 1, height: 8, backgroundColor: '#222', borderRadius: 4, overflow: 'hidden' },
-  questBarFill: { height: '100%', borderRadius: 4 },
-  questFraction: { fontSize: 12, fontWeight: '700', color: '#555' },
+  // Continue hero
+  continueCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: theme.spacing.xl, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.borderDefault, overflow: 'hidden', position: 'relative' },
+  continueGlow: { position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(61, 212, 192, 0.08)' },
+  continueHeader: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginBottom: theme.spacing.sm },
+  continueIconWell: { width: 48, height: 48, borderRadius: theme.radii.sm, backgroundColor: theme.colors.bgElevated, alignItems: 'center', justifyContent: 'center' },
+  continueLabel: { fontSize: theme.fontSize.label, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5 },
+  continueTitle: { fontSize: theme.fontSize.title, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.medium, marginTop: 2 },
+  continueMeta: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary, marginTop: theme.spacing.xs, marginLeft: 60 },
+  continueProgressRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginTop: theme.spacing.md },
+  continueProgressBg: { flex: 1, height: 6, backgroundColor: theme.colors.bgBase, borderRadius: theme.radii.pill, overflow: 'hidden' },
+  continueProgressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.pill },
+  continuePercent: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, minWidth: 32, textAlign: 'right' },
 
-  // Yusuf chat card
-  yusufCard: { backgroundColor: '#0d1f1e', borderWidth: 1.5, borderColor: '#00897B', borderRadius: 20, padding: 20, alignItems: 'center', marginBottom: 16 },
-  yusufTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFF', marginBottom: 6, textAlign: 'center' },
-  yusufSubtitle: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 19, marginBottom: 14 },
-  xpPill: { backgroundColor: '#0A2A20', borderWidth: 1, borderColor: '#00897B', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
-  xpPillText: { color: '#00897B', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  // Daily Quest — single row
+  questCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, padding: theme.spacing.md, marginBottom: theme.spacing.xl, borderWidth: 1, borderColor: theme.colors.borderDefault, gap: theme.spacing.md },
+  questIconWell: { width: 36, height: 36, borderRadius: theme.radii.sm, backgroundColor: theme.colors.bgElevated, alignItems: 'center', justifyContent: 'center' },
+  questBody: { flex: 1 },
+  questLabel: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textSecondary, letterSpacing: 1.5, marginBottom: 2 },
+  questTitle: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  questFraction: { fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium, color: theme.colors.textSecondary, minWidth: 32, textAlign: 'right' },
 
-  // Tip card
-  tipCard: { flexDirection: 'row', backgroundColor: 'rgba(0,137,123,0.05)', borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(0,137,123,0.3)', gap: 12 },
-  tipAvatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#00897B', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
-  tipAvatarText: { fontSize: 13, fontWeight: '800', color: '#FFF' },
-  tipLabel: { fontSize: 11, fontWeight: '700', color: '#00897B', marginBottom: 5 },
-  tipText: { fontSize: 14, color: '#FFF', lineHeight: 21, opacity: 0.85 },
+  // Path label
+  pathLabel: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, letterSpacing: 1.5, marginBottom: theme.spacing.md, marginTop: theme.spacing.sm },
 
-  // Unit header
-  unitRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#00897B', paddingLeft: 12 },
-  unitTitle: { fontSize: 17, fontWeight: 'bold', color: '#FFF' },
+  // Unit header (restyled)
+  unitRow: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
+  unitTitle: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase' },
 
   // Lesson rows
-  lessonRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1A', borderRadius: 14, padding: 14, paddingHorizontal: 16, marginBottom: 10, borderWidth: 0.5, borderColor: '#2a2a2a' },
-  lessonRowCompleted: { borderLeftWidth: 3, borderLeftColor: '#FFD900', borderColor: '#2a2a2a' },
-  lessonRowActive: { backgroundColor: '#0d1a19', borderLeftWidth: 3, borderLeftColor: '#00897B', borderColor: '#00897B' },
-  lessonRowLocked: { backgroundColor: '#111', borderColor: '#1a1a1a' },
-  lessonIconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  lessonRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, padding: theme.spacing.md, paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.sm, borderWidth: 1, borderColor: theme.colors.borderDefault, gap: theme.spacing.md },
+  lessonRowActive: { borderColor: theme.colors.borderAccent },
+  lessonRowLocked: { opacity: 0.55 },
+  lessonIconWell: { width: 40, height: 40, borderRadius: theme.radii.sm, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault, backgroundColor: 'transparent' },
+  lessonIconWellActive: { backgroundColor: theme.colors.bgElevated, borderColor: theme.colors.borderAccent },
   lessonMiddle: { flex: 1 },
-  lessonLabel: { fontSize: 15, fontWeight: 'bold', color: '#FFF', marginBottom: 2 },
-  lessonMeta: { fontSize: 12, color: '#555' },
-  lessonConnector: { width: 3, height: 28, backgroundColor: '#1e1e1e', marginLeft: 34, borderRadius: 2 },
-  quizButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,137,123,0.08)', borderWidth: 1.5, borderColor: '#00897B', borderRadius: 16, padding: 16, gap: 12, marginBottom: 4 },
-  quizButtonLocked: { backgroundColor: '#111', borderColor: '#1a1a1a' },
-  quizButtonDone: { backgroundColor: 'rgba(255,217,0,0.06)', borderColor: '#FFD900' },
-  quizButtonIcon: { fontSize: 24 },
-  quizButtonTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  quizButtonSub: { fontSize: 12, color: '#00897B', marginTop: 2 },
-  lessonPlayBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  lessonLabel: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 2 },
+  lessonMeta: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary },
+  lessonMetaActive: { color: theme.colors.textAccent },
+  lessonConnector: { width: 2, height: 10, backgroundColor: theme.colors.borderDefault, marginLeft: 36, marginBottom: theme.spacing.sm, borderRadius: 1 },
+  lessonConnectorDone: { backgroundColor: theme.colors.accentPrimary },
 
+  // Quiz button
+  quizButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.md, padding: theme.spacing.lg, gap: theme.spacing.md, marginBottom: theme.spacing.sm },
+  quizButtonLocked: { borderColor: theme.colors.borderDefault, opacity: 0.55 },
+  quizButtonDone: { borderColor: theme.colors.accentSuccess },
+  quizButtonIcon: { fontSize: 22 },
+  quizButtonTitle: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  quizButtonSub: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary, marginTop: 2 },
 });

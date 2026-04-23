@@ -5,7 +5,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        obsidian: "#0A0A0A",
         emerald: "#50C878",
         gold: "#D4AF37",
         levantine: "#3B82F6", // Blue for Shami
