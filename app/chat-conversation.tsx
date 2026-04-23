@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     maxWidth: '84%',
     backgroundColor: theme.colors.bgElevated, borderRadius: theme.radii.lg, borderBottomRightRadius: 4,
     padding: 14,
-    borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderWidth: 1, borderColor: theme.colors.borderAccent,
   },
   userText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular, lineHeight: 22 },
 
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: theme.colors.bgElevated, borderRadius: theme.radii.lg, borderBottomRightRadius: 4,
     padding: 14,
-    borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderWidth: 1, borderColor: theme.colors.borderAccent,
   },
   voiceText: { fontSize: theme.fontSize.body, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular },
 

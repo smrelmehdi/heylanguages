@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
   userMsgRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
   userBubble: {
     maxWidth: '80%', backgroundColor: theme.colors.bgElevated,
-    borderWidth: 1, borderColor: theme.colors.borderDefault,
+    borderWidth: 1, borderColor: theme.colors.borderAccent,
     borderRadius: theme.radii.md, borderTopRightRadius: 4,
     padding: 12, gap: 3,
   },
