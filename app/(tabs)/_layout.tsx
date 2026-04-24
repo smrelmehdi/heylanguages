@@ -3,7 +3,6 @@ import { BookOpen, MessageCircle, User } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { theme } from '../../constants/theme';
 
@@ -32,7 +31,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { bottom: bottomOffset }]}>
-      <BlurView intensity={30} tint="dark" style={styles.pillBlur}>
+      <View style={[styles.pillBlur, { backgroundColor: 'rgba(42, 39, 52, 0.98)' }]}>
         <View style={styles.pill}>
           {state.routes.map((route, index) => {
             const meta = TAB_META[route.name];
@@ -54,7 +53,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
             );
           })}
         </View>
-      </BlurView>
+      </View>
     </View>
   );
 }
