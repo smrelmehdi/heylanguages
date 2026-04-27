@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useDialect } from '../contexts/DialectContext';
 import { playLocalAudio, stopAudio } from '../utils/tts';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import LottieView from 'lottie-react-native';
 import { ArrowLeft, Mic } from 'lucide-react-native';
@@ -460,9 +461,9 @@ export default function OnboardingWizard() {
         <View style={styles.topSection}>
           <Animated.View layout={LinearTransition.springify()} style={styles.bubbleWrapper}>
             <Animated.View style={[styles.blurContainer, bubbleAnimatedStyle]}>
-              <View style={[styles.blurBubble, { backgroundColor: 'rgba(42, 39, 52, 0.98)' }]}>
+              <BlurView intensity={80} tint="dark" style={styles.blurBubble}>
                 <Text style={styles.bubbleText}>{typedText}</Text>
-              </View>
+              </BlurView>
             </Animated.View>
             <View style={styles.bubbleTriangle} />
           </Animated.View>
