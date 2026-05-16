@@ -308,17 +308,6 @@ export const LOST_WALLET_DIALOGUE: DialogueTurn[] = [
   { type: 'waiter', arabic: 'لَقوها مَحَد أَخَذ مِنها شَي تَعال مَعي',                transliteration: "lagooha mahad akhadh minha shay ta'aal ma'i",          english: 'They found it, nothing was taken, come with me' },
 ];
 
-export const PHONE_STOLEN_DIALOGUE: DialogueTurn[] = [
-  { type: 'user',   arabic: 'لَو سَمَحت تِلِفوني اِنسَرَق',                            transliteration: 'law samaht tilifooni insaraq',                        english: 'Excuse me, my phone was stolen' },
-  { type: 'waiter', arabic: 'مَتى صار هالشَّي',                                         transliteration: 'mata saar hal-shay',                                  english: 'When did this happen?',                 context: 'Shurti — police officer' },
-  { type: 'user',   arabic: 'الحين قَبِل شوَي كُنت بالسوق',                             transliteration: 'il-heen gabil shway kunt bis-sooq',                   english: 'Just now, a little while ago at the market' },
-  { type: 'waiter', arabic: 'شِفت مِنو أَخَذه',                                         transliteration: 'shift minu akhdhah',                                  english: 'Did you see who took it?' },
-  { type: 'user',   arabic: 'لا ما شِفت حَسَّيت بَس التِّلِفون ما كان بِجَيبي',         transliteration: 'la ma shift hassait bass it-tilifoon ma kaan bi-jaibi', english: "No I didn't see, I just felt the phone wasn't in my pocket" },
-  { type: 'waiter', arabic: 'تِقدَر تِتبَعَّه مِن تَطبيق',                              transliteration: "taqdar tatba'ah min tatbeeq",                         english: 'Can you track it from an app?' },
-  { type: 'user',   arabic: 'اي بِجَرِّب مِن تِلِفون صاحِبي',                           transliteration: 'ee bajarrib min tilifoon saahbi',                     english: "Yes I'll try from my friend's phone" },
-  { type: 'waiter', arabic: 'تَعال نِكتِب بَلاغ أَول وبَعدَين نِشوف',                  transliteration: "ta'aal niktib balaagh awwal wa ba'dain nshoof",        english: "Come, let's file a report first and then we'll see" },
-];
-
 export const FLIGHT_PROBLEM_DIALOGUE: DialogueTurn[] = [
   { type: 'waiter', arabic: 'هَلا تَفَضَّل كَيف أَقدَر أُساعِدَك',                      transliteration: "hala tafaddal kaif aqdar asaa'dak",                  english: 'Hello, how can I help you?',            context: 'Muwadhdhafat Tayaraan — airline employee' },
   { type: 'user',   arabic: 'رِحلَتي تَأَخَّرَت وأَنا عِندي تِرانزيت',                  transliteration: "rihlati ta'akharat wa ana 'indi traanzeet",           english: 'My flight is delayed and I have a connection' },

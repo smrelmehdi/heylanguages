@@ -7,7 +7,7 @@ export default function ScenarioIntroBankPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.AtBank ?? require('../assets/images/dubai-hotel-reception.png')}
+      image={content.sceneImages.AtBankEntrance ?? require('../assets/images/dubai-bank-entrance.png')}
       badge="🏦 Unit 6 · Lesson 6"
       title="At the Bank"
       description="You need to open a new account at Emirates NBD. The bank employee walks you through the process — passport, address, timeline, all in Gulf Arabic."

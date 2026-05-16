@@ -4,13 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabase';
-import LottieView from 'lottie-react-native';
 import { recordActivity } from '../utils/streak';
 import * as Haptics from 'expo-haptics';
 import { ArrowLeft } from 'lucide-react-native';
 import { speakArabic, playLocalAudio, stopAudio } from '../utils/tts';
 import { stripTashkeel } from '../utils/arabic';
 import { theme } from '../constants/theme';
+import Yusuf, { useMood } from '../components/Yusuf';
 import {
   BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS,
   NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
@@ -110,6 +110,14 @@ export default function QuizScreen() {
   const [completed, setCompleted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
 
+  const [yusufMood, setYusufMood] = useMood('thinking');
+  const [yusufWhisper, setYusufWhisper] = useState<string | undefined>(undefined);
+  const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
+  }, []);
+
   const currentQuestion = questions[currentIndex];
   const progress = currentIndex / questions.length;
 
@@ -179,9 +187,18 @@ export default function QuizScreen() {
       setXpEarned(xp => xp + 10);
       setCorrectCount(c => c + 1);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setYusufMood('celebrating');
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setYusufMood('sad');
+      setYusufWhisper(currentQuestion.arabic);
     }
+
+    if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
+    moodTimerRef.current = setTimeout(() => {
+      setYusufMood('thinking');
+      setYusufWhisper(undefined);
+    }, 1500);
 
     setTimeout(() => {
       if (currentIndex < questions.length - 1) {
@@ -223,14 +240,10 @@ export default function QuizScreen() {
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.completionContainer}>
-          <LottieView
-            source={percentage >= 78
-              ? require('../assets/images/animations/yusuf-celebrating.json')
-              : require('../assets/images/animations/yusuf-sad.json')
-            }
-            autoPlay
-            loop={false}
-            style={{ width: 180, height: 180 }}
+          <Yusuf
+            mood={percentage >= 78 ? 'celebrating' : 'sad'}
+            size="md"
+            whisper={percentage === 100 ? 'ممتاز! 🔥' : undefined}
           />
           <Text style={styles.gradeText}>{grade}</Text>
           <Text style={styles.scoreText}>{percentage}%</Text>
@@ -301,21 +314,13 @@ export default function QuizScreen() {
         </View>
       </View>
 
-      {/* Yusuf + speech bubble */}
-      <View style={styles.yusufSection}>
-        <LottieView
-          source={require('../assets/images/animations/yusuf-waving.json')}
-          autoPlay
-          loop
-          style={{ width: 120, height: 120 }}
-        />
-        <View style={styles.yusufBubble}>
-          <Text style={styles.yusufBubbleText}>
-            {currentQuestion.type === 'mc_ar_to_en' && 'What does this mean?'}
-            {currentQuestion.type === 'mc_en_to_ar' && 'Say it in Arabic!'}
-            {currentQuestion.type === 'audio' && 'What did you hear?'}
-          </Text>
-        </View>
+      {/* Question prompt */}
+      <View style={styles.promptRow}>
+        <Text style={styles.promptText}>
+          {currentQuestion.type === 'mc_ar_to_en' && 'What does this mean?'}
+          {currentQuestion.type === 'mc_en_to_ar' && 'Say it in Arabic!'}
+          {currentQuestion.type === 'audio' && 'What did you hear?'}
+        </Text>
       </View>
 
       {/* Question card */}
@@ -394,6 +399,11 @@ export default function QuizScreen() {
           );
         })}
       </View>
+
+      {/* Yusuf companion — bottom-left, reacts to answers */}
+      <View style={styles.yusufFloat} pointerEvents="none">
+        <Yusuf mood={yusufMood} size="sm" whisper={yusufWhisper} />
+      </View>
     </SafeAreaView>
   );
 }
@@ -417,9 +427,9 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
 
   // Yusuf section
-  yusufSection: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12, gap: 12 },
-  yusufBubble: { flex: 1, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, padding: 14 },
-  yusufBubbleText: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  promptRow: { paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
+  promptText: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
+  yusufFloat: { position: 'absolute', left: 12, bottom: 300, zIndex: 10 },
 
   // Question card
   questionCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 24, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.borderDefault, minHeight: 120, alignItems: 'center', justifyContent: 'center' },

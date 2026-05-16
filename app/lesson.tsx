@@ -7,7 +7,8 @@ import { supabase } from '../utils/supabase';
 import { getLevelFromXP } from '../constants/levels';
 import LottieView from 'lottie-react-native';
 import * as Haptics from 'expo-haptics';
-import { playLocalAudio, stopAudio } from '../utils/tts';
+import { playLocalAudio, stopAudio, speakArabic } from '../utils/tts';
+import Yusuf, { useMood } from '../components/Yusuf';
 import { stripTashkeel } from '../utils/arabic';
 import {
   NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
@@ -45,6 +46,7 @@ export default function LessonScreen() {
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const { content, dialect, speakInDialect } = useDialect();
+  const [yusufMood, setYusufMood] = useMood('thinking');
 
   // All hooks above — derived values below
   const type = params.type;
@@ -226,24 +228,24 @@ export default function LessonScreen() {
     return () => { stopAudio(); };
   }, []);
 
+  const playWordAudio = () => {
+    setYusufMood('talking');
+    const opts = { onComplete: () => setYusufMood('thinking') };
+    if (currentWord.audio) {
+      playLocalAudio(currentWord.audio, opts);
+    } else {
+      speakArabic(currentWord.arabic, content.voiceId, opts);
+    }
+  };
+
   useEffect(() => {
     if (isComingSoon) return;
-    const timer = setTimeout(() => {
-      if (currentWord.audio) {
-        playLocalAudio(currentWord.audio);
-      } else {
-        speakInDialect(currentWord.arabic);
-      }
-    }, 300);
+    const timer = setTimeout(playWordAudio, 300);
     return () => clearTimeout(timer);
   }, [currentIndex]);
 
   const handleSpeak = () => {
-    if (currentWord.audio) {
-      playLocalAudio(currentWord.audio);
-    } else {
-      speakInDialect(currentWord.arabic);
-    }
+    playWordAudio();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -436,16 +438,6 @@ export default function LessonScreen() {
         <Text style={styles.progressLabel}>{currentIndex + 1} / {WORDS.length}</Text>
       </View>
 
-      {/* Yusuf */}
-      <View style={styles.yusufWrap}>
-        <LottieView
-          source={require('../assets/images/animations/yusuf-waving.json')}
-          autoPlay
-          loop
-          style={styles.lottie}
-        />
-      </View>
-
       {/* Word card */}
       <View style={styles.wordCard}>
         <Text style={styles.contextLabel}>{currentWord.context}</Text>
@@ -493,6 +485,11 @@ export default function LessonScreen() {
         {isRecording ? 'Recording...' : 'Hold mic and repeat the word'}
       </Text>
 
+      {/* Yusuf companion — bottom-left, reacts to audio playback */}
+      <View style={styles.yusufFloat} pointerEvents="none">
+        <Yusuf mood={yusufMood} size="sm" />
+      </View>
+
     </SafeAreaView>
   );
 }
@@ -510,8 +507,7 @@ const styles = StyleSheet.create({
   progressBg: { height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
   progressLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'right', marginTop: 4 },
-  yusufWrap: { alignItems: 'center', height: 200, justifyContent: 'center' },
-  lottie: { width: 200, height: 200 },
+  yusufFloat: { position: 'absolute', left: 12, bottom: 140, zIndex: 10 },
   wordCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 16, minHeight: 180 },
   contextLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 },
   arabicBig: { fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 72, marginBottom: 4, paddingHorizontal: 8 },

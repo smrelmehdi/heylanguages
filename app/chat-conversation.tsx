@@ -27,6 +27,7 @@ import { DIALECT_LABELS } from '../data/content-registry';
 import { useDialect } from '../contexts/DialectContext';
 import { playLocalAudio, stopAudio } from '../utils/tts';
 import { supabase } from '../utils/supabase';
+import { buildMemoryPrompt, fetchMemory, saveMemory, type UserMemory } from '../utils/memory';
 import SignUpPrompt from '../components/SignUpPrompt';
 import { theme } from '../constants/theme';
 
@@ -100,6 +101,19 @@ function parseChatResponse(raw: string): {
   }
 }
 
+// ── Name validation ───────────────────────────────────────────────────────────
+// Catches keyboard-mash names ("Hhh", "asdf", "k") so Yusuf can tease back
+// instead of silently accepting them. Arabic-script input skips the no-vowel
+// check since Latin vowels don't apply.
+function isGibberishName(raw: string): boolean {
+  const s = raw.trim().toLowerCase();
+  if (s.length < 2) return true;
+  if (/^(.)\1+$/.test(s)) return true; // entire string is one char repeated
+  const hasLatin = /[a-z]/.test(s);
+  if (hasLatin && s.length < 6 && !/[aeiou]/.test(s)) return true;
+  return false;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ChatConversationScreen() {
@@ -125,11 +139,18 @@ export default function ChatConversationScreen() {
   const [showSignUp,    setShowSignUp]    = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
+  // First-session hardcoded flow: 0 = waiting for user's name, null = handed
+  // off to Claude (or returning user / scenario mode — never set).
+  const [firstSessionStep, setFirstSessionStep] = useState<0 | null>(null);
+
   // Refs
   const scrollRef      = useRef<ScrollView>(null);
   const historyRef     = useRef<ClaudeHistoryItem[]>([]);
   const userLevelRef   = useRef('beginner');
   const userNameRef    = useRef('');
+  const userIdRef      = useRef<string | null>(null);
+  const memoryRef      = useRef<UserMemory | null>(null);
+  const messagesRef    = useRef<ChatMessage[]>([]);
 
   const audioRecorder  = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
@@ -168,7 +189,8 @@ Rules:
 - When triggered with BEGIN_SCENARIO, open the scene naturally as ${scenarioConfig.npcRole}`;
     }
 
-    return `You are Yusuf, a warm and funny ${dialectName} tutor — the user's Arabic-speaking friend, not a formal teacher.
+    const memoryPrefix = buildMemoryPrompt(memoryRef.current);
+    const basePrompt = `You are Yusuf, a Gulf Arab friend helping the user with ${dialectName} — not a tutor, not a teacher. You tease warmly, you're direct, you don't sugarcoat. Think less Duolingo, more a friend who happens to speak Arabic.
 Address the user as: ${name || 'friend'}
 
 ALWAYS reply with ONLY this JSON, no extra text:
@@ -176,19 +198,23 @@ ALWAYS reply with ONLY this JSON, no extra text:
   "arabic": "the Arabic phrase in ${dialectName}",
   "transliteration": "pronunciation in English letters",
   "english": "English meaning",
-  "note": "short tip, correction, or encouragement — max 2 sentences (or empty string)",
+  "note": "short tease, correction, or tip — max 2 sentences (or empty string)",
   "suggestions": ["short Arabic phrase user might say 1", "phrase 2", "phrase 3"]
 }
 
 Rules:
 - Keep Arabic SHORT — max 5 words for beginners${gulfRules}
+- Keep the WHOLE response tight — 2-3 sentences max across all fields. No essays.
 - suggestions = 3 things the user might want to say next
 - If user writes English, respond in Arabic but explain in note
 - One idea at a time — never overwhelm
+- Reject gibberish: if user input is random letters, keyboard mashing, or a single character (e.g. "Hhh", "asdf", "k"), don't accept it. Tease them and ask again. Example: user sends "Hhh" as their name → respond "هههه — هذا اسمك الحقيقي؟ 😄 قولي اسمك مرة ثانية"
+- Praise ONLY when earned — when the user writes correct Arabic unprompted, on their own. NEVER auto-compliment every message. No reflexive "great!" / "well done!" / "excellent!" / "perfect!".
 - User level: ${level}
-- Personality: warm, encouraging, light humour, celebrate small wins
 - No markdown or text outside the JSON
-- When triggered with BEGIN_FREE_CHAT, introduce yourself warmly`;
+- When triggered with BEGIN_FREE_CHAT, introduce yourself warmly. If the User context above mentions a previous session, reference it naturally in your opener (e.g., "last time we worked on X — continue or try something else?")`;
+
+    return memoryPrefix ? `${memoryPrefix}\n\n${basePrompt}` : basePrompt;
   };
 
   // ── Initialization ─────────────────────────────────────────────────────────
@@ -207,6 +233,9 @@ Rules:
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session) {
+        userIdRef.current = session.user.id;
+        memoryRef.current = await fetchMemory(session.user.id);
+
         const { data: user } = await supabase
           .from('users')
           .select('level')
@@ -284,10 +313,115 @@ Rules:
         setGuestMsgCount(stored ? parseInt(stored, 10) : 0);
       }
 
-      // New conversation — get opening message from Claude
+      // First-ever free-chat session (no memory record yet, signed-in or guest):
+      // hardcode the opener instead of calling Claude. Returning users + all
+      // scenario sessions go through the normal Claude path with memory injected.
+      const isFreshFirstFreeChat = !isScenario && memoryRef.current === null;
+      if (isFreshFirstFreeChat) {
+        showFirstSessionOpener();
+        setIsInitializing(false);
+        return;
+      }
+
       await fetchInitialMessage(name, userLevelRef.current);
     })();
   }, []);
+
+  // Keep messagesRef in sync so the unmount cleanup sees the final transcript.
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Save memory in the background when the screen unmounts (fire-and-forget,
+  // silent fail). Only for signed-in users with a meaningful transcript.
+  useEffect(() => {
+    return () => {
+      const userId = userIdRef.current;
+      const msgs = messagesRef.current;
+      if (!userId || msgs.length < 3) return;
+      saveMemory(userId, msgs, memoryRef.current).catch(() => {});
+    };
+  }, []);
+
+  // ── First-session hardcoded opener ─────────────────────────────────────────
+  const HARDCODED_MSG_1 = {
+    arabic: 'مرحبا! أنا يوسف — شو اسمك؟',
+    transliteration: 'marhaba! ana Yusuf — shu ismak?',
+    english: "Hi! I'm Yusuf — what's your name?",
+    note: 'Tell him your name 👋',
+  };
+  const HARDCODED_MSG_2 = {
+    arabic: 'ليش تتعلم عربي؟',
+    transliteration: "leesh tit'allam 'arabi?",
+    english: 'Why are you learning Arabic?',
+    note: '',
+  };
+  const HARDCODED_MSG_GIBBERISH = {
+    arabic: 'هههه — هذا اسمك الحقيقي؟ 😄 قولي اسمك مرة ثانية',
+    transliteration: 'hahaha — hatha ismak il-haqiqi? gul-li ismak marra thaniya',
+    english: "haha — that's your real name? Tell me your name again",
+    note: '',
+  };
+
+  const showFirstSessionOpener = () => {
+    const msg: ChatMessage = { id: 'init-1', role: 'assistant', ...HARDCODED_MSG_1 };
+    historyRef.current = [
+      { role: 'user', content: 'BEGIN_FREE_CHAT' },
+      { role: 'assistant', content: JSON.stringify({ ...HARDCODED_MSG_1, suggestions: [] }) },
+    ];
+    setMessages([msg]);
+    setFirstSessionStep(0);
+    setTimeout(() => speakInDialect(HARDCODED_MSG_1.arabic), 700);
+  };
+
+  const handleNameStep = async (name: string) => {
+    // Reject keyboard-mash names — tease and let them try again. Step stays at 0.
+    if (isGibberishName(name)) {
+      const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: name };
+      const aiMsg: ChatMessage = { id: `gib-${Date.now()}`, role: 'assistant', ...HARDCODED_MSG_GIBBERISH };
+
+      historyRef.current.push({ role: 'user', content: name });
+      historyRef.current.push({
+        role: 'assistant',
+        content: JSON.stringify({ ...HARDCODED_MSG_GIBBERISH, suggestions: [] }),
+      });
+
+      setMessages(prev => [...prev, userMsg, aiMsg]);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => speakInDialect(HARDCODED_MSG_GIBBERISH.arabic), 700);
+
+      if (conversationId) {
+        supabase.from('messages').insert([
+          { conversation_id: conversationId, role: 'user',      arabic_text: name },
+          { conversation_id: conversationId, role: 'assistant', arabic_text: HARDCODED_MSG_GIBBERISH.arabic, transliteration: HARDCODED_MSG_GIBBERISH.transliteration, translation: HARDCODED_MSG_GIBBERISH.english },
+        ]).then(() => {}).catch(() => {});
+      }
+      return;
+    }
+
+    setUserName(name);
+    userNameRef.current = name;
+    AsyncStorage.setItem('wizard_name', name).catch(() => {});
+
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: name };
+    const aiMsg: ChatMessage = { id: 'init-2', role: 'assistant', ...HARDCODED_MSG_2 };
+
+    historyRef.current.push({ role: 'user', content: name });
+    historyRef.current.push({
+      role: 'assistant',
+      content: JSON.stringify({ ...HARDCODED_MSG_2, suggestions: [] }),
+    });
+
+    setMessages(prev => [...prev, userMsg, aiMsg]);
+    setFirstSessionStep(null);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    setTimeout(() => speakInDialect(HARDCODED_MSG_2.arabic), 700);
+
+    if (conversationId) {
+      supabase.from('messages').insert([
+        { conversation_id: conversationId, role: 'user',      arabic_text: name },
+        { conversation_id: conversationId, role: 'assistant', arabic_text: HARDCODED_MSG_2.arabic, transliteration: HARDCODED_MSG_2.transliteration, translation: HARDCODED_MSG_2.english },
+      ]).then(() => {}).catch(() => {});
+    }
+  };
 
   // ── Fetch initial Yusuf message ────────────────────────────────────────────
   const fetchInitialMessage = async (name: string, level: string) => {
@@ -314,17 +448,25 @@ Rules:
       setMessages([msg]);
       if (parsed.suggestions.length > 0) setSuggestions(parsed.suggestions);
       setTimeout(() => speakInDialect(parsed.arabic), 700);
-    } catch {
-      const fallback: ChatMessage = {
-        id: 'init-fallback',
-        role: 'assistant',
-        arabic: 'أهلاً! أنا يوسف 👋',
-        transliteration: 'ahlan! ana Yusuf',
-        english: "Hello! I'm Yusuf",
-        note: isScenario
-          ? `You're practising in a ${scenarioConfig?.label ?? 'scenario'}. Try speaking Arabic!`
-          : 'Your personal Arabic tutor. What would you like to learn today?',
-      };
+    } catch (err: any) {
+      const isTimeout = err?.name === 'AbortError';
+      const fallback: ChatMessage = isTimeout
+        ? {
+            id: 'init-timeout',
+            role: 'assistant',
+            arabic: 'يوسف ما رد... حاول مرة ثانية',
+            english: "Yusuf didn't respond... try again",
+          }
+        : {
+            id: 'init-fallback',
+            role: 'assistant',
+            arabic: 'أهلاً! أنا يوسف 👋',
+            transliteration: 'ahlan! ana Yusuf',
+            english: "Hello! I'm Yusuf",
+            note: isScenario
+              ? `You're practising in a ${scenarioConfig?.label ?? 'scenario'}. Try speaking Arabic!`
+              : 'Your personal Arabic tutor. What would you like to learn today?',
+          };
       setMessages([fallback]);
     } finally {
       setIsLoading(false);
@@ -337,23 +479,30 @@ Rules:
     systemPrompt: string,
     messages: ClaudeHistoryItem[]
   ): Promise<string> => {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 350,
-        system: systemPrompt,
-        messages,
-      }),
-    });
-    if (!response.ok) throw new Error(`Claude error ${response.status}`);
-    const data = await response.json();
-    return data.content[0].text.trim();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY!,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 200,
+          system: systemPrompt,
+          messages,
+        }),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`Claude error ${response.status}`);
+      const data = await response.json();
+      return data.content[0].text.trim();
+    } finally {
+      clearTimeout(timeout);
+    }
   };
 
   // ── Send message ───────────────────────────────────────────────────────────
@@ -362,6 +511,14 @@ Rules:
 
     if (isGuest && guestMsgCount >= GUEST_MSG_LIMIT) {
       setShowSignUp(true);
+      return;
+    }
+
+    // First-session step 0: user just gave their name — handle locally, no Claude.
+    if (firstSessionStep === 0) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setInputText('');
+      await handleNameStep(text.trim());
       return;
     }
 
@@ -413,15 +570,16 @@ Rules:
           { conversation_id: conversationId, role: 'assistant', arabic_text: parsed.arabic, transliteration: parsed.transliteration, translation: parsed.english },
         ]).then(() => {}).catch(() => {});
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Chat error:', err);
+      const isTimeout = err?.name === 'AbortError';
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        arabic: 'عذراً',
-        transliteration: "'uthuran",
-        english: 'Sorry',
-        note: 'Something went wrong. Please try again.',
+        arabic: isTimeout ? 'يوسف ما رد... حاول مرة ثانية' : 'عذراً',
+        transliteration: isTimeout ? '' : "'uthuran",
+        english: isTimeout ? "Yusuf didn't respond... try again" : 'Sorry',
+        note: isTimeout ? undefined : 'Something went wrong. Please try again.',
       }]);
     } finally {
       setIsLoading(false);
@@ -510,7 +668,17 @@ Rules:
         <View style={styles.header}>
           <Pressable
             style={styles.iconBtn}
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/chat' as any)}
+            onPress={() => {
+              // Free chat enters via a tab redirect — going `back` would land on
+              // (tabs)/chat which redirects right back here. Always pop home in
+              // free mode. Scenario mode came from a scenario-intro screen, so
+              // a normal back works.
+              if (mode === 'free' || !router.canGoBack()) {
+                router.replace('/(tabs)' as any);
+              } else {
+                router.back();
+              }
+            }}
           >
             <ArrowLeft color={theme.colors.textPrimary} size={18} />
           </Pressable>

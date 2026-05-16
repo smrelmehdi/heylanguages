@@ -3,22 +3,20 @@
     "name": "HeyYusuf",
     "slug": "heyyusuf",
     "version": "1.0.0",
+    "runtimeVersion": { "policy": "appVersion" },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "heyyusuf",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0A0A0A",
-    "splash": {
-      "image": "./assets/images/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0A0A0A"
-    },
+    "backgroundColor": "#1F1D27",
+    "primaryColor": "#3DD4C0",
     "ios": {
       "bundleIdentifier": "com.heylanguages.heyyusuf",
       "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "HeyYusuf uses your microphone for speaking practice."
       }
     },
     "android": {
@@ -26,7 +24,8 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "backgroundColor": "#1F1D27",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -39,7 +38,17 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "expo-audio",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1F1D27"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

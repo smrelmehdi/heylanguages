@@ -7,7 +7,7 @@ export default function ScenarioIntroNeighborVisitPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.NeighborVisit ?? require('../assets/images/cafe-bg.png')}
+      image={content.sceneImages.NeighborVisitEntrance ?? require('../assets/images/dubai-neighbor-visit-entrance.png')}
       badge="🏠 Unit 6 · Lesson 8"
       title="Neighbour Visit"
       description="Your neighbour Khalid invites you in for Arabic coffee. Choose qahwa or tea, request it with hail (cardamom), and exchange warm Gulf pleasantries."

@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsSocialMediaPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsSocialMedia ?? require('../assets/images/cairo-cafe-interior.png')}
+      image={content.sceneImages.FriendsSocialMediaEntrance ?? require('../assets/images/dubai-friends-social-media-entrance.png')}
       badge="📱 Unit 10 · Lesson 5"
       title="Social Media"
       description="Your friend just posted amazing ski trip photos. React, exchange usernames and follow each other in Gulf Arabic."

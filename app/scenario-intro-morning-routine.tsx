@@ -7,7 +7,7 @@ export default function ScenarioIntroMorningRoutinePage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.MorningRoutine ?? require('../assets/images/cafe-bg.png')}
+      image={content.sceneImages.MorningRoutineEntrance ?? require('../assets/images/dubai-morning-routine-entrance.png')}
       badge="🌅 Unit 6 · Lesson 1"
       title="Morning Routine"
       description="It's 7am in Dubai and Umm Yusuf is calling from the kitchen. Chat about breakfast, decide what to drink, and start the day in Gulf Arabic."

@@ -15,12 +15,20 @@ import StreakModal from '../../components/StreakModal';
 import MilestoneModal from '../../components/MilestoneModal';
 import { getLocalStreakData, getPendingMilestone, clearPendingMilestone } from '../../utils/streak';
 import type { StreakData } from '../../utils/streak';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDialect } from '../../contexts/DialectContext';
 import { theme } from '../../constants/theme';
+import Yusuf, { useMood } from '../../components/Yusuf';
 
 // TODO: Re-enable lesson locking and guest restrictions before production release
 const TESTING_UNLOCK_ALL = true;
+
+const YUSUF_TAP_WHISPERS = [
+  'تكلم ولا تخاف',
+  'كل يوم كلمة جديدة',
+  'الخليجي سهل لما تسمعه كثير',
+  'غلط وكمّل',
+];
 
 const DIALECT_LABELS: Record<string, string> = {
   gulf: 'Gulf Arabic',
@@ -57,6 +65,50 @@ export default function HomeScreen() {
   const [streakData, setStreakData] = useState<StreakData>({
     currentStreak: 0, longestStreak: 0, lastActiveDate: null, activeDates: [],
   });
+
+  const [yusufMood, setYusufMood] = useMood('waving');
+  const [yusufWhisper, setYusufWhisper] = useState<string | undefined>(undefined);
+  const lastWhisperIdxRef = useRef<number>(-1);
+  const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // Reset transient celebrate timer on each evaluation.
+    if (celebrateTimerRef.current) {
+      clearTimeout(celebrateTimerRef.current);
+      celebrateTimerRef.current = null;
+    }
+
+    // Priority 1: 2+ days since last practice → "where've you been?"
+    const last = streakData.lastActiveDate;
+    if (last) {
+      const lastMs = new Date(last + 'T00:00:00').getTime();
+      const days = Math.floor((Date.now() - lastMs) / 86400000);
+      if (days >= 2) {
+        setYusufMood('thinking');
+        setYusufWhisper('وين كنت؟ 😄');
+        return;
+      }
+    }
+
+    // Priority 2: completed at least one lesson today → celebrate briefly.
+    if (lessonsToday >= 1) {
+      setYusufMood('celebrating');
+      celebrateTimerRef.current = setTimeout(() => setYusufMood('waving'), 2000);
+    }
+  }, [streakData.lastActiveDate, lessonsToday, setYusufMood]);
+
+  useEffect(() => () => {
+    if (celebrateTimerRef.current) clearTimeout(celebrateTimerRef.current);
+  }, []);
+
+  const handleYusufTap = () => {
+    let next: number;
+    do {
+      next = Math.floor(Math.random() * YUSUF_TAP_WHISPERS.length);
+    } while (next === lastWhisperIdxRef.current && YUSUF_TAP_WHISPERS.length > 1);
+    lastWhisperIdxRef.current = next;
+    setYusufWhisper(YUSUF_TAP_WHISPERS[next]);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -229,6 +281,15 @@ export default function HomeScreen() {
             </Text>
           </Pressable>
         )}
+
+        {/* Yusuf — reactive companion */}
+        <Pressable
+          onPress={handleYusufTap}
+          style={styles.yusufContainer}
+          hitSlop={8}
+        >
+          <Yusuf mood={yusufMood} size="lg" whisper={yusufWhisper} />
+        </Pressable>
 
         {/* Continue hero card */}
         <Pressable
@@ -1221,7 +1282,7 @@ export default function HomeScreen() {
 
         <LessonRow
           label="Lost in the City"
-          meta="Lesson 1 of 8 · 5 mins"
+          meta="Lesson 1 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('lostincity')}
           guestLocked={effectiveIsGuest}
@@ -1233,7 +1294,7 @@ export default function HomeScreen() {
         <View style={[styles.lessonConnector, scenarioProgress['lostincity'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Car Breakdown"
-          meta="Lesson 2 of 8 · 5 mins"
+          meta="Lesson 2 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('carbreakdown', 'lostincity')}
           guestLocked={effectiveIsGuest}
@@ -1245,7 +1306,7 @@ export default function HomeScreen() {
         <View style={[styles.lessonConnector, scenarioProgress['carbreakdown'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="At the Police Station"
-          meta="Lesson 3 of 8 · 5 mins"
+          meta="Lesson 3 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('policestation', 'carbreakdown')}
           guestLocked={effectiveIsGuest}
@@ -1257,7 +1318,7 @@ export default function HomeScreen() {
         <View style={[styles.lessonConnector, scenarioProgress['policestation'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Hospital Emergency"
-          meta="Lesson 4 of 8 · 5 mins"
+          meta="Lesson 4 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('hospitalemergency', 'policestation')}
           guestLocked={effectiveIsGuest}
@@ -1269,7 +1330,7 @@ export default function HomeScreen() {
         <View style={[styles.lessonConnector, scenarioProgress['hospitalemergency'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Lost Wallet"
-          meta="Lesson 5 of 8 · 5 mins"
+          meta="Lesson 5 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('lostwallet', 'hospitalemergency')}
           guestLocked={effectiveIsGuest}
@@ -1280,22 +1341,10 @@ export default function HomeScreen() {
         />
         <View style={[styles.lessonConnector, scenarioProgress['lostwallet'] && styles.lessonConnectorDone]} />
         <LessonRow
-          label="Phone Stolen"
-          meta="Lesson 6 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('phonestolen', 'lostwallet')}
-          guestLocked={effectiveIsGuest}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-phone-stolen' as any);
-          }}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['phonestolen'] && styles.lessonConnectorDone]} />
-        <LessonRow
           label="Flight Problem"
-          meta="Lesson 7 of 8 · 5 mins"
+          meta="Lesson 6 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('flightproblem', 'phonestolen')}
+          status={effectiveIsGuest ? 'locked' : getStatus('flightproblem', 'lostwallet')}
           guestLocked={effectiveIsGuest}
           onPress={() => {
             if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
@@ -1305,7 +1354,7 @@ export default function HomeScreen() {
         <View style={[styles.lessonConnector, scenarioProgress['flightproblem'] && styles.lessonConnectorDone]} />
         <LessonRow
           label="Asking Strangers for Help"
-          meta="Lesson 8 of 8 · 5 mins"
+          meta="Lesson 7 of 7 · 5 mins"
           icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
           status={effectiveIsGuest ? 'locked' : getStatus('askingforhelp', 'flightproblem')}
           guestLocked={effectiveIsGuest}
@@ -1319,7 +1368,7 @@ export default function HomeScreen() {
         {(() => {
           const ALL_U8_SCENARIOS = [
             'lostincity', 'carbreakdown', 'policestation', 'hospitalemergency',
-            'lostwallet', 'phonestolen', 'flightproblem', 'askingforhelp',
+            'lostwallet', 'flightproblem', 'askingforhelp',
           ];
           const allDone = ALL_U8_SCENARIOS.every(k => !!scenarioProgress[k]);
           const quizUnlocked = TESTING_UNLOCK_ALL || (!isGuest && allDone);
@@ -1902,6 +1951,9 @@ const styles = StyleSheet.create({
   guestBannerText: { color: theme.colors.textAccent, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.regular },
   expiryBanner: { backgroundColor: theme.colors.bgSurface, borderLeftWidth: 3, borderLeftColor: theme.colors.accentWarm, borderRadius: theme.radii.xs, padding: theme.spacing.md, marginBottom: theme.spacing.lg },
   expiryBannerText: { color: theme.colors.accentWarm, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.regular },
+
+  // Yusuf companion
+  yusufContainer: { alignItems: 'center', marginBottom: theme.spacing.lg },
 
   // Continue hero
   continueCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: theme.spacing.xl, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.borderDefault, overflow: 'hidden', position: 'relative' },

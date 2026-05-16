@@ -7,7 +7,7 @@ export default function ScenarioIntroCarBreakdownPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.CarBreakdown ?? require('../assets/images/dubai-taxi-street.png')}
+      image={content.sceneImages.CarBreakdownEntrance ?? require('../assets/images/dubai-car-breakdown-entrance.png')}
       badge="🚗 Unit 8 · Lesson 2"
       title="Car Breakdown"
       description="Your car broke down on Sheikh Zayed Road. Call the mechanic and explain what happened in Gulf Arabic."

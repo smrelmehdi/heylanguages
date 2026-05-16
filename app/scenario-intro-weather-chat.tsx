@@ -7,7 +7,7 @@ export default function ScenarioIntroWeatherChatPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.WeatherChat ?? require('../assets/images/dubai-taxi-street.png')}
+      image={content.sceneImages.WeatherChatEntrance ?? require('../assets/images/dubai-weather-chat-entrance.png')}
       badge="☀️ Unit 6 · Lesson 4"
       title="Weather Chat"
       description="Your friend Sadeeq stops you outside — it's 45°C in Dubai and there's a sandstorm coming. Complain about the heat and make plans to stay indoors."

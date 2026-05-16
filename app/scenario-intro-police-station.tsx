@@ -7,7 +7,7 @@ export default function ScenarioIntroPoliceStationPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.PoliceStation ?? require('../assets/images/dubai-hotel-reception.png')}
+      image={content.sceneImages.PoliceStationEntrance ?? require('../assets/images/dubai-police-station-entrance.png')}
       badge="👮 Unit 8 · Lesson 3"
       title="At the Police Station"
       description="A car hit you from behind at a traffic light. Go to the police station and file a report in Gulf Arabic."

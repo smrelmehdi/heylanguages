@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsFootballPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsFootball ?? require('../assets/images/dubai-restaurant-interior.png')}
+      image={content.sceneImages.FriendsFootballEntrance ?? require('../assets/images/dubai-friends-football-entrance.png')}
       badge="⚽ Unit 10 · Lesson 2"
       title="Watching Football"
       description="Al Hilal vs Al Nasr is on tonight! Plan where to watch the game with your friend in Gulf Arabic."

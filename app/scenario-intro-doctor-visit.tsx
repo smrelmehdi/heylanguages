@@ -7,7 +7,7 @@ export default function ScenarioIntroDoctorVisitPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.DoctorVisit ?? require('../assets/images/dubai-pharmacy-interior.png')}
+      image={content.sceneImages.DoctorVisitEntrance ?? require('../assets/images/dubai-doctor-visit-entrance.png')}
       badge="🏥 Unit 6 · Lesson 5"
       title="Doctor Visit"
       description="You've had a headache and fever since yesterday. Dr. Al-Rashidi sees you at the clinic — describe your symptoms and get a diagnosis in Gulf Arabic."

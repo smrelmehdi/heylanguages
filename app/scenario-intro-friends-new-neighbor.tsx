@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsNewNeighborPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsNewNeighbor ?? require('../assets/images/dubai-hotel-reception.png')}
+      image={content.sceneImages.FriendsNewNeighborEntrance ?? require('../assets/images/dubai-friends-new-neighbor-entrance.png')}
       badge="🏠 Unit 10 · Lesson 1"
       title="New Neighbor"
       description="A new neighbor just moved in next door. Introduce yourself and make them feel welcome in Gulf Arabic."

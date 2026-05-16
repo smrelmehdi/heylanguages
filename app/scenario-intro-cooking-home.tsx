@@ -7,7 +7,7 @@ export default function ScenarioIntroCookingHomePage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.CookingHome ?? require('../assets/images/dubai-restaurant-interior.png')}
+      image={content.sceneImages.CookingHomeEntrance ?? require('../assets/images/dubai-cooking-home-entrance.png')}
       badge="🍳 Unit 6 · Lesson 3"
       title="Cooking at Home"
       description="Your wife (zawja) asks for help in the kitchen. You're making traditional Gulf majboos together — fetch the rice, stir the pot, and chat in Arabic."

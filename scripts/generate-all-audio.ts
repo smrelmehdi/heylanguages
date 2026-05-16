@@ -188,46 +188,44 @@ function collectTargets(): Target[] {
 
   // ── Letter families (duplicated from app/writing.tsx) ────────────────────
   // These are passed to speakArabic() without a voiceId arg, so they use the
-  // default Sultan voice. nameAudio is intentionally English ("alif", "ba").
+  // default Sultan voice. nameAudio is the Arabic letter name in Arabic script
+  // (e.g. "أَلِف", "بَاء") so ElevenLabs pronounces it natively.
   const LETTERS: { nameAudio: string; arabic: string }[] = [
-    { nameAudio: 'alif',         arabic: 'أَهْلاً' },
-    { nameAudio: 'ba',           arabic: 'بَيْت' },
-    { nameAudio: 'ta',           arabic: 'تَمْر' },
-    { nameAudio: 'tha',          arabic: 'ثَعْلَب' },
-    { nameAudio: 'jeem',         arabic: 'جَمِيل' },
-    { nameAudio: 'ha',           arabic: 'حَياة' },
-    { nameAudio: 'kha',          arabic: 'خَيْر' },
-    { nameAudio: 'dal',          arabic: 'دَرْهَم' },
-    { nameAudio: 'thal',         arabic: 'ذَهَب' },
-    { nameAudio: 'ra',           arabic: 'رَجُل' },
-    { nameAudio: 'zay',          arabic: 'زَيْت' },
-    { nameAudio: 'seen',         arabic: 'سَيَّارة' },
-    { nameAudio: 'sheen',        arabic: 'شُكْراً' },
-    { nameAudio: 'sad',          arabic: 'صَبَاح' },
-    { nameAudio: 'dad',          arabic: 'ضَيْف' },
-    { nameAudio: 'ta',           arabic: 'طَعَام' },
-    { nameAudio: 'tha',          arabic: 'ظَرِيف' },
-    { nameAudio: 'ayn',          arabic: 'عَيْن' },
-    { nameAudio: 'ghayn',        arabic: 'غَالي' },
-    { nameAudio: 'fa',           arabic: 'فُنْدُق' },
-    { nameAudio: 'qaf',          arabic: 'قَهْوَة' },
-    { nameAudio: 'kaf',          arabic: 'كَلِمَة' },
-    { nameAudio: 'lam',          arabic: 'لَيْلَة' },
-    { nameAudio: 'meem',         arabic: 'مَاء' },
-    { nameAudio: 'noon',         arabic: 'نَعَم' },
-    { nameAudio: 'ha',           arabic: 'هُنَا' },
-    { nameAudio: 'waw',          arabic: 'وَقْت' },
-    { nameAudio: 'ya',           arabic: 'يَوْم' },
-    { nameAudio: 'ta marbuta',   arabic: 'مَدِينَة' },
-    { nameAudio: 'hamza',        arabic: 'مَاء' },
-    { nameAudio: 'alif maqsura', arabic: 'عَلى' },
+    { nameAudio: 'ألف',         arabic: 'أَهْلاً' },
+    { nameAudio: 'باء',         arabic: 'بَيْت' },
+    { nameAudio: 'تاء',         arabic: 'تَمْر' },
+    { nameAudio: 'ثاء',         arabic: 'ثَعْلَب' },
+    { nameAudio: 'جيم',         arabic: 'جَمِيل' },
+    { nameAudio: 'حاء',         arabic: 'حَياة' },
+    { nameAudio: 'خاء',         arabic: 'خَيْر' },
+    { nameAudio: 'دال',         arabic: 'دَرْهَم' },
+    { nameAudio: 'ذال',         arabic: 'ذَهَب' },
+    { nameAudio: 'راء',         arabic: 'رَجُل' },
+    { nameAudio: 'زاي',         arabic: 'زَيْت' },
+    { nameAudio: 'سين',         arabic: 'سَيَّارة' },
+    { nameAudio: 'شين',         arabic: 'شُكْراً' },
+    { nameAudio: 'صاد',         arabic: 'صَبَاح' },
+    { nameAudio: 'ضاد',         arabic: 'ضَيْف' },
+    { nameAudio: 'طاء',         arabic: 'طَعَام' },
+    { nameAudio: 'ظاء',         arabic: 'ظَرِيف' },
+    { nameAudio: 'عين',         arabic: 'عَيْن' },
+    { nameAudio: 'غين',         arabic: 'غَالي' },
+    { nameAudio: 'فاء',         arabic: 'فُنْدُق' },
+    { nameAudio: 'قاف',         arabic: 'قَهْوَة' },
+    { nameAudio: 'كاف',         arabic: 'كَلِمَة' },
+    { nameAudio: 'لام',         arabic: 'لَيْلَة' },
+    { nameAudio: 'ميم',         arabic: 'مَاء' },
+    { nameAudio: 'نون',         arabic: 'نَعَم' },
+    { nameAudio: 'هاء',         arabic: 'هُنَا' },
+    { nameAudio: 'واو',         arabic: 'وَقْت' },
+    { nameAudio: 'ياء',         arabic: 'يَوْم' },
+    { nameAudio: 'تاء مربوطة',  arabic: 'مَدِينَة' },
+    { nameAudio: 'همزة',        arabic: 'مَاء' },
+    { nameAudio: 'ألف مقصورة',  arabic: 'عَلى' },
   ];
   for (const L of LETTERS) {
-    // English letter name — file lives under auto/en/ but manifest key is gulf
-    // (Sultan voice). Same text is rendered identically regardless of current
-    // UI dialect.
-    add(L.nameAudio, 'en', 'letters:nameAudio', 'gulf');
-    add(L.arabic,    'gulf', 'letters:word',    'gulf');
+    add(L.nameAudio, 'gulf', 'letters:nameAudio', 'gulf');
+    add(L.arabic,    'gulf', 'letters:word',     'gulf');
   }
 
   // ── Encouragements (from app/scenario.tsx) ───────────────────────────────

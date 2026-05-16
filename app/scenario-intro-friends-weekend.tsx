@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsWeekendPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsWeekend ?? require('../assets/images/cairo-cafe-entrance.png')}
+      image={content.sceneImages.FriendsWeekendEntrance ?? require('../assets/images/dubai-friends-weekend-entrance.png')}
       badge="🏖️ Unit 10 · Lesson 4"
       title="Weekend Plans"
       description="The weekend is here! Plan a beach trip and barbecue with your friend in Gulf Arabic."

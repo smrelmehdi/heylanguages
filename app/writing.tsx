@@ -52,7 +52,7 @@ interface QuizQuestion {
 
 const ALIF_FAMILY: ArabicLetter[] = [
   {
-    id: 'alif', arabic: 'ا', name: 'Alif', nameAudio: 'alif',
+    id: 'alif', arabic: 'ا', name: 'Alif', nameAudio: 'ألف',
     transliteration: 'a', soundLike: 'Like "a" in "father"',
     forms: { alone: 'ا', start: 'ا', middle: 'ـا', end: 'ـا' },
     word: { arabic: 'أَهْلاً', transliteration: 'ahlan', meaning: 'welcome' },
@@ -61,19 +61,19 @@ const ALIF_FAMILY: ArabicLetter[] = [
 
 const BA_FAMILY: ArabicLetter[] = [
   {
-    id: 'ba', arabic: 'ب', name: 'Ba', nameAudio: 'ba',
+    id: 'ba', arabic: 'ب', name: 'Ba', nameAudio: 'باء',
     transliteration: 'b', soundLike: 'Like "b" in "boy"',
     forms: { alone: 'ب', start: 'بـ', middle: 'ـبـ', end: 'ـب' },
     word: { arabic: 'بَيْت', transliteration: 'bayt', meaning: 'house' },
   },
   {
-    id: 'ta', arabic: 'ت', name: 'Ta', nameAudio: 'ta',
+    id: 'ta', arabic: 'ت', name: 'Ta', nameAudio: 'تاء',
     transliteration: 't', soundLike: 'Like "t" in "table"',
     forms: { alone: 'ت', start: 'تـ', middle: 'ـتـ', end: 'ـت' },
     word: { arabic: 'تَمْر', transliteration: 'tamr', meaning: 'dates (fruit)' },
   },
   {
-    id: 'tha', arabic: 'ث', name: 'Tha', nameAudio: 'tha',
+    id: 'tha', arabic: 'ث', name: 'Tha', nameAudio: 'ثاء',
     transliteration: 'th', soundLike: 'Like "th" in "think"',
     forms: { alone: 'ث', start: 'ثـ', middle: 'ـثـ', end: 'ـث' },
     word: { arabic: 'ثَعْلَب', transliteration: "tha'lab", meaning: 'fox' },
@@ -82,19 +82,19 @@ const BA_FAMILY: ArabicLetter[] = [
 
 const JEEM_FAMILY: ArabicLetter[] = [
   {
-    id: 'jeem', arabic: 'ج', name: 'Jeem', nameAudio: 'jeem',
+    id: 'jeem', arabic: 'ج', name: 'Jeem', nameAudio: 'جيم',
     transliteration: 'j', soundLike: 'Like "j" in "jump"',
     forms: { alone: 'ج', start: 'جـ', middle: 'ـجـ', end: 'ـج' },
     word: { arabic: 'جَمِيل', transliteration: 'jameel', meaning: 'beautiful' },
   },
   {
-    id: 'ha_j', arabic: 'ح', name: 'Ha', nameAudio: 'ha',
+    id: 'ha_j', arabic: 'ح', name: 'Ha', nameAudio: 'حاء',
     transliteration: 'h', soundLike: 'A breathy "h" from the throat',
     forms: { alone: 'ح', start: 'حـ', middle: 'ـحـ', end: 'ـح' },
     word: { arabic: 'حَياة', transliteration: 'hayah', meaning: 'life' },
   },
   {
-    id: 'kha', arabic: 'خ', name: 'Kha', nameAudio: 'kha',
+    id: 'kha', arabic: 'خ', name: 'Kha', nameAudio: 'خاء',
     transliteration: 'kh', soundLike: 'Like "ch" in Scottish "loch"',
     forms: { alone: 'خ', start: 'خـ', middle: 'ـخـ', end: 'ـخ' },
     word: { arabic: 'خَيْر', transliteration: 'khayr', meaning: 'good' },
@@ -103,13 +103,13 @@ const JEEM_FAMILY: ArabicLetter[] = [
 
 const DAL_FAMILY: ArabicLetter[] = [
   {
-    id: 'dal', arabic: 'د', name: 'Dal', nameAudio: 'dal',
+    id: 'dal', arabic: 'د', name: 'Dal', nameAudio: 'دال',
     transliteration: 'd', soundLike: 'Like "d" in "door"',
     forms: { alone: 'د', start: 'د', middle: 'ـد', end: 'ـد' },
     word: { arabic: 'دَرْهَم', transliteration: 'dirham', meaning: 'dirham' },
   },
   {
-    id: 'thal', arabic: 'ذ', name: 'Thal', nameAudio: 'thal',
+    id: 'thal', arabic: 'ذ', name: 'Thal', nameAudio: 'ذال',
     transliteration: 'dh', soundLike: 'Like "th" in "this"',
     forms: { alone: 'ذ', start: 'ذ', middle: 'ـذ', end: 'ـذ' },
     word: { arabic: 'ذَهَب', transliteration: 'dhahab', meaning: 'gold' },
@@ -118,13 +118,13 @@ const DAL_FAMILY: ArabicLetter[] = [
 
 const RA_FAMILY: ArabicLetter[] = [
   {
-    id: 'ra', arabic: 'ر', name: 'Ra', nameAudio: 'ra',
+    id: 'ra', arabic: 'ر', name: 'Ra', nameAudio: 'راء',
     transliteration: 'r', soundLike: 'A rolled "r" like in Spanish',
     forms: { alone: 'ر', start: 'ر', middle: 'ـر', end: 'ـر' },
     word: { arabic: 'رَجُل', transliteration: 'rajul', meaning: 'man' },
   },
   {
-    id: 'zay', arabic: 'ز', name: 'Zay', nameAudio: 'zay',
+    id: 'zay', arabic: 'ز', name: 'Zay', nameAudio: 'زاي',
     transliteration: 'z', soundLike: 'Like "z" in "zoo"',
     forms: { alone: 'ز', start: 'ز', middle: 'ـز', end: 'ـز' },
     word: { arabic: 'زَيْت', transliteration: 'zayt', meaning: 'oil' },
@@ -133,13 +133,13 @@ const RA_FAMILY: ArabicLetter[] = [
 
 const SEEN_FAMILY: ArabicLetter[] = [
   {
-    id: 'seen', arabic: 'س', name: 'Seen', nameAudio: 'seen',
+    id: 'seen', arabic: 'س', name: 'Seen', nameAudio: 'سين',
     transliteration: 's', soundLike: 'Like "s" in "sun"',
     forms: { alone: 'س', start: 'سـ', middle: 'ـسـ', end: 'ـس' },
     word: { arabic: 'سَيَّارة', transliteration: 'sayyara', meaning: 'car' },
   },
   {
-    id: 'sheen', arabic: 'ش', name: 'Sheen', nameAudio: 'sheen',
+    id: 'sheen', arabic: 'ش', name: 'Sheen', nameAudio: 'شين',
     transliteration: 'sh', soundLike: 'Like "sh" in "ship"',
     forms: { alone: 'ش', start: 'شـ', middle: 'ـشـ', end: 'ـش' },
     word: { arabic: 'شُكْراً', transliteration: 'shukran', meaning: 'thank you' },
@@ -148,13 +148,13 @@ const SEEN_FAMILY: ArabicLetter[] = [
 
 const SAD_FAMILY: ArabicLetter[] = [
   {
-    id: 'sad', arabic: 'ص', name: 'Sad', nameAudio: 'sad',
+    id: 'sad', arabic: 'ص', name: 'Sad', nameAudio: 'صاد',
     transliteration: 's', soundLike: 'An emphatic "s" said with tongue back',
     forms: { alone: 'ص', start: 'صـ', middle: 'ـصـ', end: 'ـص' },
     word: { arabic: 'صَبَاح', transliteration: 'sabah', meaning: 'morning' },
   },
   {
-    id: 'dad', arabic: 'ض', name: 'Dad', nameAudio: 'dad',
+    id: 'dad', arabic: 'ض', name: 'Dad', nameAudio: 'ضاد',
     transliteration: 'd', soundLike: 'An emphatic "d" unique to Arabic',
     forms: { alone: 'ض', start: 'ضـ', middle: 'ـضـ', end: 'ـض' },
     word: { arabic: 'ضَيْف', transliteration: 'dayf', meaning: 'guest' },
@@ -163,13 +163,13 @@ const SAD_FAMILY: ArabicLetter[] = [
 
 const TAA_FAMILY: ArabicLetter[] = [
   {
-    id: 'taa', arabic: 'ط', name: 'Taa', nameAudio: 'ta',
+    id: 'taa', arabic: 'ط', name: 'Taa', nameAudio: 'طاء',
     transliteration: 't', soundLike: 'An emphatic "t" said with tongue back',
     forms: { alone: 'ط', start: 'طـ', middle: 'ـطـ', end: 'ـط' },
     word: { arabic: 'طَعَام', transliteration: "ta'am", meaning: 'food' },
   },
   {
-    id: 'dhaa', arabic: 'ظ', name: 'Dhaa', nameAudio: 'tha',
+    id: 'dhaa', arabic: 'ظ', name: 'Dhaa', nameAudio: 'ظاء',
     transliteration: 'dh', soundLike: 'An emphatic "th" said with tongue back',
     forms: { alone: 'ظ', start: 'ظـ', middle: 'ـظـ', end: 'ـظ' },
     word: { arabic: 'ظَرِيف', transliteration: 'dhareef', meaning: 'kind / witty' },
@@ -178,13 +178,13 @@ const TAA_FAMILY: ArabicLetter[] = [
 
 const AYN_FAMILY: ArabicLetter[] = [
   {
-    id: 'ayn', arabic: 'ع', name: 'Ayn', nameAudio: 'ayn',
+    id: 'ayn', arabic: 'ع', name: 'Ayn', nameAudio: 'عين',
     transliteration: "'", soundLike: 'A deep throat constriction — unique to Arabic',
     forms: { alone: 'ع', start: 'عـ', middle: 'ـعـ', end: 'ـع' },
     word: { arabic: 'عَيْن', transliteration: "'ayn", meaning: 'eye' },
   },
   {
-    id: 'ghayn', arabic: 'غ', name: 'Ghayn', nameAudio: 'ghayn',
+    id: 'ghayn', arabic: 'غ', name: 'Ghayn', nameAudio: 'غين',
     transliteration: 'gh', soundLike: 'Like a French "r" or gargling sound',
     forms: { alone: 'غ', start: 'غـ', middle: 'ـغـ', end: 'ـغ' },
     word: { arabic: 'غَالي', transliteration: 'ghali', meaning: 'expensive' },
@@ -193,13 +193,13 @@ const AYN_FAMILY: ArabicLetter[] = [
 
 const FA_FAMILY: ArabicLetter[] = [
   {
-    id: 'fa', arabic: 'ف', name: 'Fa', nameAudio: 'fa',
+    id: 'fa', arabic: 'ف', name: 'Fa', nameAudio: 'فاء',
     transliteration: 'f', soundLike: 'Like "f" in "fun"',
     forms: { alone: 'ف', start: 'فـ', middle: 'ـفـ', end: 'ـف' },
     word: { arabic: 'فُنْدُق', transliteration: 'funduq', meaning: 'hotel' },
   },
   {
-    id: 'qaf', arabic: 'ق', name: 'Qaf', nameAudio: 'qaf',
+    id: 'qaf', arabic: 'ق', name: 'Qaf', nameAudio: 'قاف',
     transliteration: 'q', soundLike: 'A deep "k" from back of throat',
     forms: { alone: 'ق', start: 'قـ', middle: 'ـقـ', end: 'ـق' },
     word: { arabic: 'قَهْوَة', transliteration: 'qahwa', meaning: 'coffee' },
@@ -208,13 +208,13 @@ const FA_FAMILY: ArabicLetter[] = [
 
 const KAF_FAMILY: ArabicLetter[] = [
   {
-    id: 'kaf', arabic: 'ك', name: 'Kaf', nameAudio: 'kaf',
+    id: 'kaf', arabic: 'ك', name: 'Kaf', nameAudio: 'كاف',
     transliteration: 'k', soundLike: 'Like "k" in "kite"',
     forms: { alone: 'ك', start: 'كـ', middle: 'ـكـ', end: 'ـك' },
     word: { arabic: 'كَلِمَة', transliteration: 'kalima', meaning: 'word' },
   },
   {
-    id: 'lam', arabic: 'ل', name: 'Lam', nameAudio: 'lam',
+    id: 'lam', arabic: 'ل', name: 'Lam', nameAudio: 'لام',
     transliteration: 'l', soundLike: 'Like "l" in "light"',
     forms: { alone: 'ل', start: 'لـ', middle: 'ـلـ', end: 'ـل' },
     word: { arabic: 'لَيْلَة', transliteration: 'layla', meaning: 'night' },
@@ -223,13 +223,13 @@ const KAF_FAMILY: ArabicLetter[] = [
 
 const MEEM_FAMILY: ArabicLetter[] = [
   {
-    id: 'meem', arabic: 'م', name: 'Meem', nameAudio: 'meem',
+    id: 'meem', arabic: 'م', name: 'Meem', nameAudio: 'ميم',
     transliteration: 'm', soundLike: 'Like "m" in "moon"',
     forms: { alone: 'م', start: 'مـ', middle: 'ـمـ', end: 'ـم' },
     word: { arabic: 'مَاء', transliteration: 'maa', meaning: 'water' },
   },
   {
-    id: 'nun', arabic: 'ن', name: 'Nun', nameAudio: 'noon',
+    id: 'nun', arabic: 'ن', name: 'Nun', nameAudio: 'نون',
     transliteration: 'n', soundLike: 'Like "n" in "noon"',
     forms: { alone: 'ن', start: 'نـ', middle: 'ـنـ', end: 'ـن' },
     word: { arabic: 'نَعَم', transliteration: "na'am", meaning: 'yes' },
@@ -238,13 +238,13 @@ const MEEM_FAMILY: ArabicLetter[] = [
 
 const HAWAW_FAMILY: ArabicLetter[] = [
   {
-    id: 'ha_waw', arabic: 'ه', name: 'Ha', nameAudio: 'ha',
+    id: 'ha_waw', arabic: 'ه', name: 'Ha', nameAudio: 'هاء',
     transliteration: 'h', soundLike: 'Like "h" in "house"',
     forms: { alone: 'ه', start: 'هـ', middle: 'ـهـ', end: 'ـه' },
     word: { arabic: 'هُنَا', transliteration: 'huna', meaning: 'here' },
   },
   {
-    id: 'waw', arabic: 'و', name: 'Waw', nameAudio: 'waw',
+    id: 'waw', arabic: 'و', name: 'Waw', nameAudio: 'واو',
     transliteration: 'w', soundLike: 'Like "w" in "water"',
     forms: { alone: 'و', start: 'و', middle: 'ـو', end: 'ـو' },
     word: { arabic: 'وَقْت', transliteration: 'waqt', meaning: 'time' },
@@ -253,25 +253,25 @@ const HAWAW_FAMILY: ArabicLetter[] = [
 
 const YA_FAMILY: ArabicLetter[] = [
   {
-    id: 'ya', arabic: 'ي', name: 'Ya', nameAudio: 'ya',
+    id: 'ya', arabic: 'ي', name: 'Ya', nameAudio: 'ياء',
     transliteration: 'y', soundLike: 'Like "y" in "yes"',
     forms: { alone: 'ي', start: 'يـ', middle: 'ـيـ', end: 'ـي' },
     word: { arabic: 'يَوْم', transliteration: 'yawm', meaning: 'day' },
   },
   {
-    id: 'ta_marbuta', arabic: 'ة', name: 'Ta Marbuta', nameAudio: 'ta marbuta',
+    id: 'ta_marbuta', arabic: 'ة', name: 'Ta Marbuta', nameAudio: 'تاء مربوطة',
     transliteration: 'a/t', soundLike: 'A soft "h" or "t" at end of words',
     forms: { alone: 'ة', start: 'ة', middle: 'ـة', end: 'ـة' },
     word: { arabic: 'مَدِينَة', transliteration: 'madina', meaning: 'city' },
   },
   {
-    id: 'hamza', arabic: 'ء', name: 'Hamza', nameAudio: 'hamza',
+    id: 'hamza', arabic: 'ء', name: 'Hamza', nameAudio: 'همزة',
     transliteration: "'", soundLike: 'A glottal stop — like the pause in "uh-oh"',
     forms: { alone: 'ء', start: 'ء', middle: 'ء', end: 'ء' },
     word: { arabic: 'مَاء', transliteration: 'maa', meaning: 'water' },
   },
   {
-    id: 'alif_maqsura', arabic: 'ى', name: 'Alif Maqsura', nameAudio: 'alif maqsura',
+    id: 'alif_maqsura', arabic: 'ى', name: 'Alif Maqsura', nameAudio: 'ألف مقصورة',
     transliteration: 'a', soundLike: 'Like "a" in "father" — appears at word end',
     forms: { alone: 'ى', start: 'ى', middle: 'ـى', end: 'ـى' },
     word: { arabic: 'عَلى', transliteration: "'ala", meaning: 'on / upon' },
@@ -486,6 +486,7 @@ export default function WritingScreen() {
 
   // ── Letter advance → next letter or quiz ──────────────────────────────────
   const advanceLetter = () => {
+    stopAudio();
     speakArabic(letter.nameAudio);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const newDL = [...dlRef.current, letter.id];

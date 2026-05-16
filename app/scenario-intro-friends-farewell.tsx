@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsFarewellPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsFarewell ?? require('../assets/images/dubai-airport-interior.png')}
+      image={content.sceneImages.FriendsFarewellEntrance ?? require('../assets/images/dubai-friends-farewell-entrance.png')}
       badge="👋 Unit 10 · Lesson 8"
       title="Saying Goodbye"
       description="Your close friend is moving to Saudi Arabia for work. Say a heartfelt goodbye and promise to stay in touch in Gulf Arabic."

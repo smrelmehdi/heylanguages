@@ -126,10 +126,6 @@ function getPartLabel(index: number, type: string | undefined): string {
     if (index < 4) return '👛 Lost Item';
     return '🔍 Finding It';
   }
-  if (type === 'PhoneStolen') {
-    if (index < 4) return '📱 Stolen';
-    return '📋 Report';
-  }
   if (type === 'FlightProblem') {
     if (index < 4) return '✈️ Delay';
     return '🎫 Rebooking';
@@ -213,7 +209,6 @@ export default function ScenarioScreen() {
       case 'PoliceStation':      return `👮 Police Station · ${dialectLabel}`;
       case 'HospitalEmergency':  return `🏥 Hospital Emergency · ${dialectLabel}`;
       case 'LostWallet':         return `👛 Lost Wallet · ${dialectLabel}`;
-      case 'PhoneStolen':        return `📱 Phone Stolen · ${dialectLabel}`;
       case 'FlightProblem':      return `✈️ Flight Problem · ${dialectLabel}`;
       case 'AskingForHelp':      return `🙏 Asking for Help · ${dialectLabel}`;
       case 'FriendsNewNeighbor': return `🏠 New Neighbor · ${dialectLabel}`;

@@ -3,10 +3,11 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { setAudioModeAsync } from 'expo-audio';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import * as ExpoSplash from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
+import SplashScreen from '../components/SplashScreen';
 import { DialectProvider } from '../contexts/DialectContext';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -19,7 +20,7 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
-SplashScreen.preventAutoHideAsync();
+ExpoSplash.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -27,7 +28,6 @@ export default function RootLayout() {
   });
 
   useEffect(() => { if (error) throw error; }, [error]);
-  useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
 
   if (!loaded) return null;
   return <RootLayoutNav />;
@@ -38,8 +38,14 @@ function RootLayoutNav() {
   const router = useRouter();
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [splashHidden, setSplashHidden] = useState(false);
   // Prevent routing from firing more than once (e.g. on Supabase token refresh)
   const hasRouted = useRef(false);
+
+  // Hand off from native splash to our component splash on first paint.
+  useEffect(() => {
+    ExpoSplash.hideAsync().catch(() => {});
+  }, []);
 
   // Ensure audio plays even when iOS is in silent mode, and ducks background audio.
   useEffect(() => {
@@ -130,7 +136,6 @@ function RootLayoutNav() {
           <Stack.Screen name="scenario-intro-police-station" options={{ headerShown: false }} />
           <Stack.Screen name="scenario-intro-hospital-emergency" options={{ headerShown: false }} />
           <Stack.Screen name="scenario-intro-lost-wallet" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-phone-stolen" options={{ headerShown: false }} />
           <Stack.Screen name="scenario-intro-flight-problem" options={{ headerShown: false }} />
           <Stack.Screen name="scenario-intro-asking-for-help" options={{ headerShown: false }} />
           <Stack.Screen name="scenario-intro-friends-new-neighbor" options={{ headerShown: false }} />
@@ -145,6 +150,12 @@ function RootLayoutNav() {
           <Stack.Screen name="writing" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
+        {!splashHidden && (
+          <SplashScreen
+            ready={initialized}
+            onReady={() => setSplashHidden(true)}
+          />
+        )}
       </ThemeProvider>
     </DialectProvider>
   );

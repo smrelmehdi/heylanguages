@@ -7,7 +7,7 @@ export default function ScenarioIntroFlightProblemPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FlightProblem ?? require('../assets/images/dubai-airport-interior.png')}
+      image={content.sceneImages.FlightProblemEntrance ?? require('../assets/images/dubai-flight-problem-entrance.png')}
       badge="✈️ Unit 8 · Lesson 7"
       title="Flight Problem"
       description="Your flight is delayed and you'll miss your connection. Talk to the airline staff and get rebooked in Gulf Arabic."

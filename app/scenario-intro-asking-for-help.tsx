@@ -7,7 +7,7 @@ export default function ScenarioIntroAskingForHelpPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.AskingForHelp ?? require('../assets/images/cairo-cafe-entrance.png')}
+      image={content.sceneImages.AskingForHelpEntrance ?? require('../assets/images/dubai-asking-for-help-entrance.png')}
       badge="🙏 Unit 8 · Lesson 8"
       title="Asking Strangers for Help"
       description="Your phone battery died and you urgently need to make a call. Ask a kind stranger to borrow their phone in Gulf Arabic."

@@ -12,11 +12,6 @@ const VOICE_EGYPTIAN = 'VMy40598IGgDeaOE8phq';
 let currentPlayer: any = null;
 let currentToken = 0;
 
-// Tap debounce — silently ignore any new play call within DEBOUNCE_MS of the
-// previous one. Fires in addition to the token guard.
-const DEBOUNCE_MS = 150;
-let lastPlayAt = 0;
-
 const audioCache = new Map<string, string>();
 
 type AudioSource = string | number | { uri?: string; assetId?: number };
@@ -41,16 +36,10 @@ function hashCode(str: string): number {
 
 function disposeCurrent() {
   if (currentPlayer) {
+    try { currentPlayer.pause(); } catch {}
     try { currentPlayer.remove(); } catch {}
     currentPlayer = null;
   }
-}
-
-function debounced(): boolean {
-  const now = Date.now();
-  if (now - lastPlayAt < DEBOUNCE_MS) return true;
-  lastPlayAt = now;
-  return false;
 }
 
 function startPlayback(source: AudioSource, token: number, opts?: PlayOptions) {
@@ -83,8 +72,6 @@ export async function speakArabic(
   voiceId?: string,
   opts?: PlayOptions,
 ): Promise<void> {
-  if (debounced()) return;
-
   // 1. Manifest lookup first — bypass ElevenLabs if we have a pre-gen asset.
   const dialect = dialectForVoice(voiceId);
   const asset = getAudioAsset(text, dialect);
@@ -166,7 +153,6 @@ export async function speakArabic(
 }
 
 export function playLocalAudio(source: AudioSource, opts?: PlayOptions): void {
-  if (debounced()) return;
   const token = ++currentToken;
   try {
     startPlayback(source, token, opts);
