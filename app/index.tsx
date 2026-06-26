@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useDialect } from '../contexts/DialectContext';
+import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
 import { playLocalAudio, stopAudio } from '../utils/tts';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { BlurView } from 'expo-blur';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import LottieView from 'lottie-react-native';
 import { ArrowLeft, Mic } from 'lucide-react-native';
@@ -98,8 +100,10 @@ export default function OnboardingWizard() {
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showSelfAssess, setShowSelfAssess] = useState(false);
+  const [isEvaluatingSpeech, setIsEvaluatingSpeech] = useState(false);
 
   const hasNavigatedRef = useRef(false);
+  const recordingStartPromiseRef = useRef<Promise<boolean> | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const glow = useSharedValue(0);
 
@@ -194,6 +198,12 @@ export default function OnboardingWizard() {
     setTimeout(nextStep, 350);
   };
 
+  const scoreForResult = (result: PronunciationResult['result']) => {
+    if (result === 'pass') return 95;
+    if (result === 'close') return 80;
+    return 45;
+  };
+
   const playRecording = async () => {
     if (!recordingUri || isPlaying) return;
     setIsPlaying(true);
@@ -209,20 +219,88 @@ export default function OnboardingWizard() {
 
   const handlePressIn = () => {
     setIsListening(true);
+    setRecordingUri(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try { audioRecorder.record(); } catch (err) { console.error('Failed to start recording', err); }
+    recordingStartPromiseRef.current = (async () => {
+      try {
+        const { granted } = await requestRecordingPermissionsAsync();
+        if (!granted) {
+          console.warn('Recording permission not granted');
+          setIsListening(false);
+          return false;
+        }
+        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
+        return true;
+      } catch (err) {
+        console.error('Failed to start recording', err);
+        setIsListening(false);
+        return false;
+      }
+    })();
+  };
+
+  const waitForRecordingUri = async (): Promise<string | null> => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 3000) {
+      const uri = audioRecorder.uri;
+      if (uri) {
+        try {
+          const info = await FileSystem.getInfoAsync(uri);
+          if (info.exists) return uri;
+        } catch (e) {
+          console.warn('Recording file check failed:', e);
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+    return null;
   };
 
   const handlePressOut = async () => {
     setIsListening(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    let uri: string | null = null;
     try {
+      const didStartRecording = await recordingStartPromiseRef.current;
+      recordingStartPromiseRef.current = null;
+      if (!didStartRecording) {
+        setShowSelfAssess(true);
+        setPronScore(45);
+        setFeedback("Nice first try - welcome to HeyYusuf.");
+        setIsEvaluatingSpeech(false);
+        return;
+      }
       await audioRecorder.stop();
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const uri = audioRecorder.uri;
+      uri = await waitForRecordingUri();
       if (uri) setRecordingUri(uri);
     } catch (e) { console.warn('Stop error:', e); }
     setShowSelfAssess(true);
+
+    if (!uri) {
+      setPronScore(45);
+      setFeedback("Nice first try - welcome to HeyYusuf.");
+      setIsEvaluatingSpeech(false);
+      return;
+    }
+
+    setIsEvaluatingSpeech(true);
+    try {
+      const result = await evaluatePronunciation(uri, 'سلام', 'gulf', 'onboarding');
+      setPronScore(result.score ?? scoreForResult(result.result));
+      setFeedback(
+        result.result === 'fail' && result.score === undefined
+          ? "Nice first try - welcome to HeyYusuf."
+          : result.feedback,
+      );
+    } catch (e) {
+      console.warn('Onboarding evaluation error:', e);
+      setPronScore(45);
+      setFeedback("Nice first try - welcome to HeyYusuf.");
+    } finally {
+      setIsEvaluatingSpeech(false);
+    }
   };
 
   const saveWizardData = async () => {
@@ -344,15 +422,17 @@ export default function OnboardingWizard() {
             </Pressable>
             <View style={styles.finalActions}>
               <Pressable
-                style={styles.primaryButton}
+                style={[styles.primaryButton, isEvaluatingSpeech && { opacity: 0.6 }]}
+                disabled={isEvaluatingSpeech}
                 onPress={() => {
-                  setPronScore(98);
-                  setFeedback("Excellent! That was a perfect 'Salam'. 🌟");
+                  if (isEvaluatingSpeech) return;
+                  if (pronScore === null) setPronScore(45);
+                  if (!feedback) setFeedback("Nice first try - welcome to HeyYusuf.");
                   setShowSelfAssess(false);
                   setStep(7);
                 }}
               >
-                <Text style={styles.primaryButtonText}>Got it!</Text>
+                <Text style={styles.primaryButtonText}>{isEvaluatingSpeech ? 'Checking...' : 'Got it!'}</Text>
               </Pressable>
               <Pressable
                 style={styles.ghostButton}
@@ -384,7 +464,7 @@ export default function OnboardingWizard() {
             <BouncingDots />
             {pronScore !== null && (
               <View style={styles.scoreCard}>
-                <Text style={[styles.scoreNumber, { color: scoreColor }]}>{score}</Text>
+                <Text style={[styles.scoreNumber, { color: scoreColor }]}>{score}%</Text>
                 <Text style={[styles.scoreLabel, { color: scoreColor }]}>{praiseArabic}</Text>
               </View>
             )}

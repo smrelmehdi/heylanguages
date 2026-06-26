@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 export type PronunciationResult = {
   result: 'pass' | 'close' | 'fail';
   feedback: string;
+  score?: number;
 };
 
 type SpeechContext = 'onboarding' | 'lesson' | 'scenario';
@@ -22,6 +23,12 @@ const FALLBACK_RESULT: PronunciationResult = {
 
 function normalizeResult(value: unknown): PronunciationResult['result'] {
   return value === 'pass' || value === 'close' || value === 'fail' ? value : 'fail';
+}
+
+function normalizeScore(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+    ? value
+    : undefined;
 }
 
 export async function evaluatePronunciation(
@@ -56,12 +63,14 @@ export async function evaluatePronunciation(
       return FALLBACK_RESULT;
     }
 
+    const score = normalizeScore(data?.score);
     return {
       result: normalizeResult(data?.result),
       feedback:
         typeof data?.feedback === 'string' && data.feedback.trim().length > 0
           ? data.feedback.trim()
           : FALLBACK_RESULT.feedback,
+      ...(score !== undefined ? { score } : {}),
     };
   } catch (err: any) {
     console.warn('[pronunciation] evaluate-speech request failed:', err?.message ?? err);

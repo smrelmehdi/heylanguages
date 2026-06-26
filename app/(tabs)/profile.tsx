@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert, DevSettings } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useCallback } from 'react';
@@ -134,6 +134,24 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleResetOnboarding = async () => {
+    const onboardingKeys = [
+      'wizard_complete',
+      'wizard_complete_date',
+      'wizard_name',
+      'wizard_dialect',
+      'wizard_level',
+      'guest_expiry_warning',
+    ];
+    await AsyncStorage.multiRemove(onboardingKeys);
+    console.log('[dev] onboarding reset keys cleared:', onboardingKeys);
+    Alert.alert('Onboarding reset. Reloading...');
+    router.replace('/');
+    if (__DEV__) {
+      setTimeout(() => DevSettings.reload(), 500);
+    }
+  };
+
   const getDialectLabel = () => {
     const labels: Record<string, string> = {
       gulf: 'Gulf Arabic',
@@ -252,6 +270,20 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
         </View>
+
+        {__DEV__ && (
+          <>
+            {/* TEMP DEV ONLY - remove before production */}
+            <Text style={styles.sectionTitle}>Developer</Text>
+            <View style={styles.settingsCard}>
+              <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleResetOnboarding}>
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingLabel}>Reset onboarding</Text>
+                </View>
+              </Pressable>
+            </View>
+          </>
+        )}
 
         <Text style={styles.version}>HeyYusuf v{version} · Made with ❤️ in Dubai</Text>
 
