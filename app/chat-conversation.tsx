@@ -479,29 +479,39 @@ Rules:
     systemPrompt: string,
     messages: ClaudeHistoryItem[]
   ): Promise<string> => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => {
+        const error = new Error('timeout');
+        error.name = 'AbortError';
+        reject(error);
+      }, 10000);
+    });
+
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY!,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 200,
-          system: systemPrompt,
-          messages,
+      const { data, error } = await Promise.race([
+        supabase.functions.invoke<{ text?: string; error?: unknown }>('chat-completion', {
+          body: {
+            system: systemPrompt,
+            messages,
+            maxTokens: 200,
+          },
         }),
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(`Claude error ${response.status}`);
-      const data = await response.json();
-      return data.content[0].text.trim();
+        timeoutPromise,
+      ]);
+
+      if (error) throw error;
+      if (data?.error) {
+        throw new Error(
+          typeof data.error === 'string'
+            ? data.error
+            : 'chat-completion returned an error',
+        );
+      }
+
+      return typeof data?.text === 'string' ? data.text.trim() : '';
     } finally {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
     }
   };
 
