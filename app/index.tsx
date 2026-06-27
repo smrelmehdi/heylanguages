@@ -7,7 +7,6 @@ import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, 
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
-import LottieView from 'lottie-react-native';
 import { ArrowLeft, Mic } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, PanResponder, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -18,6 +17,7 @@ import Animated, {
   withDelay, withRepeat, withSequence, withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Yusuf, { type Mood } from '../components/Yusuf';
 import { theme } from '../constants/theme';
 
 function useTypewriter(text: string, speed = 30) {
@@ -106,6 +106,16 @@ export default function OnboardingWizard() {
   const recordingStartPromiseRef = useRef<Promise<boolean> | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const glow = useSharedValue(0);
+
+  const getOnboardingYusufMood = (): Mood => {
+    if (isListening) return 'talking';
+    if (isEvaluatingSpeech) return 'thinking';
+    if (step === 7 && pronScore !== null && pronScore >= 85) return 'celebrating';
+    if (step === 7 && pronScore !== null && pronScore < 85) return 'sad';
+    return 'waving';
+  };
+
+  const yusufMood = getOnboardingYusufMood();
 
   useEffect(() => {
     (async () => {
@@ -550,17 +560,11 @@ export default function OnboardingWizard() {
         </View>
 
         <View style={styles.middleSection}>
-          <LottieView
-            key={step === 7 ? 'celebrating' : 'waving'}
-            source={
-              step === 7
-                ? require('../assets/images/animations/yusuf-celebrating.json')
-                : require('../assets/images/animations/yusuf-waving.json')
-            }
-            autoPlay
-            loop={step !== 7}
-            style={styles.characterImage}
-          />
+          <View style={styles.characterImage}>
+            <View style={styles.characterScale}>
+              <Yusuf key={yusufMood} mood={yusufMood} size="md" />
+            </View>
+          </View>
         </View>
 
         <View style={styles.bottomSection}>
@@ -708,6 +712,11 @@ const styles = StyleSheet.create({
   characterImage: {
     height: 220,
     width: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  characterScale: {
+    transform: [{ scale: 1.375 }],
   },
 
   // ── Controls ───────────────────────────────────────────────────────────────
