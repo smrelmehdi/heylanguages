@@ -13,22 +13,24 @@
 
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-// ── Load .env manually (same pattern as sibling scripts) ───────────────────
+// ── Load .env, then .env.local so private local values can override defaults ─
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'fs';
 import { resolve, join, basename, dirname, relative } from 'path';
 import { createHash } from 'crypto';
 
-try {
-  const envFile = readFileSync(resolve(process.cwd(), '.env'), 'utf-8');
-  for (const line of envFile.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    process.env[trimmed.slice(0, eq).trim()] = trimmed.slice(eq + 1).trim();
+for (const envFileName of ['.env', '.env.local']) {
+  try {
+    const envFile = readFileSync(resolve(process.cwd(), envFileName), 'utf-8');
+    for (const line of envFile.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      process.env[trimmed.slice(0, eq).trim()] = trimmed.slice(eq + 1).trim();
+    }
+  } catch {
+    /* env files optional */
   }
-} catch {
-  /* .env optional */
 }
 
 // ── Allow data files to import .mp3 / image assets via require() ───────────
@@ -508,7 +510,7 @@ async function main() {
   const failed: Target[] = [];
   if (!MATCH_ONLY) {
     if (!API_KEY) {
-      console.error('\n✗ Missing ELEVENLABS_API_KEY in .env');
+      console.error('\n✗ Missing ELEVENLABS_API_KEY in environment');
       process.exit(1);
     }
     for (let i = 0; i < toGen.length; i++) {
