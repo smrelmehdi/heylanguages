@@ -22,7 +22,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { resolve as pathResolve } from 'path';
 
-const API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY || '';
+const API_KEY = process.env.ELEVENLABS_API_KEY || '';
 const VOICE_ID = 'VMy40598IGgDeaOE8phq'; // Fathy Hammad — Egyptian Arabic
 
 // ── Basic Words (20 words) ────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ async function generateAudio(outputDir: string, id: string, text: string): Promi
 
 async function main() {
   if (!API_KEY) {
-    console.error('Missing EXPO_PUBLIC_ELEVENLABS_API_KEY in environment');
+    console.error('Missing ELEVENLABS_API_KEY in environment');
     process.exit(1);
   }
 

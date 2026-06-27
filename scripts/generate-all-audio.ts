@@ -60,7 +60,7 @@ const FORCE = flags.has('--force');
 // ── Config ─────────────────────────────────────────────────────────────────
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';      // Sultan
 const VOICE_EGYPTIAN = 'VMy40598IGgDeaOE8phq';   // Fathy Hammad
-const API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY || '';
+const API_KEY = process.env.ELEVENLABS_API_KEY || '';
 const ROOT = process.cwd();
 const AUTO_DIR = resolve(ROOT, 'assets/audio/auto');
 const MANIFEST_JSON = resolve(ROOT, 'assets/audio/manifest.json');
@@ -508,7 +508,7 @@ async function main() {
   const failed: Target[] = [];
   if (!MATCH_ONLY) {
     if (!API_KEY) {
-      console.error('\n✗ Missing EXPO_PUBLIC_ELEVENLABS_API_KEY in .env');
+      console.error('\n✗ Missing ELEVENLABS_API_KEY in .env');
       process.exit(1);
     }
     for (let i = 0; i < toGen.length; i++) {

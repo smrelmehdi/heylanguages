@@ -23,7 +23,7 @@ import * as path from 'path';
 import { resolve as pathResolve } from 'path';
 const __dirname = pathResolve('./scripts');
 
-const API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY || '';
+const API_KEY = process.env.ELEVENLABS_API_KEY || '';
 const VOICE_ID = 'rUaPbzcZIu8df8iNL9WZ';
 
 const PHRASES = [
@@ -86,7 +86,7 @@ async function generateAudio(id: string, text: string): Promise<void> {
 
 async function main() {
   if (!API_KEY) {
-    console.error('Missing EXPO_PUBLIC_ELEVENLABS_API_KEY in environment');
+    console.error('Missing ELEVENLABS_API_KEY in environment');
     process.exit(1);
   }
   console.log(`🎙 Generating ${PHRASES.length} audio files with Sultan voice...`);
