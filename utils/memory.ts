@@ -154,23 +154,6 @@ export function buildMemoryPrompt(memory: UserMemory | null): string {
 
 // ── saveMemory ───────────────────────────────────────────────────────────────
 
-const HAIKU_MEMORY_PROMPT = `You are a memory system for a Gulf Arabic learning app.
-Read this conversation transcript and the existing user memory.
-Return ONLY a JSON object, no other text:
-{
-  "personal_facts": string[],
-  "weak_words": string[],
-  "strong_words": string[],
-  "last_session_summary": string
-}
-
-Rules:
-- personal_facts: facts about the user (name, origin, job, interests). Max 5 items, dedupe with existing.
-- weak_words: Arabic words the user got wrong, mispronounced, or confused. Max 10.
-- strong_words: Arabic words the user used correctly and fluently. Max 10.
-- last_session_summary: 2-3 sentences describing what happened this session.
-- Be concise. Merge with existing memory — don't duplicate facts already known.`;
-
 function formatTranscript(transcript: TranscriptMessage[]): string {
   return transcript
     .map(m => {
@@ -182,6 +165,14 @@ function formatTranscript(transcript: TranscriptMessage[]): string {
     .join('\n');
 }
 
+type MemorySummaryResponse = {
+  personal_facts?: unknown;
+  weak_words?: unknown;
+  strong_words?: unknown;
+  last_session_summary?: unknown;
+  error?: unknown;
+};
+
 export async function saveMemory(
   userId: string,
   transcript: TranscriptMessage[],
@@ -189,52 +180,51 @@ export async function saveMemory(
 ): Promise<void> {
   if (transcript.length < 3) return;
 
-  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  if (!apiKey) return;
-
-  const existingJson = existingMemory
-    ? JSON.stringify({
+  const existingMemoryPayload = existingMemory
+    ? {
         personal_facts: existingMemory.personal_facts,
         weak_words: existingMemory.weak_words,
         strong_words: existingMemory.strong_words,
         last_session_summary: existingMemory.last_session_summary,
-      })
-    : '{}';
+      }
+    : {};
 
-  const userMessage = `Existing memory:\n${existingJson}\n\nThis session's transcript:\n${formatTranscript(transcript)}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      const error = new Error('timeout');
+      error.name = 'AbortError';
+      reject(error);
+    }, 10000);
+  });
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
-        system: HAIKU_MEMORY_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
+    const { data, error } = await Promise.race([
+      supabase.functions.invoke<MemorySummaryResponse>('memory-summary', {
+        body: {
+          transcript: formatTranscript(transcript),
+          existingMemory: existingMemoryPayload,
+        },
       }),
-      signal: controller.signal,
-    });
+      timeoutPromise,
+    ]);
 
-    if (!response.ok) throw new Error(`memory haiku ${response.status}`);
-    const data = await response.json();
-    const raw: string = data.content[0].text.trim();
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
+    if (error) throw error;
+    if (data?.error) {
+      throw new Error(
+        typeof data.error === 'string'
+          ? data.error
+          : 'memory-summary returned an error',
+      );
+    }
 
     const newRow = {
       user_id: userId,
-      personal_facts: (parsed.personal_facts ?? []).slice(0, 5),
-      weak_words: (parsed.weak_words ?? []).slice(0, 10),
-      strong_words: (parsed.strong_words ?? []).slice(0, 10),
-      last_session_summary: parsed.last_session_summary ?? '',
+      personal_facts: Array.isArray(data?.personal_facts) ? data.personal_facts.slice(0, 5) : [],
+      weak_words: Array.isArray(data?.weak_words) ? data.weak_words.slice(0, 10) : [],
+      strong_words: Array.isArray(data?.strong_words) ? data.strong_words.slice(0, 10) : [],
+      last_session_summary:
+        typeof data?.last_session_summary === 'string' ? data.last_session_summary : '',
       total_sessions: (existingMemory?.total_sessions ?? 0) + 1,
       updated_at: new Date().toISOString(),
     };
@@ -248,6 +238,6 @@ export async function saveMemory(
     }
     throw err;
   } finally {
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
   }
 }
