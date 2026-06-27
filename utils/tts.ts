@@ -1,8 +1,8 @@
 import { createAudioPlayer } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAudioAsset, type AudioDialect } from '../constants/audio-manifest';
+import { supabase } from './supabase';
 
-const ELEVENLABS_API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY;
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';
 const VOICE_EGYPTIAN = 'VMy40598IGgDeaOE8phq';
 
@@ -19,6 +19,12 @@ type AudioSource = string | number | { uri?: string; assetId?: number };
 export interface PlayOptions {
   onComplete?: () => void;
 }
+
+type GenerateSpeechResponse = {
+  audioBase64?: unknown;
+  contentType?: unknown;
+  error?: unknown;
+};
 
 function dialectForVoice(voiceId?: string): AudioDialect {
   return voiceId === VOICE_EGYPTIAN ? 'egyptian' : 'gulf';
@@ -90,11 +96,6 @@ export async function speakArabic(
   disposeCurrent();
 
   try {
-    if (!ELEVENLABS_API_KEY) {
-      console.warn('ElevenLabs key not set');
-      return;
-    }
-
     const effectiveVoiceId = voiceId ?? VOICE_GULF;
     const cacheKey = effectiveVoiceId + '_' + text.trim().toLowerCase();
     const cachedUri = audioCache.get(cacheKey);
@@ -108,41 +109,37 @@ export async function speakArabic(
       audioCache.delete(cacheKey);
     }
 
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${effectiveVoiceId}`,
+    const { data, error } = await supabase.functions.invoke<GenerateSpeechResponse>(
+      'generate-speech',
       {
-        method: 'POST',
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        body: {
           text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.35,
-            similarity_boost: 0.85,
-            style: 0.25,
-            use_speaker_boost: true,
-          },
-        }),
+          voiceId: effectiveVoiceId,
+        },
       },
     );
 
     if (token !== currentToken) return;
-    if (!response.ok) {
-      console.warn('ElevenLabs error:', response.status);
+
+    if (error) {
+      console.warn('ElevenLabs error:', error.message);
       return;
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    if (token !== currentToken) return;
+    if (data?.error) {
+      console.warn('ElevenLabs error:', data.error);
+      return;
+    }
 
-    const base64 = arrayBufferToBase64(arrayBuffer);
+    if (typeof data?.audioBase64 !== 'string') {
+      console.warn('ElevenLabs error: missing audio data');
+      return;
+    }
+
     const fileName = 'tts_' + effectiveVoiceId.slice(-8) + '_' + Math.abs(hashCode(text)) + '.mp3';
     const fileUri = FileSystem.cacheDirectory + fileName;
 
-    await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: 'base64' });
+    await FileSystem.writeAsStringAsync(fileUri, data.audioBase64, { encoding: 'base64' });
     if (token !== currentToken) return;
 
     audioCache.set(cacheKey, fileUri);
@@ -164,13 +161,4 @@ export function playLocalAudio(source: AudioSource, opts?: PlayOptions): void {
 export function stopAudio(): void {
   currentToken++;
   disposeCurrent();
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 }
