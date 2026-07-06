@@ -447,7 +447,7 @@ export default function LessonScreen() {
           numberOfLines={1}
           minimumFontScale={0.5}
         >
-          {stripTashkeel(currentWord.arabic)}
+          {stripTashkeel(currentWord.displayArabic ?? currentWord.arabic)}
         </Text>
         <Text style={styles.roman}>{currentWord.transliteration}</Text>
         <Text style={styles.english}>{currentWord.english}</Text>
