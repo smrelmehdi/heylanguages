@@ -8,7 +8,7 @@
  *   - constants/audio-manifest.ts  (runtime lookup used by utils/tts.ts)
  *
  * Run:
- *   ts-node --skip-project scripts/generate-all-audio.ts [--dry-run] [--match-only] [--force]
+ *   ts-node --skip-project scripts/generate-all-audio.ts [--dry-run] [--match-only] [--force] [--lesson basic-words]
  */
 
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -54,10 +54,29 @@ Module.prototype.require = function (id: string) {
 };
 
 // ── CLI flags ──────────────────────────────────────────────────────────────
-const flags = new Set(process.argv.slice(2));
+const args = process.argv.slice(2);
+const flags = new Set(args);
 const DRY_RUN = flags.has('--dry-run');
 const MATCH_ONLY = flags.has('--match-only');
 const FORCE = flags.has('--force');
+
+function optionValue(name: string): string | null {
+  const prefix = `${name}=`;
+  const inline = args.find(arg => arg.startsWith(prefix));
+  if (inline) return inline.slice(prefix.length);
+  const index = args.indexOf(name);
+  if (index !== -1) return args[index + 1] ?? null;
+  return null;
+}
+
+const LESSON = optionValue('--lesson');
+const BASIC_WORDS_ONLY = LESSON === 'basic-words';
+
+if (LESSON && !BASIC_WORDS_ONLY) {
+  console.error(`✗ Unsupported --lesson value: ${LESSON}`);
+  console.error('  Supported: basic-words');
+  process.exit(1);
+}
 
 // ── Config ─────────────────────────────────────────────────────────────────
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';      // Sultan
@@ -123,12 +142,16 @@ function collectTargets(): Target[] {
   const words = require('../constants/words');
   for (const [name, arr] of Object.entries(words)) {
     if (!Array.isArray(arr)) continue;
+    if (BASIC_WORDS_ONLY && name !== 'BASIC_WORDS') continue;
     arr.forEach((w: any, i: number) => {
       if (w && typeof w.arabic === 'string') {
-        add(w.arabic, 'gulf', `words:${name}[${i}]`);
+        const text = name === 'BASIC_WORDS' ? (w.audioText ?? w.arabic) : w.arabic;
+        add(text, 'gulf', `words:${name}[${i}]`);
       }
     });
   }
+
+  if (BASIC_WORDS_ONLY) return out;
 
   // ── data/egyptian-words.ts ───────────────────────────────────────────────
   try {
@@ -417,6 +440,7 @@ async function main() {
     DRY_RUN && 'DRY-RUN',
     MATCH_ONLY && 'MATCH-ONLY',
     FORCE && 'FORCE',
+    LESSON && `LESSON=${LESSON}`,
   ].filter(Boolean).join(' ') || '(none)');
 
   const targets = collectTargets();
@@ -430,11 +454,15 @@ async function main() {
   const exactIdx = new Map<string, string>();
   // Secondary index: fuzzy match on (voice × tashkeel-stripped text)
   const fuzzyIdx = new Map<string, string>();
-  for (const e of [...fromWired, ...fromSiblings]) {
-    const k1 = e.voiceId + '::' + normalize(e.text);
-    const k2 = fuzzyKey(e.voiceId, e.text);
-    if (!exactIdx.has(k1)) exactIdx.set(k1, e.path);
-    if (!fuzzyIdx.has(k2)) fuzzyIdx.set(k2, e.path);
+  if (!BASIC_WORDS_ONLY) {
+    for (const e of [...fromWired, ...fromSiblings]) {
+      const k1 = e.voiceId + '::' + normalize(e.text);
+      const k2 = fuzzyKey(e.voiceId, e.text);
+      if (!exactIdx.has(k1)) exactIdx.set(k1, e.path);
+      if (!fuzzyIdx.has(k2)) fuzzyIdx.set(k2, e.path);
+    }
+  } else {
+    console.log('→ basic-words mode: existing-file reuse disabled; targets will use audioText');
   }
 
   const matched: { target: Target; src: string; dest: string; hash: string; kind: 'exact' | 'fuzzy' }[] = [];
@@ -488,9 +516,10 @@ async function main() {
 
   // Sample of what'd be generated
   if (toGen.length && (DRY_RUN || flags.has('--verbose'))) {
-    console.log('\nsample (first 15):');
-    for (const x of toGen.slice(0, 15)) {
-      console.log(`  [${x.target.manifestKey}] ${x.target.text.slice(0, 50).padEnd(50)} ← ${x.target.source}`);
+    const sample = BASIC_WORDS_ONLY ? toGen : toGen.slice(0, 15);
+    console.log(BASIC_WORDS_ONLY ? '\nwould generate:' : '\nsample (first 15):');
+    for (const x of sample) {
+      console.log(`  [${x.target.manifestKey}] ${relative(ROOT, x.dest)} ← ${x.target.text.slice(0, 50).padEnd(50)} (${x.target.source})`);
     }
   }
 
@@ -522,6 +551,19 @@ async function main() {
     }
   } else if (toGen.length) {
     console.log(`\n(--match-only: skipped ${toGen.length} ElevenLabs generations)`);
+  }
+
+  if (LESSON) {
+    console.log(`\n--lesson ${LESSON}: skipped manifest writing; existing manifests were left untouched`);
+    if (failed.length) {
+      console.log(`\n⚠ ${failed.length} failed:`);
+      for (const f of failed.slice(0, 20)) {
+        console.log(`  [${f.manifestKey}] ${f.text.slice(0, 60)}  (${f.source})`);
+      }
+      if (failed.length > 20) console.log(`  … and ${failed.length - 20} more`);
+    }
+    console.log('\n🎉 done');
+    return;
   }
 
   // ── Build manifest from whatever is on disk now ──────────────────────────
