@@ -94,6 +94,8 @@ interface Target {
   manifestKey: 'gulf' | 'egyptian'; // which runtime manifest bucket this entry lives in
   voiceId: string;     // for hashing + ElevenLabs
   source: string;      // "gulf-dialogues:CAFE[0]" — for logging
+  outputPath?: string; // optional direct output path for narrow lesson runs
+  itemIndex?: number;  // 1-based lesson item index for narrow lesson logs
 }
 
 // Normalization must match utils/tts.ts cache-key rule: trim + lowercase,
@@ -126,7 +128,13 @@ function collectTargets(): Target[] {
   const out: Target[] = [];
   const seen = new Set<string>();
 
-  const add = (text: unknown, bucket: Bucket, source: string, manifestKey: 'gulf' | 'egyptian' = bucket === 'egyptian' ? 'egyptian' : 'gulf') => {
+  const add = (
+    text: unknown,
+    bucket: Bucket,
+    source: string,
+    manifestKey: 'gulf' | 'egyptian' = bucket === 'egyptian' ? 'egyptian' : 'gulf',
+    options: Pick<Target, 'outputPath' | 'itemIndex'> = {},
+  ) => {
     if (typeof text !== 'string') return;
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -135,7 +143,7 @@ function collectTargets(): Target[] {
     const dedupeKey = manifestKey + '::' + normalize(trimmed);
     if (seen.has(dedupeKey)) return;
     seen.add(dedupeKey);
-    out.push({ text: trimmed, bucket, manifestKey, voiceId, source });
+    out.push({ text: trimmed, bucket, manifestKey, voiceId, source, ...options });
   };
 
   // ── constants/words.ts (Gulf) ────────────────────────────────────────────
@@ -146,7 +154,13 @@ function collectTargets(): Target[] {
     arr.forEach((w: any, i: number) => {
       if (w && typeof w.arabic === 'string') {
         const text = name === 'BASIC_WORDS' ? (w.audioText ?? w.arabic) : w.arabic;
-        add(text, 'gulf', `words:${name}[${i}]`);
+        const options = BASIC_WORDS_ONLY && name === 'BASIC_WORDS'
+          ? {
+              outputPath: resolve(ROOT, 'assets/audio/basic-words', `${i + 1}.mp3`),
+              itemIndex: i + 1,
+            }
+          : {};
+        add(text, 'gulf', `words:${name}[${i}]`, 'gulf', options);
       }
     });
   }
@@ -471,7 +485,7 @@ async function main() {
 
   for (const t of targets) {
     const hash = hashFor(t.text, t.voiceId);
-    const dest = join(AUTO_DIR, t.bucket, `${hash}.mp3`);
+    const dest = t.outputPath ?? join(AUTO_DIR, t.bucket, `${hash}.mp3`);
     if (!FORCE && existsSync(dest)) {
       already.push({ target: t, dest, hash });
       continue;
@@ -519,7 +533,11 @@ async function main() {
     const sample = BASIC_WORDS_ONLY ? toGen : toGen.slice(0, 15);
     console.log(BASIC_WORDS_ONLY ? '\nwould generate:' : '\nsample (first 15):');
     for (const x of sample) {
-      console.log(`  [${x.target.manifestKey}] ${relative(ROOT, x.dest)} ← ${x.target.text.slice(0, 50).padEnd(50)} (${x.target.source})`);
+      if (BASIC_WORDS_ONLY) {
+        console.log(`  ${String(x.target.itemIndex).padStart(2, '0')}. ${x.target.text} → ${relative(ROOT, x.dest)}`);
+      } else {
+        console.log(`  [${x.target.manifestKey}] ${relative(ROOT, x.dest)} ← ${x.target.text.slice(0, 50).padEnd(50)} (${x.target.source})`);
+      }
     }
   }
 
