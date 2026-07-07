@@ -8,7 +8,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
-import LottieView from 'lottie-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { speakArabic, stopAudio } from '../utils/tts';
 import { supabase } from '../utils/supabase';
@@ -675,11 +674,6 @@ export default function WritingScreen() {
       const passed = quizScore >= 6;
       return (
         <View style={styles.quizDoneWrap}>
-          <LottieView
-            source={require('../assets/images/animations/yusuf-celebrating.json')}
-            autoPlay loop={false}
-            style={{ width: 150, height: 150 }}
-          />
           <Text style={styles.quizScoreText}>{quizScore}/{quizQuestions.length} correct!</Text>
           {passed ? (
             <>

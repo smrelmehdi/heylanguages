@@ -1,4 +1,3 @@
-import LottieView from 'lottie-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
@@ -26,7 +25,6 @@ interface Props {
 export default function SplashScreen({ ready, onReady }: Props) {
   const containerOpacity = useRef(new Animated.Value(1)).current;
   const tipOpacity = useRef(new Animated.Value(0)).current;
-  const yusufOpacity = useRef(new Animated.Value(0)).current;
   const mountedAt = useRef(Date.now());
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -76,18 +74,6 @@ export default function SplashScreen({ ready, onReady }: Props) {
     };
   }, [order.length, tipOpacity]);
 
-  // Fade Yusuf in after 300ms so the Lottie grid artifact (Android first-frame) never shows
-  useEffect(() => {
-    const t = setTimeout(() => {
-      Animated.timing(yusufOpacity, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }, 600);
-    return () => clearTimeout(t);
-  }, [yusufOpacity]);
-
   // Fade out once parent says ready AND minimum visible time has elapsed
   useEffect(() => {
     if (!ready || hidden) return;
@@ -125,20 +111,6 @@ export default function SplashScreen({ ready, onReady }: Props) {
         </View>
         <Text style={styles.appName}>HeyYusuf</Text>
         <Text style={styles.appTag}>GULF ARABIC</Text>
-      </View>
-
-      {/* ZONE 2 — MIDDLE */}
-      <View style={styles.middleZone}>
-        <View style={styles.glow} pointerEvents="none" />
-        <Animated.View style={{ opacity: yusufOpacity }}>
-          <LottieView
-            source={require('../assets/images/animations/yusuf-waving.json')}
-            autoPlay
-            loop
-            renderMode="SOFTWARE"
-            style={styles.lottie}
-          />
-        </Animated.View>
       </View>
 
       {/* ZONE 3 — BOTTOM */}
@@ -209,31 +181,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 2.5,
     marginTop: 4,
-  },
-
-  // ZONE 2 — MIDDLE
-  middleZone: {
-    height: 280,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  glow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'transparent',
-    shadowColor: '#3DD4C0',
-    shadowOpacity: 0.15,
-    shadowRadius: 60,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-  },
-  lottie: {
-    width: 240,
-    height: 240,
-    backgroundColor: 'transparent',
   },
 
   // ZONE 3 — BOTTOM

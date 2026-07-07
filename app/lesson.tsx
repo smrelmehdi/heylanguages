@@ -1,14 +1,12 @@
-import { View, Text, Pressable, StyleSheet, Dimensions, Modal, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { getLevelFromXP } from '../constants/levels';
-import LottieView from 'lottie-react-native';
 import * as Haptics from 'expo-haptics';
 import { playLocalAudio, stopAudio, speakArabic } from '../utils/tts';
-import Yusuf, { useMood } from '../components/Yusuf';
 import { stripTashkeel } from '../utils/arabic';
 import {
   NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
@@ -33,8 +31,6 @@ import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
 import { recordActivity } from '../utils/streak';
 
-const { width } = Dimensions.get('window');
-
 export default function LessonScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -46,7 +42,6 @@ export default function LessonScreen() {
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const { content, dialect, speakInDialect } = useDialect();
-  const [yusufMood, setYusufMood] = useMood('thinking');
 
   // All hooks above — derived values below
   const type = params.type;
@@ -221,6 +216,13 @@ export default function LessonScreen() {
     'A Day in Dubai';
 
   const currentWord = WORDS[currentIndex] ?? { arabic: '', transliteration: '', english: '', context: '', audio: undefined };
+  const displayedArabic = currentWord.displayArabic ?? currentWord.arabic;
+  const displayLength = stripTashkeel(displayedArabic).length;
+  const targetSize =
+    displayLength <= 8 ? 'short' :
+    displayLength <= 18 ? 'medium' :
+    'long';
+  const targetLineLimit = targetSize === 'short' ? 1 : targetSize === 'medium' ? 2 : 3;
   const progress = WORDS.length > 0 ? currentIndex / WORDS.length : 0;
 
   useEffect(() => {
@@ -229,12 +231,10 @@ export default function LessonScreen() {
   }, []);
 
   const playWordAudio = () => {
-    setYusufMood('talking');
-    const opts = { onComplete: () => setYusufMood('thinking') };
     if (currentWord.audio) {
-      playLocalAudio(currentWord.audio, opts);
+      playLocalAudio(currentWord.audio);
     } else {
-      speakArabic(currentWord.arabic, content.voiceId, opts);
+      speakArabic(currentWord.arabic, content.voiceId);
     }
   };
 
@@ -359,12 +359,6 @@ export default function LessonScreen() {
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.completionContainer}>
-          <LottieView
-            source={require('../assets/images/animations/yusuf-celebrating.json')}
-            autoPlay
-            loop={false}
-            style={{ width: 200, height: 200 }}
-          />
           <Text style={styles.completionEmoji}>🎉</Text>
           <Text style={styles.completionTitle}>ممتاز!</Text>
           <Text style={styles.completionSub}>You learned {WORDS.length} new words</Text>
@@ -430,64 +424,75 @@ export default function LessonScreen() {
         </View>
       </View>
 
-      {/* Progress bar */}
-      <View style={styles.progressWrap}>
-        <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-        </View>
-        <Text style={styles.progressLabel}>{currentIndex + 1} / {WORDS.length}</Text>
-      </View>
-
-      {/* Word card */}
-      <View style={styles.wordCard}>
-        <Text style={styles.contextLabel}>{currentWord.context}</Text>
-        <Text
-          style={styles.arabicBig}
-          adjustsFontSizeToFit
-          numberOfLines={1}
-          minimumFontScale={0.5}
-        >
-          {stripTashkeel(currentWord.displayArabic ?? currentWord.arabic)}
-        </Text>
-        <Text style={styles.roman}>{currentWord.transliteration}</Text>
-        <Text style={styles.english}>{currentWord.english}</Text>
-        {currentWord.example && (
-          <View style={styles.exampleWrap}>
-            <Text style={styles.exampleAr}>"{stripTashkeel(currentWord.example ?? '')}"</Text>
-            <Text style={styles.exampleEn}>{currentWord.exampleTranslation}</Text>
+      <View style={styles.practiceArea}>
+        {/* Progress bar */}
+        <View style={styles.progressWrap}>
+          <View style={styles.progressBg}>
+            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
           </View>
-        )}
-      </View>
+          <Text style={styles.progressLabel}>{currentIndex + 1} / {WORDS.length}</Text>
+        </View>
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        <Pressable style={styles.ctrlBtn} onPress={handleSpeak}>
-          <Volume2 color={theme.colors.accentPrimary} size={22} />
-        </Pressable>
+        {/* Word card */}
+        <View style={styles.wordCard}>
+          <Text style={styles.contextLabel}>{currentWord.context}</Text>
+          <Text
+            style={[
+              styles.arabicBig,
+              targetSize === 'medium' && styles.arabicMedium,
+              targetSize === 'long' && styles.arabicLong,
+            ]}
+            adjustsFontSizeToFit
+            numberOfLines={targetLineLimit}
+            minimumFontScale={0.65}
+          >
+            {stripTashkeel(displayedArabic)}
+          </Text>
+          <Text style={styles.roman}>{currentWord.transliteration}</Text>
+          <Text style={styles.english}>{currentWord.english}</Text>
+          {currentWord.example && (
+            <View style={styles.exampleWrap}>
+              <Text style={styles.exampleLabel}>EXAMPLE</Text>
+              <Text style={styles.exampleAr}>{stripTashkeel(currentWord.example ?? '')}</Text>
+              <Text style={styles.exampleEn}>{currentWord.exampleTranslation}</Text>
+            </View>
+          )}
+        </View>
 
-        <Pressable
-          style={[styles.micBtn, isRecording && styles.micBtnRecording]}
-          onPressIn={handleMicPress}
-          onPressOut={handleMicRelease}
-        >
-          <Text style={styles.micIcon}>🎙</Text>
-        </Pressable>
+        <Text style={styles.hint}>
+          {isRecording ? 'Recording...' : 'Listen first, then hold to repeat'}
+        </Text>
 
-        <Pressable
-          style={[styles.ctrlBtn, hasAttempted && styles.nextBtnActive]}
-          onPress={handleNext}
-        >
-          <ChevronRight color={hasAttempted ? theme.colors.accentPrimary : theme.colors.textTertiary} size={22} />
-        </Pressable>
-      </View>
+        {/* Controls */}
+        <View style={styles.controls}>
+          <View style={styles.actionItem}>
+            <Pressable style={styles.ctrlBtn} onPress={handleSpeak}>
+              <Volume2 color={theme.colors.accentPrimary} size={22} />
+            </Pressable>
+            <Text style={styles.actionLabel}>Listen</Text>
+          </View>
 
-      <Text style={styles.hint}>
-        {isRecording ? 'Recording...' : 'Hold mic and repeat the word'}
-      </Text>
+          <View style={styles.primaryActionItem}>
+            <Pressable
+              style={[styles.micBtn, isRecording && styles.micBtnRecording]}
+              onPressIn={handleMicPress}
+              onPressOut={handleMicRelease}
+            >
+              <Text style={styles.micIcon}>🎙</Text>
+            </Pressable>
+            <Text style={styles.primaryActionLabel}>Hold to speak</Text>
+          </View>
 
-      {/* Yusuf companion — bottom-left, reacts to audio playback */}
-      <View style={styles.yusufFloat} pointerEvents="none">
-        <Yusuf mood={yusufMood} size="sm" />
+          <View style={styles.actionItem}>
+            <Pressable
+              style={[styles.ctrlBtn, hasAttempted && styles.nextBtnActive]}
+              onPress={handleNext}
+            >
+              <ChevronRight color={hasAttempted ? theme.colors.accentPrimary : theme.colors.textTertiary} size={22} />
+            </Pressable>
+            <Text style={[styles.actionLabel, hasAttempted && styles.actionLabelActive]}>Next</Text>
+          </View>
+        </View>
       </View>
 
     </SafeAreaView>
@@ -495,7 +500,7 @@ export default function LessonScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.bgBase, justifyContent: 'space-between' },
+  container: { flex: 1, backgroundColor: theme.colors.bgBase },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 8 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   headerCenter: { alignItems: 'center' },
@@ -503,26 +508,34 @@ const styles = StyleSheet.create({
   lessonSub: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 1 },
   xpPill: { backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 5 },
   xpText: { fontSize: theme.fontSize.label, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5 },
-  progressWrap: { paddingHorizontal: 20, marginBottom: 8 },
+  practiceArea: { flex: 1, paddingTop: 8, paddingBottom: 28 },
+  progressWrap: { paddingHorizontal: 20, marginBottom: 14 },
   progressBg: { height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
   progressLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'right', marginTop: 4 },
-  yusufFloat: { position: 'absolute', left: 12, bottom: 140, zIndex: 10 },
-  wordCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 16, minHeight: 180 },
-  contextLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 },
-  arabicBig: { fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 72, marginBottom: 4, paddingHorizontal: 8 },
-  roman: { fontSize: 20, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular, marginBottom: 4 },
-  english: { fontSize: theme.fontSize.heading, color: theme.colors.textTertiary },
-  exampleWrap: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.borderDefault },
-  exampleAr: { fontSize: 14, color: theme.colors.textAccent, marginBottom: 2 },
-  exampleEn: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, fontStyle: 'italic' },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingHorizontal: 20, marginBottom: 8 },
+  wordCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 18, minHeight: 220 },
+  contextLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 },
+  arabicBig: { fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 66, marginBottom: 8, paddingHorizontal: 4, writingDirection: 'rtl' },
+  arabicMedium: { fontSize: 42, lineHeight: 52 },
+  arabicLong: { fontSize: 32, lineHeight: 42 },
+  roman: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular, marginBottom: 6, lineHeight: 24 },
+  english: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium, lineHeight: 24 },
+  exampleWrap: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.borderDefault, gap: 3 },
+  exampleLabel: { fontSize: 10, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium, letterSpacing: 1.4 },
+  exampleAr: { fontSize: 14, color: theme.colors.textAccent, lineHeight: 22, textAlign: 'right', writingDirection: 'rtl' },
+  exampleEn: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, fontStyle: 'italic' },
+  controls: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 22, paddingHorizontal: 20 },
+  actionItem: { alignItems: 'center', width: 70, gap: 8 },
+  primaryActionItem: { alignItems: 'center', width: 108, gap: 8 },
   ctrlBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   nextBtnActive: { borderColor: theme.colors.borderAccent, backgroundColor: 'rgba(61, 212, 192, 0.1)' },
-  micBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  micBtn: { width: 78, height: 78, borderRadius: 39, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center', shadowColor: theme.colors.accentPrimary, shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
   micBtnRecording: { backgroundColor: theme.colors.accentDanger },
-  micIcon: { fontSize: 26 },
-  hint: { textAlign: 'center', fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, paddingBottom: 40 },
+  micIcon: { fontSize: 30 },
+  hint: { textAlign: 'center', fontSize: theme.fontSize.body, color: theme.colors.textSecondary, marginBottom: 14 },
+  actionLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium },
+  actionLabelActive: { color: theme.colors.textAccent },
+  primaryActionLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
   completionContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   completionEmoji: { fontSize: 56, marginBottom: 8 },
   completionTitle: { fontSize: 36, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 4 },

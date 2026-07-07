@@ -1,6 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LottieView from 'lottie-react-native';
 import { theme } from '../../constants/theme';
 
 interface Props {
@@ -12,13 +11,6 @@ export default function QuizIntro({ title, onStart }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <LottieView
-          source={require('../../assets/images/animations/yusuf-waving.json')}
-          autoPlay
-          loop
-          style={styles.lottie}
-        />
-
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>18 questions · ~5 min</Text>
 
@@ -47,7 +39,6 @@ export default function QuizIntro({ title, onStart }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl },
-  lottie: { width: 160, height: 160, marginBottom: 8 },
   title: { fontSize: 26, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 6 },
   subtitle: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, marginBottom: 24 },
   pillRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },

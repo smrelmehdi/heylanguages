@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Image, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import Animated, {
     interpolateColor,
     useAnimatedStyle,
@@ -54,11 +54,7 @@ const YusufAvatar: React.FC<YusufAvatarProps> = ({ isListening }) => {
       <Animated.View
         style={[styles.avatarContainer, animatedStyle]}
       >
-        <Image
-          source={require('../assets/images/yusuf-welcome.png')}
-          style={styles.avatarImage}
-          resizeMode="contain"
-        />
+        <Text style={styles.avatarText}>يـ</Text>
       </Animated.View>
     </View>
   );
@@ -74,13 +70,11 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.bgSurface,
   },
-  avatarImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-  },
+  avatarText: { fontSize: 64, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
 });
 
 export default YusufAvatar;

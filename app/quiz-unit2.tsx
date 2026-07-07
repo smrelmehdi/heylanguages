@@ -8,7 +8,6 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { ArrowLeft } from 'lucide-react-native';
 
-import LottieView from 'lottie-react-native';
 import { supabase } from '../utils/supabase';
 import { recordActivity } from '../utils/streak';
 import type { QuizQuestion } from '../data/quiz-types';
@@ -318,14 +317,6 @@ export default function QuizUnit2Screen() {
           {/* Answer result banner */}
           {answerResult !== 'none' && (
             <View style={[styles.resultBanner, answerResult === 'correct' ? styles.correctBanner : styles.wrongBanner]}>
-              {answerResult === 'wrong' && (
-                <LottieView
-                  source={require('../assets/images/animations/yusuf-sad.json')}
-                  autoPlay
-                  loop={false}
-                  style={styles.resultLottie}
-                />
-              )}
               <Text style={[styles.resultBannerText, answerResult === 'correct' ? styles.correctText : styles.wrongText]}>
                 {answerResult === 'correct' ? '✓ Correct!' : '✗ Not quite — see the answer above'}
               </Text>
@@ -390,7 +381,6 @@ const styles = StyleSheet.create({
   formatBadgeText: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5, textTransform: 'uppercase' },
 
   resultBanner: { borderRadius: theme.radii.sm, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', gap: 4 },
-  resultLottie: { width: 56, height: 56 },
   correctBanner: { backgroundColor: 'rgba(125, 217, 154, 0.12)', borderWidth: 1, borderColor: theme.colors.accentSuccess },
   wrongBanner: { backgroundColor: 'rgba(229, 107, 111, 0.12)', borderWidth: 1, borderColor: theme.colors.accentDanger },
   resultBannerText: { fontSize: 14, fontWeight: theme.fontWeight.medium },

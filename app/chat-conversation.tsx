@@ -22,7 +22,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import LottieView from 'lottie-react-native';
 import { DIALECT_LABELS } from '../data/content-registry';
 import { useDialect } from '../contexts/DialectContext';
 import { playLocalAudio, stopAudio } from '../utils/tts';
@@ -693,19 +692,6 @@ Rules:
             <ArrowLeft color={theme.colors.textPrimary} size={18} />
           </Pressable>
           <Text style={styles.headerTitle} numberOfLines={1}>{screenTitle}</Text>
-          <LottieView
-            key={isInitializing ? 'thinking' : isLoading ? 'talking' : 'idle'}
-            source={
-              isInitializing
-                ? require('../assets/images/animations/yusuf-thinking.json')
-                : isLoading
-                ? require('../assets/images/animations/yusuf-talking.json')
-                : require('../assets/images/animations/yusuf-waving.json')
-            }
-            autoPlay={isInitializing || isLoading}
-            loop={isInitializing || isLoading}
-            style={styles.headerLottie}
-          />
           <Pressable style={styles.iconBtn} onPress={handleNewConversation}>
             <Plus color={theme.colors.accentPrimary} size={18} />
           </Pressable>
@@ -868,7 +854,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.borderDefault,
   },
   headerTitle:  { flex: 1, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
-  headerLottie: { width: 36, height: 36 },
 
   // message list
   messageList:        { flex: 1 },

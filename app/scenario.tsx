@@ -22,7 +22,6 @@ import {
   requestRecordingPermissionsAsync,
   useAudioRecorder,
 } from 'expo-audio';
-import LottieView from 'lottie-react-native';
 import CafeScene from '../components/CafeScene';
 import { playLocalAudio, stopAudio } from '../utils/tts';
 import { stripTashkeel } from '../utils/arabic';
@@ -234,6 +233,8 @@ export default function ScenarioScreen() {
   const isComingSoon = DIALOGUE.length === 0;
 
   const currentTurn = isComingSoon ? { type: 'waiter' as const, arabic: '', transliteration: '', english: '' } : DIALOGUE[currentIndex];
+  const currentTurnDisplayArabic = currentTurn.displayArabic ?? currentTurn.arabic;
+  const scenarioEvalTarget = currentTurn.evalTarget ?? currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
   const isUserTurn = currentTurn.type === 'user';
   const isWaiterTurn = currentTurn.type === 'waiter';
   const total = DIALOGUE.length;
@@ -311,30 +312,79 @@ export default function ScenarioScreen() {
     if (recordingState !== 'recording') return;
     setRecordingState('playing');
 
-    await audioRecorder.stop();
-    const uri = audioRecorder.uri;
+    let uri: string | null = null;
 
-    if (uri) {
-      try {
-        playLocalAudio({ uri }, {
-          onComplete: async () => {
-            setRecordingState('feedback');
-            const random = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
-            await speakInDialect(random);
-            setTimeout(() => {
-              setRecordingState('idle');
-              setShowNext(true);
-            }, 2000);
-          },
+    const finishTurn = () => {
+      setRecordingState('feedback');
+      if (__DEV__) {
+        console.log('[scenario recording]', {
+          loadingStateCleared: true,
+          index: currentIndex,
+          type: currentTurn.type,
         });
-      } catch (err) {
-        console.warn('Playback error:', err);
-        setRecordingState('idle');
-        setShowNext(true);
       }
-    } else {
-      setRecordingState('idle');
-      setShowNext(true);
+
+      const random = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+      setTimeout(() => {
+        speakInDialect(random).catch(err => {
+          console.warn('Encouragement playback error:', err);
+        });
+        setTimeout(() => {
+          setRecordingState('idle');
+          setShowNext(true);
+        }, 2000);
+      }, uri ? 800 : 0);
+    };
+
+    try {
+      await audioRecorder.stop();
+      uri = audioRecorder.uri ?? null;
+
+      if (__DEV__) {
+        console.log('[scenario recording]', {
+          recordedUriExists: Boolean(uri),
+          index: currentIndex,
+          type: currentTurn.type,
+        });
+      }
+
+      if (uri) {
+        if (__DEV__) {
+          console.log('[scenario eval target]', {
+            target: scenarioEvalTarget,
+            index: currentIndex,
+            type: currentTurn.type,
+          });
+        }
+
+        playLocalAudio({ uri });
+        if (__DEV__) {
+          console.log('[scenario recording]', {
+            playbackStarted: true,
+            index: currentIndex,
+            type: currentTurn.type,
+          });
+        }
+      } else if (__DEV__) {
+        console.log('[scenario recording]', {
+          playbackSkipped: true,
+          reason: 'missing-uri',
+          index: currentIndex,
+          type: currentTurn.type,
+        });
+      }
+    } catch (err) {
+      console.warn('Recording stop/playback error:', err);
+      if (__DEV__) {
+        console.log('[scenario recording]', {
+          playbackSkipped: true,
+          reason: 'recording-error',
+          index: currentIndex,
+          type: currentTurn.type,
+        });
+      }
+    } finally {
+      finishTurn();
     }
   };
 
@@ -459,16 +509,6 @@ export default function ScenarioScreen() {
         </Pressable>
         <Text style={styles.headerTitle}>{getSceneBadge()}</Text>
         <View style={styles.headerRight}>
-          <LottieView
-            key={isSpeaking ? 'talking' : 'idle'}
-            source={isSpeaking
-              ? require('../assets/images/animations/yusuf-talking.json')
-              : require('../assets/images/animations/yusuf-waving.json')
-            }
-            autoPlay={isSpeaking}
-            loop={isSpeaking}
-            style={styles.headerLottie}
-          />
           <View style={styles.partPill}>
             <Text style={styles.partPillText}>{getPartLabel(currentIndex, typeStr)}</Text>
           </View>
@@ -478,7 +518,7 @@ export default function ScenarioScreen() {
       {/* Scene area */}
       <View style={styles.sceneArea}>
         <CafeScene
-          arabic={stripTashkeel(currentTurn.arabic)}
+          arabic={stripTashkeel(currentTurnDisplayArabic)}
           transliteration={currentTurn.transliteration}
           isWaiterSpeaking={isWaiterTurn}
           isUserTurn={isUserTurn}
@@ -491,12 +531,6 @@ export default function ScenarioScreen() {
         <View style={styles.completionOverlay}>
           <View style={styles.completionCard}>
 
-            <LottieView
-              source={require('../assets/images/animations/yusuf-celebrating.json')}
-              autoPlay
-              loop={false}
-              style={styles.completionLottie}
-            />
             <Text style={styles.completionTitle}>انتهى!</Text>
             <Text style={styles.completionSubtitle}>{
               typeStr === 'Taxi'        ? 'Taxi scenario complete' :
@@ -586,8 +620,8 @@ export default function ScenarioScreen() {
               {currentTurn.context ? (
                 <Text style={styles.contextText}>{currentTurn.context}</Text>
               ) : null}
-              <Text style={[styles.arabicText, { fontSize: currentTurn.arabic.length <= 10 ? 32 : 22 }]}>
-                {stripTashkeel(currentTurn.arabic)}
+              <Text style={[styles.arabicText, { fontSize: currentTurnDisplayArabic.length <= 10 ? 32 : 22 }]}>
+                {stripTashkeel(currentTurnDisplayArabic)}
               </Text>
               <Text style={styles.transliterationText}>{currentTurn.transliteration}</Text>
               <Text style={styles.englishText}>{currentTurn.english}</Text>
@@ -704,7 +738,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  headerLottie: { width: 36, height: 36 },
   partPill: {
     borderWidth: 1,
     borderColor: theme.colors.borderDefault,
@@ -884,7 +917,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.borderDefault,
   },
-  completionLottie: { width: 120, height: 120, marginBottom: 8 },
   completionTitle: { fontSize: 36, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 4 },
   completionSubtitle: { fontSize: 16, color: theme.colors.textTertiary, marginBottom: 32 },
   completionStats: {

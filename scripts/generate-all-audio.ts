@@ -8,7 +8,7 @@
  *   - constants/audio-manifest.ts  (runtime lookup used by utils/tts.ts)
  *
  * Run:
- *   ts-node --skip-project scripts/generate-all-audio.ts [--dry-run] [--match-only] [--force] [--lesson basic-words] [--scenario cafe]
+ *   ts-node --skip-project scripts/generate-all-audio.ts [--dry-run] [--match-only] [--force] [--lesson basic-words|greetings|intro] [--scenario cafe]
  */
 
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -71,12 +71,17 @@ function optionValue(name: string): string | null {
 
 const LESSON = optionValue('--lesson');
 const BASIC_WORDS_ONLY = LESSON === 'basic-words';
+const GREETINGS_ONLY = LESSON === 'greetings';
+const INTRO_ONLY = LESSON === 'intro';
+const NARROW_LESSON = BASIC_WORDS_ONLY || GREETINGS_ONLY || INTRO_ONLY;
 const SCENARIO = optionValue('--scenario');
 const CAFE_SCENARIO_ONLY = SCENARIO === 'cafe';
+const LINE_ARG = optionValue('--line');
+const LINE_INDEX = LINE_ARG === null ? null : Number(LINE_ARG);
 
-if (LESSON && !BASIC_WORDS_ONLY) {
+if (LESSON && !NARROW_LESSON) {
   console.error(`✗ Unsupported --lesson value: ${LESSON}`);
-  console.error('  Supported: basic-words');
+  console.error('  Supported: basic-words, greetings, intro');
   process.exit(1);
 }
 
@@ -88,6 +93,20 @@ if (SCENARIO && !CAFE_SCENARIO_ONLY) {
 
 if (LESSON && SCENARIO) {
   console.error('✗ Use either --lesson or --scenario, not both');
+  process.exit(1);
+}
+
+if (LINE_ARG !== null) {
+  const parsedLineIndex = LINE_INDEX;
+  if (parsedLineIndex === null || !Number.isInteger(parsedLineIndex) || parsedLineIndex < 0) {
+    console.error(`✗ Invalid --line value: ${LINE_ARG}`);
+    console.error('  Use a zero-based CAFE_DIALOGUE index, e.g. --line 17, or a 1-based lesson number.');
+    process.exit(1);
+  }
+}
+
+if (LINE_ARG !== null && !CAFE_SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY) {
+  console.error('✗ --line is only supported with --scenario cafe, --lesson greetings, or --lesson intro');
   process.exit(1);
 }
 
@@ -165,6 +184,10 @@ function collectTargets(): Target[] {
     const gd = require('../data/gulf-dialogues');
     const cafe = gd.CAFE_DIALOGUE;
     if (!Array.isArray(cafe)) return out;
+    if (LINE_INDEX !== null && LINE_INDEX >= cafe.length) {
+      console.error(`✗ --line ${LINE_INDEX} is out of range for CAFE_DIALOGUE (0-${cafe.length - 1})`);
+      process.exit(1);
+    }
 
     let waiterIndex = 0;
     let userIndex = 0;
@@ -174,8 +197,10 @@ function collectTargets(): Target[] {
       const isWaiter = turn.type === 'waiter';
       const fileIndex = isWaiter ? ++waiterIndex : ++userIndex;
       const filePrefix = isWaiter ? 'w' : 'u';
+      if (LINE_INDEX !== null && i !== LINE_INDEX) return;
       add(text, 'gulf', `gulf-dialogues:CAFE_DIALOGUE[${i}]`, 'gulf', {
         outputPath: resolve(ROOT, 'assets/audio/cafe', `${filePrefix}${fileIndex}.mp3`),
+        itemIndex: i,
         lineIndex: i,
         turnType: turn.type,
       });
@@ -188,21 +213,43 @@ function collectTargets(): Target[] {
   for (const [name, arr] of Object.entries(words)) {
     if (!Array.isArray(arr)) continue;
     if (BASIC_WORDS_ONLY && name !== 'BASIC_WORDS') continue;
+    if (GREETINGS_ONLY && name !== 'GREETINGS_WORDS') continue;
+    if (INTRO_ONLY && name !== 'INTRO_WORDS') continue;
+    if (GREETINGS_ONLY && LINE_INDEX !== null && (LINE_INDEX < 1 || LINE_INDEX > arr.length)) {
+      console.error(`✗ --line ${LINE_INDEX} is out of range for GREETINGS_WORDS (1-${arr.length})`);
+      process.exit(1);
+    }
+    if (INTRO_ONLY && LINE_INDEX !== null && (LINE_INDEX < 1 || LINE_INDEX > arr.length)) {
+      console.error(`✗ --line ${LINE_INDEX} is out of range for INTRO_WORDS (1-${arr.length})`);
+      process.exit(1);
+    }
     arr.forEach((w: any, i: number) => {
       if (w && typeof w.arabic === 'string') {
-        const text = name === 'BASIC_WORDS' ? (w.audioText ?? w.arabic) : w.arabic;
+        if (GREETINGS_ONLY && LINE_INDEX !== null && i !== LINE_INDEX - 1) return;
+        if (INTRO_ONLY && LINE_INDEX !== null && i !== LINE_INDEX - 1) return;
+        const text = (name === 'BASIC_WORDS' || name === 'GREETINGS_WORDS' || name === 'INTRO_WORDS') ? (w.audioText ?? w.arabic) : w.arabic;
         const options = BASIC_WORDS_ONLY && name === 'BASIC_WORDS'
           ? {
               outputPath: resolve(ROOT, 'assets/audio/basic-words', `${i + 1}.mp3`),
               itemIndex: i + 1,
             }
+          : GREETINGS_ONLY && name === 'GREETINGS_WORDS'
+            ? {
+                outputPath: resolve(ROOT, 'assets/audio/greetings', `${i + 1}.mp3`),
+                itemIndex: i + 1,
+              }
+          : INTRO_ONLY && name === 'INTRO_WORDS'
+            ? {
+                outputPath: resolve(ROOT, 'assets/audio/intro', `${i + 1}.mp3`),
+                itemIndex: i + 1,
+              }
           : {};
         add(text, 'gulf', `words:${name}[${i}]`, 'gulf', options);
       }
     });
   }
 
-  if (BASIC_WORDS_ONLY) return out;
+  if (NARROW_LESSON) return out;
 
   // ── data/egyptian-words.ts ───────────────────────────────────────────────
   try {
@@ -493,6 +540,7 @@ async function main() {
     FORCE && 'FORCE',
     LESSON && `LESSON=${LESSON}`,
     SCENARIO && `SCENARIO=${SCENARIO}`,
+    LINE_INDEX !== null && `LINE=${LINE_INDEX}`,
   ].filter(Boolean).join(' ') || '(none)');
 
   const targets = collectTargets();
@@ -506,7 +554,7 @@ async function main() {
   const exactIdx = new Map<string, string>();
   // Secondary index: fuzzy match on (voice × tashkeel-stripped text)
   const fuzzyIdx = new Map<string, string>();
-  const reuseDisabled = BASIC_WORDS_ONLY || (CAFE_SCENARIO_ONLY && FORCE);
+  const reuseDisabled = NARROW_LESSON || (CAFE_SCENARIO_ONLY && FORCE);
   if (!reuseDisabled) {
     for (const e of [...fromWired, ...fromSiblings]) {
       const k1 = e.voiceId + '::' + normalize(e.text);
@@ -517,7 +565,7 @@ async function main() {
   } else if (CAFE_SCENARIO_ONLY) {
     console.log('→ cafe scenario mode: existing-file reuse disabled with --force; targets will use audioText');
   } else {
-    console.log('→ basic-words mode: existing-file reuse disabled; targets will use audioText');
+    console.log(`→ ${LESSON} lesson mode: existing-file reuse disabled; targets will use audioText`);
   }
 
   const matched: { target: Target; src: string; dest: string; hash: string; kind: 'exact' | 'fuzzy' }[] = [];
@@ -571,13 +619,13 @@ async function main() {
 
   // Sample of what'd be generated
   if (toGen.length && (DRY_RUN || flags.has('--verbose'))) {
-    const sample = BASIC_WORDS_ONLY || CAFE_SCENARIO_ONLY ? toGen : toGen.slice(0, 15);
-    console.log(BASIC_WORDS_ONLY || CAFE_SCENARIO_ONLY ? '\nwould generate:' : '\nsample (first 15):');
+    const sample = NARROW_LESSON || CAFE_SCENARIO_ONLY ? toGen : toGen.slice(0, 15);
+    console.log(NARROW_LESSON || CAFE_SCENARIO_ONLY ? '\nwould generate:' : '\nsample (first 15):');
     for (const x of sample) {
-      if (BASIC_WORDS_ONLY) {
+      if (NARROW_LESSON) {
         console.log(`  ${String(x.target.itemIndex).padStart(2, '0')}. ${x.target.text} → ${relative(ROOT, x.dest)}`);
       } else if (CAFE_SCENARIO_ONLY) {
-        console.log(`  ${String(x.target.lineIndex).padStart(2, '0')}. ${x.target.turnType} "${x.target.text}" → ${relative(ROOT, x.dest)}`);
+        console.log(`  ${x.target.itemIndex}. ${x.target.turnType} "${x.target.text}" → ${relative(ROOT, x.dest)}`);
       } else {
         console.log(`  [${x.target.manifestKey}] ${relative(ROOT, x.dest)} ← ${x.target.text.slice(0, 50).padEnd(50)} (${x.target.source})`);
       }

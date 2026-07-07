@@ -10,7 +10,6 @@ import { ArrowLeft } from 'lucide-react-native';
 import { speakArabic, playLocalAudio, stopAudio } from '../utils/tts';
 import { stripTashkeel } from '../utils/arabic';
 import { theme } from '../constants/theme';
-import Yusuf, { useMood } from '../components/Yusuf';
 import {
   BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS,
   NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
@@ -110,14 +109,6 @@ export default function QuizScreen() {
   const [completed, setCompleted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
 
-  const [yusufMood, setYusufMood] = useMood('thinking');
-  const [yusufWhisper, setYusufWhisper] = useState<string | undefined>(undefined);
-  const moodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
-  }, []);
-
   const currentQuestion = questions[currentIndex];
   const progress = currentIndex / questions.length;
 
@@ -187,18 +178,9 @@ export default function QuizScreen() {
       setXpEarned(xp => xp + 10);
       setCorrectCount(c => c + 1);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setYusufMood('celebrating');
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setYusufMood('sad');
-      setYusufWhisper(currentQuestion.arabic);
     }
-
-    if (moodTimerRef.current) clearTimeout(moodTimerRef.current);
-    moodTimerRef.current = setTimeout(() => {
-      setYusufMood('thinking');
-      setYusufWhisper(undefined);
-    }, 1500);
 
     setTimeout(() => {
       if (currentIndex < questions.length - 1) {
@@ -240,11 +222,6 @@ export default function QuizScreen() {
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.completionContainer}>
-          <Yusuf
-            mood={percentage >= 78 ? 'celebrating' : 'sad'}
-            size="md"
-            whisper={percentage === 100 ? 'ممتاز! 🔥' : undefined}
-          />
           <Text style={styles.gradeText}>{grade}</Text>
           <Text style={styles.scoreText}>{percentage}%</Text>
           <Text style={styles.scoreSub}>{correctCount} / {questions.length} correct</Text>
@@ -400,10 +377,6 @@ export default function QuizScreen() {
         })}
       </View>
 
-      {/* Yusuf companion — bottom-left, reacts to answers */}
-      <View style={styles.yusufFloat} pointerEvents="none">
-        <Yusuf mood={yusufMood} size="sm" whisper={yusufWhisper} />
-      </View>
     </SafeAreaView>
   );
 }
@@ -426,10 +399,8 @@ const styles = StyleSheet.create({
   progressBg: { height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
 
-  // Yusuf section
   promptRow: { paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
   promptText: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
-  yusufFloat: { position: 'absolute', left: 12, bottom: 300, zIndex: 10 },
 
   // Question card
   questionCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 24, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.borderDefault, minHeight: 120, alignItems: 'center', justifyContent: 'center' },

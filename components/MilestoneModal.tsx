@@ -1,5 +1,4 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
-import LottieView from 'lottie-react-native';
 import { MILESTONE_MESSAGES } from '../utils/streak';
 import { theme } from '../constants/theme';
 
@@ -19,12 +18,6 @@ export default function MilestoneModal({ visible, milestone, onClose }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <LottieView
-            source={require('../assets/images/animations/yusuf-celebrating.json')}
-            autoPlay
-            loop={false}
-            style={styles.lottie}
-          />
           <Text style={styles.fires}>{fires}</Text>
           <Text style={styles.title}>{milestone} Day Streak!</Text>
           <Text style={styles.message}>{message}</Text>
@@ -54,7 +47,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.borderDefault,
   },
-  lottie: { width: 140, height: 140, marginBottom: 4 },
   fires: { fontSize: 36, marginBottom: 8 },
   title: { fontSize: 28, fontWeight: theme.fontWeight.medium, color: theme.colors.accentSuccess, marginBottom: 12 },
   message: { fontSize: 16, color: theme.colors.textPrimary, textAlign: 'center', lineHeight: 24, marginBottom: 28, opacity: 0.9 },

@@ -282,13 +282,13 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* Yusuf — reactive companion */}
+        {/* Yusuf — welcome coach */}
         <Pressable
           onPress={handleYusufTap}
           style={styles.yusufContainer}
           hitSlop={8}
         >
-          <Yusuf mood={yusufMood} size="lg" whisper={yusufWhisper} />
+          <Yusuf mood={yusufMood} size="md" whisper={yusufWhisper} />
         </Pressable>
 
         {/* Continue hero card */}
@@ -1952,8 +1952,8 @@ const styles = StyleSheet.create({
   expiryBanner: { backgroundColor: theme.colors.bgSurface, borderLeftWidth: 3, borderLeftColor: theme.colors.accentWarm, borderRadius: theme.radii.xs, padding: theme.spacing.md, marginBottom: theme.spacing.lg },
   expiryBannerText: { color: theme.colors.accentWarm, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.regular },
 
-  // Yusuf companion
-  yusufContainer: { alignItems: 'center', marginBottom: theme.spacing.lg },
+  // Yusuf welcome coach
+  yusufContainer: { alignItems: 'center', marginTop: -theme.spacing.sm, marginBottom: theme.spacing.sm },
 
   // Continue hero
   continueCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: theme.spacing.xl, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.borderDefault, overflow: 'hidden', position: 'relative' },

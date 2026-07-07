@@ -1,6 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LottieView from 'lottie-react-native';
 import { theme } from '../../constants/theme';
 
 const PASSING_SCORE = 14;
@@ -29,16 +28,6 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, onRet
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <LottieView
-          source={stars >= 2
-            ? require('../../assets/images/animations/yusuf-celebrating.json')
-            : require('../../assets/images/animations/yusuf-sad.json')
-          }
-          autoPlay
-          loop={false}
-          style={styles.lottie}
-        />
-
         <Text style={styles.grade}>{grade}</Text>
 
         {/* Stars */}
@@ -99,7 +88,6 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, onRet
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl },
-  lottie: { width: 120, height: 120, marginBottom: 4 },
   grade: { fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 12 },
   stars: { flexDirection: 'row', gap: 4, marginBottom: 20 },
   star: { fontSize: 32 },

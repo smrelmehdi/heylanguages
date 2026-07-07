@@ -1,6 +1,5 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import LottieView from 'lottie-react-native';
 import { theme } from '../constants/theme';
 
 interface Props {
@@ -23,12 +22,6 @@ export default function SignUpPrompt({ visible, onClose, reason }: Props) {
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <LottieView
-            source={require('../assets/images/animations/yusuf-waving.json')}
-            autoPlay
-            loop
-            style={{ width: 120, height: 120 }}
-          />
           <Text style={styles.title}>Don't lose your progress!</Text>
           <Text style={styles.subtitle}>
             Create a free account to {reason} and save everything.
