@@ -2,7 +2,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { recordActivity } from '../utils/streak';
 import * as Haptics from 'expo-haptics';
@@ -28,6 +28,7 @@ type QuestionType = 'mc_ar_to_en' | 'mc_en_to_ar' | 'audio';
 interface Question {
   type: QuestionType;
   arabic: string;
+  audioText: string;
   transliteration: string;
   english: string;
   options: string[];
@@ -35,7 +36,9 @@ interface Question {
   audio?: any;
 }
 
-const CORRECT_FEEDBACK = ['ممتاز! 🌟', 'زين! 👍', 'أحسنت! 🎉', 'Perfect! ✓'];
+const getDisplayArabic = (word: Word) => word.displayArabic ?? word.arabic;
+const getAudioText = (word: Word) => word.audioText ?? word.displayArabic ?? word.arabic;
+const shuffleOptions = (options: string[]) => [...options].sort(() => Math.random() - 0.5);
 
 function generateQuiz(allWords: Word[], count = 15): Question[] {
   const shuffled = [...allWords].sort(() => Math.random() - 0.5);
@@ -49,15 +52,17 @@ function generateQuiz(allWords: Word[], count = 15): Question[] {
     else if (index < enToArCutoff) type = 'mc_en_to_ar';
     else type = 'audio';
 
-    const otherWords = allWords.filter(w => w.arabic !== word.arabic);
+    const displayArabic = getDisplayArabic(word);
+    const audioText = getAudioText(word);
+    const otherWords = allWords.filter(w => getDisplayArabic(w) !== displayArabic);
     const wrongWords = otherWords.sort(() => Math.random() - 0.5).slice(0, 3);
 
     let options: string[];
     let correctAnswer: string;
 
     if (type === 'mc_en_to_ar') {
-      correctAnswer = word.arabic;
-      options = [word.arabic, ...wrongWords.map(w => w.arabic)].sort(() => Math.random() - 0.5);
+      correctAnswer = displayArabic;
+      options = [displayArabic, ...wrongWords.map(getDisplayArabic)].sort(() => Math.random() - 0.5);
     } else {
       correctAnswer = word.english;
       options = [word.english, ...wrongWords.map(w => w.english)].sort(() => Math.random() - 0.5);
@@ -65,7 +70,8 @@ function generateQuiz(allWords: Word[], count = 15): Question[] {
 
     return {
       type,
-      arabic: word.arabic,
+      arabic: displayArabic,
+      audioText,
       transliteration: word.transliteration,
       english: word.english,
       options,
@@ -75,10 +81,105 @@ function generateQuiz(allWords: Word[], count = 15): Question[] {
   });
 }
 
+function buildQuestion(type: QuestionType, word: Word, wrongOptions: string[]): Question {
+  const displayArabic = getDisplayArabic(word);
+  const correctAnswer = type === 'mc_en_to_ar' ? displayArabic : word.english;
+
+  return {
+    type,
+    arabic: displayArabic,
+    audioText: getAudioText(word),
+    transliteration: word.transliteration,
+    english: word.english,
+    options: shuffleOptions([correctAnswer, ...wrongOptions]),
+    correctAnswer,
+    audio: word.audio,
+  };
+}
+
+function generateUnit1Quiz(): Question[] {
+  return [
+    buildQuestion('mc_ar_to_en', BASIC_WORDS[0], [
+      BASIC_WORDS[1].english,
+      BASIC_WORDS[4].english,
+      BASIC_WORDS[13].english,
+    ]),
+    buildQuestion('mc_ar_to_en', BASIC_WORDS[1], [
+      BASIC_WORDS[13].english,
+      BASIC_WORDS[14].english,
+      BASIC_WORDS[15].english,
+    ]),
+    buildQuestion('mc_ar_to_en', BASIC_WORDS[12], [
+      BASIC_WORDS[11].english,
+      BASIC_WORDS[10].english,
+      GREETINGS_WORDS[11].english,
+    ]),
+    buildQuestion('mc_ar_to_en', INTRO_WORDS[0], [
+      INTRO_WORDS[2].english,
+      INTRO_WORDS[4].english,
+      INTRO_WORDS[8].english,
+    ]),
+    buildQuestion('mc_ar_to_en', INTRO_WORDS[3], [
+      INTRO_WORDS[5].english,
+      INTRO_WORDS[1].english,
+      INTRO_WORDS[9].english,
+    ]),
+    buildQuestion('mc_ar_to_en', INTRO_WORDS[10], [
+      INTRO_WORDS[11].english,
+      INTRO_WORDS[12].english,
+      INTRO_WORDS[14].english,
+    ]),
+    buildQuestion('mc_en_to_ar', BASIC_WORDS[13], [
+      getDisplayArabic(BASIC_WORDS[1]),
+      getDisplayArabic(BASIC_WORDS[14]),
+      getDisplayArabic(BASIC_WORDS[15]),
+    ]),
+    buildQuestion('mc_en_to_ar', BASIC_WORDS[9], [
+      getDisplayArabic(BASIC_WORDS[10]),
+      getDisplayArabic(BASIC_WORDS[18]),
+      getDisplayArabic(BASIC_WORDS[19]),
+    ]),
+    buildQuestion('mc_en_to_ar', INTRO_WORDS[4], [
+      getDisplayArabic(INTRO_WORDS[2]),
+      getDisplayArabic(INTRO_WORDS[6]),
+      getDisplayArabic(INTRO_WORDS[8]),
+    ]),
+    buildQuestion('mc_en_to_ar', INTRO_WORDS[5], [
+      getDisplayArabic(INTRO_WORDS[3]),
+      getDisplayArabic(INTRO_WORDS[1]),
+      getDisplayArabic(INTRO_WORDS[9]),
+    ]),
+    buildQuestion('mc_en_to_ar', INTRO_WORDS[11], [
+      getDisplayArabic(INTRO_WORDS[10]),
+      getDisplayArabic(INTRO_WORDS[12]),
+      getDisplayArabic(INTRO_WORDS[14]),
+    ]),
+    buildQuestion('audio', BASIC_WORDS[4], [
+      BASIC_WORDS[3].english,
+      BASIC_WORDS[5].english,
+      BASIC_WORDS[15].english,
+    ]),
+    buildQuestion('audio', GREETINGS_WORDS[11], [
+      GREETINGS_WORDS[0].english,
+      GREETINGS_WORDS[7].english,
+      GREETINGS_WORDS[14].english,
+    ]),
+    buildQuestion('audio', INTRO_WORDS[7], [
+      INTRO_WORDS[6].english,
+      INTRO_WORDS[5].english,
+      INTRO_WORDS[3].english,
+    ]),
+    buildQuestion('audio', INTRO_WORDS[14], [
+      BASIC_WORDS[11].english,
+      GREETINGS_WORDS[14].english,
+      INTRO_WORDS[0].english,
+    ]),
+  ];
+}
+
 export default function QuizScreen() {
   const router = useRouter();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
-  const feedbackRef = useRef<string>('');
 
   const [questions] = useState<Question[]>(() => {
     if (unit === '4') {
@@ -99,8 +200,7 @@ export default function QuizScreen() {
       ];
       return generateQuiz(allUnit5Words, 18);
     }
-    const allWords = [...BASIC_WORDS, ...GREETINGS_WORDS, ...INTRO_WORDS];
-    return generateQuiz(allWords);
+    return generateUnit1Quiz();
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -110,6 +210,14 @@ export default function QuizScreen() {
   const [correctCount, setCorrectCount] = useState(0);
 
   const currentQuestion = questions[currentIndex];
+  const arabicPromptLength = currentQuestion ? stripTashkeel(currentQuestion.arabic).length : 0;
+  const arabicPromptSize =
+    arabicPromptLength <= 8 ? 'short' :
+    arabicPromptLength <= 18 ? 'medium' :
+    'long';
+  const arabicPromptLineLimit = arabicPromptSize === 'short' ? 1 : arabicPromptSize === 'medium' ? 2 : 3;
+  const answeredCount = currentIndex + (selectedAnswer ? 1 : 0);
+  const missedCount = answeredCount - correctCount;
   const progress = currentIndex / questions.length;
 
   useEffect(() => {
@@ -118,7 +226,7 @@ export default function QuizScreen() {
         if (currentQuestion.audio) {
           playLocalAudio(currentQuestion.audio);
         } else {
-          speakArabic(currentQuestion.arabic);
+          speakArabic(currentQuestion.audioText);
         }
       }, 400);
       return () => clearTimeout(t);
@@ -167,9 +275,6 @@ export default function QuizScreen() {
     if (selectedAnswer) return;
 
     const correct = answer === currentQuestion.correctAnswer;
-    feedbackRef.current = correct
-      ? CORRECT_FEEDBACK[Math.floor(Math.random() * CORRECT_FEEDBACK.length)]
-      : `Correct: ${currentQuestion.correctAnswer}`;
 
     setSelectedAnswer(answer);
     setIsCorrect(correct);
@@ -181,23 +286,25 @@ export default function QuizScreen() {
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
+  };
 
-    setTimeout(() => {
-      if (currentIndex < questions.length - 1) {
-        setCurrentIndex(i => i + 1);
-        setSelectedAnswer(null);
-        setIsCorrect(null);
-      } else {
-        setCompleted(true);
-      }
-    }, 1200);
+  const handleContinue = () => {
+    if (!selectedAnswer) return;
+
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(i => i + 1);
+      setSelectedAnswer(null);
+      setIsCorrect(null);
+    } else {
+      setCompleted(true);
+    }
   };
 
   const handlePlayAudio = () => {
     if (currentQuestion.audio) {
       playLocalAudio(currentQuestion.audio);
     } else {
-      speakArabic(currentQuestion.arabic);
+      speakArabic(currentQuestion.audioText);
     }
   };
 
@@ -280,7 +387,7 @@ export default function QuizScreen() {
         </View>
         <View style={styles.scoreCounter}>
           <Text style={styles.scoreCorrect}>{correctCount}✓</Text>
-          <Text style={styles.scoreWrong}> {currentIndex - correctCount}✗</Text>
+          <Text style={styles.scoreWrong}> {missedCount}✗</Text>
         </View>
       </View>
 
@@ -304,7 +411,18 @@ export default function QuizScreen() {
       <View style={styles.questionCard}>
         {currentQuestion.type === 'mc_ar_to_en' && (
           <View style={styles.arabicQuestion}>
-            <Text style={styles.arabicBig} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.4}>{stripTashkeel(currentQuestion.arabic)}</Text>
+            <Text
+              style={[
+                styles.arabicBig,
+                arabicPromptSize === 'medium' && styles.arabicMedium,
+                arabicPromptSize === 'long' && styles.arabicLong,
+              ]}
+              adjustsFontSizeToFit
+              numberOfLines={arabicPromptLineLimit}
+              minimumFontScale={0.65}
+            >
+              {stripTashkeel(currentQuestion.arabic)}
+            </Text>
             <Text style={styles.romanText}>{currentQuestion.transliteration}</Text>
           </View>
         )}
@@ -322,15 +440,6 @@ export default function QuizScreen() {
           </Pressable>
         )}
       </View>
-
-      {/* Feedback banner */}
-      {selectedAnswer && (
-        <Animated.View entering={FadeIn} style={styles.feedbackBanner}>
-          <Text style={[styles.feedbackText, { color: isCorrect ? theme.colors.accentSuccess : theme.colors.accentDanger }]}>
-            {feedbackRef.current}
-          </Text>
-        </Animated.View>
-      )}
 
       {/* Answer options */}
       <View style={styles.optionsContainer}>
@@ -377,6 +486,29 @@ export default function QuizScreen() {
         })}
       </View>
 
+      {/* Feedback panel */}
+      {selectedAnswer && (
+        <Animated.View
+          entering={FadeIn}
+          style={[
+            styles.feedbackPanel,
+            isCorrect ? styles.feedbackPanelCorrect : styles.feedbackPanelWrong,
+          ]}
+        >
+          <View style={styles.feedbackCopy}>
+            <Text style={[styles.feedbackTitle, { color: isCorrect ? theme.colors.accentSuccess : theme.colors.accentDanger }]}>
+              {isCorrect ? 'ممتاز!' : 'Almost'}
+            </Text>
+            <Text style={styles.feedbackSubtitle}>
+              {isCorrect ? 'Correct' : `Correct answer: ${currentQuestion.correctAnswer}`}
+            </Text>
+          </View>
+          <Pressable style={styles.continueButton} onPress={handleContinue}>
+            <Text style={styles.continueButtonText}>Continue</Text>
+          </Pressable>
+        </Animated.View>
+      )}
+
     </SafeAreaView>
   );
 }
@@ -403,10 +535,12 @@ const styles = StyleSheet.create({
   promptText: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
 
   // Question card
-  questionCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 24, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.borderDefault, minHeight: 120, alignItems: 'center', justifyContent: 'center' },
-  arabicQuestion: { alignItems: 'center' },
-  arabicBig: { fontSize: 48, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 8 },
-  romanText: { fontSize: 16, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
+  questionCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 22, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.borderDefault, minHeight: 136, alignItems: 'center', justifyContent: 'center' },
+  arabicQuestion: { alignItems: 'center', width: '100%' },
+  arabicBig: { fontSize: 48, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', lineHeight: 58, marginBottom: 8, writingDirection: 'rtl' },
+  arabicMedium: { fontSize: 38, lineHeight: 48 },
+  arabicLong: { fontSize: 30, lineHeight: 40 },
+  romanText: { fontSize: 16, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, textAlign: 'center', lineHeight: 22 },
   englishQuestion: { alignItems: 'center' },
   englishBig: { fontSize: 28, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
   audioButton: { alignItems: 'center', padding: 12 },
@@ -414,17 +548,23 @@ const styles = StyleSheet.create({
   audioText: { fontSize: 14, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
 
   // Feedback
-  feedbackBanner: { paddingHorizontal: 20, paddingVertical: 8, marginBottom: 4, alignItems: 'center' },
-  feedbackText: { fontSize: 16, fontWeight: theme.fontWeight.medium },
+  feedbackPanel: { marginHorizontal: 20, marginTop: 14, borderRadius: theme.radii.lg, padding: 16, borderWidth: 1, gap: 14 },
+  feedbackPanelCorrect: { backgroundColor: 'rgba(125, 217, 154, 0.14)', borderColor: theme.colors.accentSuccess },
+  feedbackPanelWrong: { backgroundColor: 'rgba(229, 107, 111, 0.14)', borderColor: theme.colors.accentDanger },
+  feedbackCopy: { gap: 3 },
+  feedbackTitle: { fontSize: 22, fontWeight: theme.fontWeight.medium },
+  feedbackSubtitle: { fontSize: 15, color: theme.colors.textPrimary, lineHeight: 21 },
+  continueButton: { minHeight: 52, borderRadius: theme.radii.lg, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  continueButtonText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
 
   // Options
   optionsContainer: { paddingHorizontal: 20, gap: 10 },
-  optionBtn: { padding: 18, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, backgroundColor: theme.colors.bgSurface, flexDirection: 'row', alignItems: 'center', minHeight: 64 },
+  optionBtn: { paddingHorizontal: 18, paddingVertical: 16, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, backgroundColor: theme.colors.bgSurface, flexDirection: 'row', alignItems: 'center', minHeight: 66 },
   optionLetter: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.bgElevated, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   optionLetterCorrect: { backgroundColor: theme.colors.accentSuccess },
   optionLetterWrong: { backgroundColor: theme.colors.accentDanger },
   optionLetterText: { fontSize: 13, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
-  optionText: { fontSize: 16, fontWeight: theme.fontWeight.medium, flex: 1 },
+  optionText: { fontSize: 16, fontWeight: theme.fontWeight.medium, flex: 1, lineHeight: 22, flexShrink: 1 },
   correctIcon: { fontSize: 18, color: theme.colors.accentSuccess },
   wrongIcon: { fontSize: 18, color: theme.colors.accentDanger },
 
