@@ -17,13 +17,16 @@ import {
   Lightbulb, Mic, StopCircle, Volume2,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
+  setAudioModeAsync,
   useAudioRecorder,
 } from 'expo-audio';
 import CafeScene from '../components/CafeScene';
 import { playLocalAudio, stopAudio } from '../utils/tts';
+import { evaluatePronunciation } from '../utils/pronunciation';
 import { stripTashkeel } from '../utils/arabic';
 import { supabase } from '../utils/supabase';
 import { getLevelFromXP } from '../constants/levels';
@@ -34,8 +37,12 @@ import { recordActivity } from '../utils/streak';
 import { theme } from '../constants/theme';
 
 type RecordingState = 'idle' | 'recording' | 'playing' | 'feedback';
-
-const ENCOURAGEMENTS = ['ممتاز', 'أحسنت', 'رائع', 'بالضبط', 'جيد جداً'];
+type ScenarioEvalStatus = 'passed' | 'close' | 'failed' | 'unavailable';
+type ScenarioEvalResult = {
+  status: ScenarioEvalStatus;
+  score?: number;
+  feedback: string;
+};
 
 function getPartLabel(index: number, type: string | undefined): string {
   if (type === 'Taxi') {
@@ -170,6 +177,71 @@ function getPartLabel(index: number, type: string | undefined): string {
   return '💳 Paying';
 }
 
+function getSpeakerRoleLabel(type: string | undefined): string {
+  switch (type) {
+    case 'Taxi': return 'Driver says';
+    case 'Hotel': return 'Receptionist says';
+    case 'Supermarket': return 'Staff says';
+    case 'Pharmacy': return 'Pharmacist says';
+    case 'Barbershop': return 'Barber says';
+    case 'Airport': return 'Airport staff says';
+    case 'Restaurant': return 'Waiter says';
+    case 'Cafe':
+    default: return 'Waiter says';
+  }
+}
+
+function getEvalTitle(status: ScenarioEvalStatus): string {
+  switch (status) {
+    case 'passed': return 'Nice!';
+    case 'close': return 'Almost';
+    case 'failed': return 'Try again';
+    case 'unavailable': return 'Not checked';
+  }
+}
+
+function getEvalSubtitle(result: ScenarioEvalResult): string {
+  if (result.status === 'passed') return 'Good pronunciation';
+  return result.feedback;
+}
+
+const SCENARIO_ACCEPTED_ALTERNATIVES = [
+  { target: 'مشكور', accepts: ['شكرا', 'شكراً', 'تسلم', 'مشكور'] },
+  { target: 'شكراً', accepts: ['شكرا', 'مشكور', 'تسلم'] },
+  { target: 'وعليكم السلام', accepts: ['وعليكم السلام', 'وعليكم', 'السلام'] },
+  { target: 'السلام عليكم', accepts: ['السلام عليكم', 'سلام عليكم', 'السلام'] },
+  { target: 'إي', accepts: ['اي', 'ايوه', 'نعم'] },
+  { target: 'لا', accepts: ['لا'] },
+];
+
+function normalizeScenarioArabic(value: string): string {
+  return stripTashkeel(value)
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/ـ/g, '')
+    .replace(/[.,!?؟،؛:"'()[\]{}…\-_/\\|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isAcceptedScenarioAlternative(targetText: string, transcript?: string): boolean {
+  if (!transcript) return false;
+
+  const normalizedTarget = normalizeScenarioArabic(targetText);
+  const normalizedTranscript = normalizeScenarioArabic(transcript);
+  if (!normalizedTarget || !normalizedTranscript) return false;
+
+  return SCENARIO_ACCEPTED_ALTERNATIVES.some(({ target, accepts }) => {
+    const normalizedAcceptedTarget = normalizeScenarioArabic(target);
+    if (normalizedAcceptedTarget !== normalizedTarget) return false;
+
+    return accepts
+      .map(normalizeScenarioArabic)
+      .some(accepted => accepted === normalizedTranscript);
+  });
+}
+
 export default function ScenarioScreen() {
   const router = useRouter();
   const { type: typeParam } = useLocalSearchParams();
@@ -226,6 +298,8 @@ export default function ScenarioScreen() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [showNext, setShowNext] = useState(false);
+  const [scenarioEvalResult, setScenarioEvalResult] = useState<ScenarioEvalResult | null>(null);
+  const [scenarioScores, setScenarioScores] = useState<Record<number, number>>({});
   const [completed, setCompleted] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
@@ -234,18 +308,43 @@ export default function ScenarioScreen() {
 
   const currentTurn = isComingSoon ? { type: 'waiter' as const, arabic: '', transliteration: '', english: '' } : DIALOGUE[currentIndex];
   const currentTurnDisplayArabic = currentTurn.displayArabic ?? currentTurn.arabic;
+  const currentTurnAudioText = currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
   const scenarioEvalTarget = currentTurn.evalTarget ?? currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
+  const speakerRoleLabel = getSpeakerRoleLabel(typeStr);
   const isUserTurn = currentTurn.type === 'user';
   const isWaiterTurn = currentTurn.type === 'waiter';
   const total = DIALOGUE.length;
+  const userTurnCount = DIALOGUE.filter(t => t.type === 'user').length;
+  const evaluatedScores = Object.values(scenarioScores).filter(score => Number.isFinite(score));
+  const scenarioScore =
+    evaluatedScores.length > 0
+      ? Math.round(evaluatedScores.reduce((sum, score) => sum + score, 0) / evaluatedScores.length)
+      : 0;
   const progressWidth = `${((currentIndex + 1) / total) * 100}%` as any;
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recordingStartPromiseRef = useRef<Promise<boolean> | null>(null);
+
+  const waitForRecordingFile = async (): Promise<{ uri: string; info: FileSystem.FileInfo } | null> => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 3000) {
+      const candidateUri = audioRecorder.uri;
+      if (candidateUri) {
+        const info = await FileSystem.getInfoAsync(candidateUri);
+        if (info.exists) return { uri: candidateUri, info };
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+    return null;
+  };
 
   // Reset per-turn state when index changes
   useEffect(() => {
     setRecordingState('idle');
     setShowNext(false);
+    setScenarioEvalResult(null);
     handleAutoPlay();
   }, [currentIndex]);
 
@@ -289,7 +388,7 @@ export default function ScenarioScreen() {
     if (currentTurn.audio) {
       await playLocalAudio(currentTurn.audio);
     } else {
-      await speakInDialect(currentTurn.arabic);
+      await speakInDialect(currentTurnAudioText);
     }
     setIsSpeaking(false);
   };
@@ -297,94 +396,249 @@ export default function ScenarioScreen() {
   const handleSpeak = async () => {
     if (isSpeaking) return;
     setIsSpeaking(true);
-    await speakInDialect(currentTurn.arabic);
+    await speakInDialect(currentTurnAudioText);
     setIsSpeaking(false);
   };
 
   const handleMicPressIn = async () => {
+    setShowNext(false);
+    setScenarioEvalResult(null);
     setRecordingState('recording');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await requestRecordingPermissionsAsync();
-    audioRecorder.record();
+    recordingStartPromiseRef.current = (async () => {
+      try {
+        const { granted } = await requestRecordingPermissionsAsync();
+        if (!granted) {
+          console.warn('Scenario recording permission not granted');
+          setRecordingState('idle');
+          return false;
+        }
+
+        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
+        return true;
+      } catch (err) {
+        console.warn('Scenario recording start error:', err);
+        setRecordingState('idle');
+        return false;
+      }
+    })();
   };
 
   const handleMicPressOut = async () => {
     if (recordingState !== 'recording') return;
     setRecordingState('playing');
+    setScenarioEvalResult(null);
 
     let uri: string | null = null;
+    let stableUri: string | null = null;
 
-    const finishTurn = () => {
+    const finishTurn = (result: ScenarioEvalResult) => {
+      setScenarioEvalResult(result);
       setRecordingState('feedback');
+      setShowNext(true);
       if (__DEV__) {
         console.log('[scenario recording]', {
           loadingStateCleared: true,
+          evalStatus: result.status,
+          score: result.score,
           index: currentIndex,
           type: currentTurn.type,
         });
       }
-
-      const random = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
-      setTimeout(() => {
-        speakInDialect(random).catch(err => {
-          console.warn('Encouragement playback error:', err);
-        });
-        setTimeout(() => {
-          setRecordingState('idle');
-          setShowNext(true);
-        }, 2000);
-      }, uri ? 800 : 0);
     };
 
     try {
+      const didStartRecording = await recordingStartPromiseRef.current;
+      recordingStartPromiseRef.current = null;
+      if (!didStartRecording) {
+        if (__DEV__) {
+          console.log('[scenario recording]', {
+            evaluationSkipped: true,
+            reason: 'recording-did-not-start',
+            index: currentIndex,
+            type: currentTurn.type,
+          });
+        }
+        finishTurn({
+          status: 'unavailable',
+          feedback: 'Could not check pronunciation. You can continue.',
+        });
+        return;
+      }
+
       await audioRecorder.stop();
-      uri = audioRecorder.uri ?? null;
+      const recordingFile = await waitForRecordingFile();
+      uri = recordingFile?.uri ?? audioRecorder.uri ?? null;
 
       if (__DEV__) {
-        console.log('[scenario recording]', {
-          recordedUriExists: Boolean(uri),
+        console.log('[scenario eval:start]', {
+          targetText: scenarioEvalTarget,
+          dialect,
+          context: 'scenario',
           index: currentIndex,
           type: currentTurn.type,
         });
       }
 
-      if (uri) {
+      if (recordingFile) {
+        const originalUri = recordingFile.uri;
+        const recordingInfo = recordingFile.info;
+
+        if (!recordingInfo.exists) {
+          if (__DEV__) {
+            console.log('[scenario recording]', {
+              evaluationSkipped: true,
+              reason: 'recording-file-missing',
+              uri,
+              index: currentIndex,
+              type: currentTurn.type,
+            });
+          }
+          finishTurn({
+            status: 'unavailable',
+            feedback: 'Could not check pronunciation. You can continue.',
+          });
+          return;
+        }
+
+        const stableDirectory = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+        if (!stableDirectory) {
+          if (__DEV__) {
+            console.log('[scenario recording]', {
+              evaluationSkipped: true,
+              reason: 'missing-stable-directory',
+              index: currentIndex,
+              type: currentTurn.type,
+            });
+          }
+          finishTurn({
+            status: 'unavailable',
+            feedback: 'Could not check pronunciation. You can continue.',
+          });
+          return;
+        }
+
+        stableUri = `${stableDirectory}scenario-eval-${Date.now()}-${currentIndex}.m4a`;
+        await FileSystem.copyAsync({ from: originalUri, to: stableUri });
+        const stableInfo = await FileSystem.getInfoAsync(stableUri);
+
+        if (!stableInfo.exists) {
+          if (__DEV__) {
+            console.log('[scenario recording]', {
+              evaluationSkipped: true,
+              reason: 'stable-recording-file-missing',
+              stableUri,
+              index: currentIndex,
+              type: currentTurn.type,
+            });
+          }
+          finishTurn({
+            status: 'unavailable',
+            feedback: 'Could not check pronunciation. You can continue.',
+          });
+          return;
+        }
+
+        const evaluation = await evaluatePronunciation(stableUri, scenarioEvalTarget, dialect, 'scenario');
+        const acceptedAlternative = isAcceptedScenarioAlternative(scenarioEvalTarget, evaluation.transcript);
+        const adjustedScore =
+          acceptedAlternative && (evaluation.score ?? 0) < 60
+            ? 70
+            : evaluation.score;
+        const adjustedFeedback =
+          acceptedAlternative && (evaluation.score ?? 0) < 60
+            ? 'Good. That works too.'
+            : evaluation.feedback;
+
         if (__DEV__) {
-          console.log('[scenario eval target]', {
-            target: scenarioEvalTarget,
+          console.log('[scenario eval:result]', {
+            result: evaluation.result,
+            score: adjustedScore,
+            feedback: adjustedFeedback,
+            transcript: evaluation.transcript,
+            acceptedAlternative,
+            targetText: scenarioEvalTarget,
+            dialect,
+            context: 'scenario',
             index: currentIndex,
             type: currentTurn.type,
           });
         }
 
-        playLocalAudio({ uri });
+        const score = adjustedScore;
+        const status: ScenarioEvalStatus =
+          typeof score === 'number'
+            ? score >= 80
+              ? 'passed'
+              : score >= 60
+                ? 'close'
+                : 'failed'
+            : evaluation.result === 'pass'
+              ? 'passed'
+              : evaluation.result === 'close'
+                ? 'close'
+                : evaluation.result === 'unavailable'
+                  ? 'unavailable'
+                : 'failed';
+
+        if (typeof score === 'number') {
+          setScenarioScores(prev => ({ ...prev, [currentIndex]: score }));
+        }
+
+        if (status === 'passed') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else if (status === 'close') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } else if (status === 'failed') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+
+        finishTurn({
+          status,
+          score,
+          feedback: adjustedFeedback,
+        });
+      } else {
         if (__DEV__) {
           console.log('[scenario recording]', {
-            playbackStarted: true,
+            evaluationSkipped: true,
+            reason: uri ? 'recording-file-missing' : 'missing-uri',
+            uri,
             index: currentIndex,
             type: currentTurn.type,
           });
         }
-      } else if (__DEV__) {
-        console.log('[scenario recording]', {
-          playbackSkipped: true,
-          reason: 'missing-uri',
-          index: currentIndex,
-          type: currentTurn.type,
+        finishTurn({
+          status: 'unavailable',
+          feedback: 'Could not check pronunciation. You can continue.',
         });
       }
     } catch (err) {
-      console.warn('Recording stop/playback error:', err);
+      console.warn('Recording evaluation error:', err);
       if (__DEV__) {
-        console.log('[scenario recording]', {
-          playbackSkipped: true,
-          reason: 'recording-error',
+        const error = err as any;
+        console.warn('[scenario eval:error]', {
+          message: error?.message,
+          name: error?.name,
+          stack: error?.stack,
+          targetText: scenarioEvalTarget,
+          dialect,
+          context: 'scenario',
           index: currentIndex,
           type: currentTurn.type,
+          error,
         });
       }
+      finishTurn({
+        status: 'unavailable',
+        feedback: 'Could not check pronunciation. You can continue.',
+      });
     } finally {
-      finishTurn();
+      if (stableUri) {
+        FileSystem.deleteAsync(stableUri, { idempotent: true }).catch(() => {});
+      }
     }
   };
 
@@ -417,11 +671,11 @@ export default function ScenarioScreen() {
         dialect: dialect,
         level: 'beginner',
         status: 'completed',
-        score: 100,
+        score: scenarioScore,
         xp_earned: xpEarned,
         completed_at: new Date().toISOString(),
-        phrases_completed: DIALOGUE.filter(t => t.type === 'user').length,
-        phrases_total: DIALOGUE.filter(t => t.type === 'user').length,
+        phrases_completed: userTurnCount,
+        phrases_total: userTurnCount,
       });
 
       const { data: existing } = await supabase
@@ -434,7 +688,7 @@ export default function ScenarioScreen() {
       if (existing) {
         await supabase.from('scenario_progress').update({
           completed: true,
-          best_score: Math.max(existing.best_score ?? 0, 100),
+          best_score: Math.max(existing.best_score ?? 0, scenarioScore),
           attempts: (existing.attempts ?? 0) + 1,
         }).eq('id', existing.id);
       } else {
@@ -443,7 +697,7 @@ export default function ScenarioScreen() {
           scenario: scenarioKey,
           dialect: dialect,
           completed: true,
-          best_score: 100,
+          best_score: scenarioScore,
           attempts: 1,
         });
       }
@@ -545,7 +799,7 @@ export default function ScenarioScreen() {
 
             <View style={styles.completionStats}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statValue}>{userTurnCount}</Text>
                 <Text style={styles.statLabel}>Phrases spoken</Text>
               </View>
               <View style={styles.statDivider} />
@@ -555,7 +809,7 @@ export default function ScenarioScreen() {
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>100%</Text>
+                <Text style={styles.statValue}>{scenarioScore}%</Text>
                 <Text style={styles.statLabel}>Score</Text>
               </View>
             </View>
@@ -573,6 +827,9 @@ export default function ScenarioScreen() {
                 setCompleted(false);
                 setCurrentIndex(0);
                 setRecordingState('idle');
+                setShowNext(false);
+                setScenarioEvalResult(null);
+                setScenarioScores({});
               }}
             >
               <Text style={styles.tryAgainText}>Try Again</Text>
@@ -615,7 +872,7 @@ export default function ScenarioScreen() {
             {/* Phrase card */}
             <View style={[styles.phraseCard, isWaiterTurn ? styles.waiterCard : styles.userCard]}>
               <Text style={isWaiterTurn ? styles.turnLabelWaiter : styles.turnLabelUser}>
-                {isWaiterTurn ? '🧑‍🍳 Waiter says' : '🎙 Your turn — say it'}
+                {isWaiterTurn ? `🧑‍🍳 ${speakerRoleLabel}` : '🎙 Your turn — say it'}
               </Text>
               {currentTurn.context ? (
                 <Text style={styles.contextText}>{currentTurn.context}</Text>
@@ -696,6 +953,23 @@ export default function ScenarioScreen() {
                     <ArrowRight color={theme.colors.textPrimary} size={20} />
                   </Pressable>
                 </View>
+
+                {scenarioEvalResult && (
+                  <View style={[
+                    styles.evalPanel,
+                    scenarioEvalResult.status === 'passed' && styles.evalPanelPassed,
+                    scenarioEvalResult.status === 'close' && styles.evalPanelClose,
+                    scenarioEvalResult.status === 'failed' && styles.evalPanelFailed,
+                  ]}>
+                    <View>
+                      <Text style={styles.evalTitle}>{getEvalTitle(scenarioEvalResult.status)}</Text>
+                      <Text style={styles.evalFeedback}>{getEvalSubtitle(scenarioEvalResult)}</Text>
+                    </View>
+                    {typeof scenarioEvalResult.score === 'number' ? (
+                      <Text style={styles.evalScore}>{scenarioEvalResult.score}%</Text>
+                    ) : null}
+                  </View>
+                )}
 
                 {showNext && (
                   <View style={styles.hintsRow}>
@@ -883,6 +1157,47 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accentPrimary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  evalPanel: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    backgroundColor: theme.colors.bgElevated,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  evalPanelPassed: {
+    borderColor: theme.colors.accentSuccess,
+    backgroundColor: 'rgba(127, 217, 154, 0.12)',
+  },
+  evalPanelClose: {
+    borderColor: theme.colors.accentWarm,
+    backgroundColor: 'rgba(245, 165, 36, 0.12)',
+  },
+  evalPanelFailed: {
+    borderColor: theme.colors.accentDanger,
+    backgroundColor: 'rgba(229, 107, 111, 0.12)',
+  },
+  evalTitle: {
+    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: theme.fontWeight.medium,
+    marginBottom: 2,
+  },
+  evalFeedback: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.body,
+  },
+  evalScore: {
+    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: theme.fontWeight.medium,
   },
   hintsRow: {
     paddingHorizontal: 16,

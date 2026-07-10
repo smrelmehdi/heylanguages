@@ -75,7 +75,11 @@ const GREETINGS_ONLY = LESSON === 'greetings';
 const INTRO_ONLY = LESSON === 'intro';
 const NARROW_LESSON = BASIC_WORDS_ONLY || GREETINGS_ONLY || INTRO_ONLY;
 const SCENARIO = optionValue('--scenario');
-const CAFE_SCENARIO_ONLY = SCENARIO === 'cafe';
+const SCENARIO_CONFIG: Record<string, { exportName: string; folder: string; label: string }> = {
+  cafe: { exportName: 'CAFE_DIALOGUE', folder: 'cafe', label: 'CAFE_DIALOGUE' },
+  taxi: { exportName: 'TAXI_DIALOGUE', folder: 'taxi', label: 'TAXI_DIALOGUE' },
+};
+const SCENARIO_ONLY = SCENARIO ? SCENARIO_CONFIG[SCENARIO] ?? null : null;
 const LINE_ARG = optionValue('--line');
 const LINE_INDEX = LINE_ARG === null ? null : Number(LINE_ARG);
 
@@ -85,9 +89,9 @@ if (LESSON && !NARROW_LESSON) {
   process.exit(1);
 }
 
-if (SCENARIO && !CAFE_SCENARIO_ONLY) {
+if (SCENARIO && !SCENARIO_ONLY) {
   console.error(`✗ Unsupported --scenario value: ${SCENARIO}`);
-  console.error('  Supported: cafe');
+  console.error(`  Supported: ${Object.keys(SCENARIO_CONFIG).join(', ')}`);
   process.exit(1);
 }
 
@@ -105,8 +109,8 @@ if (LINE_ARG !== null) {
   }
 }
 
-if (LINE_ARG !== null && !CAFE_SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY) {
-  console.error('✗ --line is only supported with --scenario cafe, --lesson greetings, or --lesson intro');
+if (LINE_ARG !== null && !SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY) {
+  console.error(`✗ --line is only supported with --scenario ${Object.keys(SCENARIO_CONFIG).join('|')}, --lesson greetings, or --lesson intro`);
   process.exit(1);
 }
 
@@ -180,26 +184,26 @@ function collectTargets(): Target[] {
     out.push({ text: trimmed, bucket, manifestKey, voiceId, source, ...options });
   };
 
-  if (CAFE_SCENARIO_ONLY) {
+  if (SCENARIO_ONLY) {
     const gd = require('../data/gulf-dialogues');
-    const cafe = gd.CAFE_DIALOGUE;
-    if (!Array.isArray(cafe)) return out;
-    if (LINE_INDEX !== null && LINE_INDEX >= cafe.length) {
-      console.error(`✗ --line ${LINE_INDEX} is out of range for CAFE_DIALOGUE (0-${cafe.length - 1})`);
+    const scenarioTurns = gd[SCENARIO_ONLY.exportName];
+    if (!Array.isArray(scenarioTurns)) return out;
+    if (LINE_INDEX !== null && LINE_INDEX >= scenarioTurns.length) {
+      console.error(`✗ --line ${LINE_INDEX} is out of range for ${SCENARIO_ONLY.exportName} (0-${scenarioTurns.length - 1})`);
       process.exit(1);
     }
 
     let waiterIndex = 0;
     let userIndex = 0;
-    cafe.forEach((turn: any, i: number) => {
+    scenarioTurns.forEach((turn: any, i: number) => {
       if (!turn || typeof turn.arabic !== 'string') return;
-      const text = turn.audioText ?? turn.arabic;
+      const text = turn.audioText ?? turn.displayArabic ?? turn.arabic;
       const isWaiter = turn.type === 'waiter';
       const fileIndex = isWaiter ? ++waiterIndex : ++userIndex;
       const filePrefix = isWaiter ? 'w' : 'u';
       if (LINE_INDEX !== null && i !== LINE_INDEX) return;
-      add(text, 'gulf', `gulf-dialogues:CAFE_DIALOGUE[${i}]`, 'gulf', {
-        outputPath: resolve(ROOT, 'assets/audio/cafe', `${filePrefix}${fileIndex}.mp3`),
+      add(text, 'gulf', `gulf-dialogues:${SCENARIO_ONLY.exportName}[${i}]`, 'gulf', {
+        outputPath: resolve(ROOT, 'assets/audio', SCENARIO_ONLY.folder, `${filePrefix}${fileIndex}.mp3`),
         itemIndex: i,
         lineIndex: i,
         turnType: turn.type,
@@ -554,7 +558,7 @@ async function main() {
   const exactIdx = new Map<string, string>();
   // Secondary index: fuzzy match on (voice × tashkeel-stripped text)
   const fuzzyIdx = new Map<string, string>();
-  const reuseDisabled = NARROW_LESSON || (CAFE_SCENARIO_ONLY && FORCE);
+  const reuseDisabled = NARROW_LESSON || (SCENARIO_ONLY && FORCE);
   if (!reuseDisabled) {
     for (const e of [...fromWired, ...fromSiblings]) {
       const k1 = e.voiceId + '::' + normalize(e.text);
@@ -562,8 +566,8 @@ async function main() {
       if (!exactIdx.has(k1)) exactIdx.set(k1, e.path);
       if (!fuzzyIdx.has(k2)) fuzzyIdx.set(k2, e.path);
     }
-  } else if (CAFE_SCENARIO_ONLY) {
-    console.log('→ cafe scenario mode: existing-file reuse disabled with --force; targets will use audioText');
+  } else if (SCENARIO_ONLY) {
+    console.log(`→ ${SCENARIO} scenario mode: existing-file reuse disabled with --force; targets will use audioText`);
   } else {
     console.log(`→ ${LESSON} lesson mode: existing-file reuse disabled; targets will use audioText`);
   }
@@ -619,12 +623,12 @@ async function main() {
 
   // Sample of what'd be generated
   if (toGen.length && (DRY_RUN || flags.has('--verbose'))) {
-    const sample = NARROW_LESSON || CAFE_SCENARIO_ONLY ? toGen : toGen.slice(0, 15);
-    console.log(NARROW_LESSON || CAFE_SCENARIO_ONLY ? '\nwould generate:' : '\nsample (first 15):');
+    const sample = NARROW_LESSON || SCENARIO_ONLY ? toGen : toGen.slice(0, 15);
+    console.log(NARROW_LESSON || SCENARIO_ONLY ? '\nwould generate:' : '\nsample (first 15):');
     for (const x of sample) {
       if (NARROW_LESSON) {
         console.log(`  ${String(x.target.itemIndex).padStart(2, '0')}. ${x.target.text} → ${relative(ROOT, x.dest)}`);
-      } else if (CAFE_SCENARIO_ONLY) {
+      } else if (SCENARIO_ONLY) {
         console.log(`  ${x.target.itemIndex}. ${x.target.turnType} "${x.target.text}" → ${relative(ROOT, x.dest)}`);
       } else {
         console.log(`  [${x.target.manifestKey}] ${relative(ROOT, x.dest)} ← ${x.target.text.slice(0, 50).padEnd(50)} (${x.target.source})`);
