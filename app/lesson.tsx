@@ -30,6 +30,7 @@ import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } 
 import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
 import { recordActivity } from '../utils/streak';
+import { getUnit4Audio, isUnit4AudioLesson } from '../data/unit4-audio';
 
 export default function LessonScreen() {
   const router = useRouter();
@@ -217,6 +218,7 @@ export default function LessonScreen() {
 
   const currentWord = WORDS[currentIndex] ?? { arabic: '', transliteration: '', english: '', context: '', audio: undefined };
   const displayedArabic = currentWord.displayArabic ?? currentWord.arabic;
+  const currentAudioText = currentWord.audioText ?? currentWord.displayArabic ?? currentWord.arabic;
   const displayLength = stripTashkeel(displayedArabic).length;
   const targetSize =
     displayLength <= 8 ? 'short' :
@@ -224,6 +226,32 @@ export default function LessonScreen() {
     'long';
   const targetLineLimit = targetSize === 'short' ? 1 : targetSize === 'medium' ? 2 : 3;
   const progress = WORDS.length > 0 ? currentIndex / WORDS.length : 0;
+  const completionKey = typeStr && typeStr !== 'basic' ? typeStr : 'basic_words';
+  const unitId =
+    typeStr.startsWith('numbers-') ? 'unit-4' :
+    typeStr.startsWith('grammar-') ? 'unit-5' :
+    typeStr.startsWith('work-') ? 'unit-7' :
+    typeStr.startsWith('social-') ? 'unit-9' :
+    'unit-1';
+
+  const goHomeAfterCompletion = () => {
+    const canGoBack = router.canGoBack();
+    if (__DEV__) {
+      console.log('[completion navigation]', {
+        completionType: 'lesson',
+        unitId,
+        lessonKey: typeStr,
+        completionKey,
+        navigationAction: canGoBack ? 'back' : 'replace',
+      });
+    }
+
+    if (canGoBack) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   useEffect(() => {
     requestRecordingPermissionsAsync();
@@ -231,10 +259,31 @@ export default function LessonScreen() {
   }, []);
 
   const playWordAudio = () => {
+    const unit4Audio = getUnit4Audio(typeStr, currentIndex);
+    const source = unit4Audio ? 'unit-4-local' : currentWord.audio ? 'existing-local' : 'fallback';
+    const localAudioPath = unit4Audio?.path;
+
+    if (__DEV__) {
+      console.log('[lesson audio]', {
+        unit: isUnit4AudioLesson(typeStr) ? 4 : undefined,
+        lessonKey: typeStr,
+        itemIndex: currentIndex + 1,
+        displayArabic: displayedArabic,
+        audioText: currentAudioText,
+        source,
+        localAudioPath,
+      });
+    }
+
+    if (unit4Audio) {
+      playLocalAudio(unit4Audio.audio);
+      return;
+    }
+
     if (currentWord.audio) {
       playLocalAudio(currentWord.audio);
     } else {
-      speakArabic(currentWord.arabic, content.voiceId);
+      speakArabic(isUnit4AudioLesson(typeStr) ? currentAudioText : currentWord.arabic, content.voiceId);
     }
   };
 
@@ -263,8 +312,15 @@ export default function LessonScreen() {
   };
 
   const saveCompletion = async () => {
-    const scenarioKey = typeStr ?? 'basic_words';
-    console.log('Saving completion for:', scenarioKey);
+    const scenarioKey = completionKey;
+    if (__DEV__) {
+      console.log('[completion write:start]', {
+        completionType: 'lesson',
+        unitId,
+        lessonKey: typeStr,
+        completionKey: scenarioKey,
+      });
+    }
     const xpEarned = 60;
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -314,11 +370,35 @@ export default function LessonScreen() {
           xp: (userData?.xp ?? 0) + xpEarned,
         }).eq('id', session.user.id);
       }
+
+      if (__DEV__) {
+        const { count } = await supabase
+          .from('scenario_progress')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .eq('completed', true);
+        console.log('[completion write:done]', {
+          completionType: 'lesson',
+          unitId,
+          lessonKey: typeStr,
+          completionKey: scenarioKey,
+          totalCompleted: count ?? undefined,
+        });
+      }
     } else {
       const guestProgress = await AsyncStorage.getItem('guest_progress');
       const progress = guestProgress ? JSON.parse(guestProgress) : {};
       progress[scenarioKey] = true;
       await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+      if (__DEV__) {
+        console.log('[completion write:done]', {
+          completionType: 'lesson',
+          unitId,
+          lessonKey: typeStr,
+          completionKey: scenarioKey,
+          totalCompleted: Object.values(progress).filter(Boolean).length,
+        });
+      }
     }
 
     // Record activity for streak (works for both guests and signed-in users)
@@ -373,7 +453,7 @@ export default function LessonScreen() {
               <Text style={styles.statLabel}>XP</Text>
             </View>
           </View>
-          <Pressable style={styles.doneButton} onPress={() => router.replace('/(tabs)')}>
+          <Pressable style={styles.doneButton} onPress={goHomeAfterCompletion}>
             <Text style={styles.doneButtonText}>Back to Home</Text>
           </Pressable>
         </View>

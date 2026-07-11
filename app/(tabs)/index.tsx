@@ -22,6 +22,7 @@ import Yusuf, { useMood } from '../../components/Yusuf';
 
 // TODO: Re-enable lesson locking and guest restrictions before production release
 const TESTING_UNLOCK_ALL = true;
+let lastHomeScrollY = 0;
 
 const YUSUF_TAP_WHISPERS = [
   'تكلم ولا تخاف',
@@ -48,6 +49,7 @@ const DIALECT_FLAGS: Record<string, string> = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const [userName, setUserName] = useState('Friend');
   const [streakCount, setStreakCount] = useState(0);
   const [scenarioProgress, setScenarioProgress] = useState<Record<string, boolean>>({});
@@ -189,6 +191,14 @@ export default function HomeScreen() {
       };
 
       loadData();
+
+      const restoreTimer = setTimeout(() => {
+        if (lastHomeScrollY > 0) {
+          scrollRef.current?.scrollTo({ y: lastHomeScrollY, animated: false });
+        }
+      }, 100);
+
+      return () => clearTimeout(restoreTimer);
     }, [])
   );
 
@@ -226,7 +236,15 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={100}
+        onScroll={(event) => {
+          lastHomeScrollY = event.nativeEvent.contentOffset.y;
+        }}
+      >
 
         {/* Header */}
         <View style={styles.headerRow}>

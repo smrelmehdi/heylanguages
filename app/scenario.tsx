@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ArrowLeft, ArrowRight, BookOpen, CheckCircle,
   Lightbulb, Mic, StopCircle, Volume2,
@@ -321,6 +322,34 @@ export default function ScenarioScreen() {
       ? Math.round(evaluatedScores.reduce((sum, score) => sum + score, 0) / evaluatedScores.length)
       : 0;
   const progressWidth = `${((currentIndex + 1) / total) * 100}%` as any;
+  const scenarioKey = typeStr?.toLowerCase() || 'cafe';
+  const unitId =
+    ['cafe', 'taxi', 'hotel', 'restaurant', 'supermarket', 'pharmacy', 'barbershop', 'airport'].includes(scenarioKey) ? 'unit-2' :
+    ['morningroutine', 'atgym', 'cookinghome', 'weatherchat', 'doctorvisit', 'atbank', 'fridaygathering', 'neighborvisit'].includes(scenarioKey) ? 'unit-6' :
+    ['lostincity', 'carbreakdown', 'policestation', 'hospitalemergency', 'lostwallet', 'flightproblem', 'askingforhelp'].includes(scenarioKey) ? 'unit-8' :
+    ['friendsnewneighbor', 'friendsfootball', 'friendsgaming', 'friendsweekend', 'friendssocialmedia', 'friendsroadtrip', 'friendsbirthday', 'friendsfarewell'].includes(scenarioKey) ? 'unit-10' :
+    'scenario';
+
+  const goHomeAfterCompletion = () => {
+    const navigationAction = router.canDismiss() || router.canGoBack() ? 'back' : 'replace';
+    if (__DEV__) {
+      console.log('[completion navigation]', {
+        completionType: 'scenario',
+        unitId,
+        scenarioKey,
+        completionKey: scenarioKey,
+        navigationAction,
+      });
+    }
+
+    if (router.canDismiss()) {
+      router.dismissTo('/(tabs)' as any);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recordingStartPromiseRef = useRef<Promise<boolean> | null>(null);
@@ -645,25 +674,36 @@ export default function ScenarioScreen() {
   const saveCompletion = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const userId = session.user.id;
       const xpEarned = 120;
 
-      const { data: xpData } = await supabase
-        .from('users')
-        .select('xp')
-        .eq('id', userId)
-        .maybeSingle();
-      const previousXP = xpData?.xp ?? 0;
-      const oldLevel = getLevelFromXP(previousXP);
-      const newLevel = getLevelFromXP(previousXP + xpEarned);
-      if (oldLevel.name !== newLevel.name) {
-        setLevelUpData({ newLevel: newLevel.name, icon: newLevel.icon, color: newLevel.color });
-        setShowLevelUp(true);
+      if (__DEV__) {
+        console.log('[completion write:start]', {
+          completionType: 'scenario',
+          unitId,
+          scenarioKey,
+          completionKey: scenarioKey,
+        });
       }
 
-      const scenarioKey = typeStr?.toLowerCase() ?? 'cafe';
+      if (!session) {
+        const raw = await AsyncStorage.getItem('guest_progress');
+        const progress = raw ? JSON.parse(raw) : {};
+        progress[scenarioKey] = true;
+        await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+        if (__DEV__) {
+          console.log('[completion write:done]', {
+            completionType: 'scenario',
+            unitId,
+            scenarioKey,
+            completionKey: scenarioKey,
+            totalCompleted: Object.values(progress).filter(Boolean).length,
+          });
+        }
+        await recordActivity();
+        return;
+      }
+
+      const userId = session.user.id;
 
       await supabase.from('conversations').insert({
         user_id: userId,
@@ -702,15 +742,39 @@ export default function ScenarioScreen() {
         });
       }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('xp')
-        .eq('id', userId)
-        .maybeSingle();
+      if (!existing) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('xp')
+          .eq('id', userId)
+          .maybeSingle();
+        const previousXP = userData?.xp ?? 0;
+        const oldLevel = getLevelFromXP(previousXP);
+        const newLevel = getLevelFromXP(previousXP + xpEarned);
+        if (oldLevel.name !== newLevel.name) {
+          setLevelUpData({ newLevel: newLevel.name, icon: newLevel.icon, color: newLevel.color });
+          setShowLevelUp(true);
+        }
 
-      await supabase.from('users').update({
-        xp: (userData?.xp ?? 0) + xpEarned,
-      }).eq('id', userId);
+        await supabase.from('users').update({
+          xp: previousXP + xpEarned,
+        }).eq('id', userId);
+      }
+
+      if (__DEV__) {
+        const { count } = await supabase
+          .from('scenario_progress')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('completed', true);
+        console.log('[completion write:done]', {
+          completionType: 'scenario',
+          unitId,
+          scenarioKey,
+          completionKey: scenarioKey,
+          totalCompleted: count ?? undefined,
+        });
+      }
 
       // Delegate streak tracking to recordActivity()
       await recordActivity();
@@ -816,7 +880,7 @@ export default function ScenarioScreen() {
 
             <Pressable
               style={styles.completionButton}
-              onPress={() => router.replace('/(tabs)')}
+              onPress={goHomeAfterCompletion}
             >
               <Text style={styles.completionButtonText}>Back to Home</Text>
             </Pressable>
