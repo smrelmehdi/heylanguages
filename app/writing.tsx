@@ -9,12 +9,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { speakArabic, stopAudio } from '../utils/tts';
+import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
 import { supabase } from '../utils/supabase';
 import { useDialect } from '../contexts/DialectContext';
 import { recordActivity } from '../utils/streak';
 import { stripTashkeel } from '../utils/arabic';
 import { theme } from '../constants/theme';
+import { ALPHABET_AUDIO } from '../data/alphabet-audio';
 
 const { width } = Dimensions.get('window');
 const CANVAS_W = width - 48;
@@ -285,6 +286,22 @@ const ALL_LETTERS: ArabicLetter[] = [
   ...HAWAW_FAMILY, ...YA_FAMILY,
 ];
 
+const ALPHABET_AUDIO_BY_NAME = new Map(
+  ALPHABET_AUDIO.map(item => [item.displayArabic, item]),
+);
+
+const ALPHABET_AUDIO_BY_INDEX = new Map(
+  ALPHABET_AUDIO.map(item => [item.index, item]),
+);
+
+function getAlphabetAudioForLetter(letter: ArabicLetter) {
+  const index = ALL_LETTERS.findIndex(item => item.id === letter.id) + 1;
+  return {
+    index,
+    item: ALPHABET_AUDIO_BY_INDEX.get(index) ?? ALPHABET_AUDIO_BY_NAME.get(letter.nameAudio),
+  };
+}
+
 // ─── Quiz helpers ─────────────────────────────────────────────────────────────
 
 function shuffle<T>(arr: T[]): T[] {
@@ -453,6 +470,37 @@ export default function WritingScreen() {
   const quizQsRef     = useRef<QuizQuestion[]>([]);
 
   const letter = familyRef.current[letterIdx];
+  const alphabetAudioMatch = getAlphabetAudioForLetter(letter);
+  const alphabetAudio = alphabetAudioMatch.item;
+
+  const playLetterAudio = () => {
+    if (alphabetAudio?.audio) {
+      if (__DEV__) {
+        console.log('[alphabet audio]', {
+          index: alphabetAudio.index,
+          displayArabic: alphabetAudio.displayArabic,
+          audioText: alphabetAudio.audioText,
+          hasLocalAudio: Boolean(alphabetAudio.audio),
+          path: alphabetAudio.audioPath,
+          fallbackUsed: false,
+        });
+      }
+      playLocalAudio(alphabetAudio.audio);
+      return;
+    }
+
+    if (__DEV__) {
+      console.log('[alphabet audio]', {
+        index: alphabetAudioMatch.index,
+        displayArabic: alphabetAudio?.displayArabic ?? letter.nameAudio,
+        audioText: alphabetAudio?.audioText ?? letter.nameAudio,
+        hasLocalAudio: false,
+        path: alphabetAudio?.audioPath,
+        fallbackUsed: true,
+      });
+    }
+    speakArabic(alphabetAudio?.audioText ?? letter.nameAudio);
+  };
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
@@ -486,7 +534,7 @@ export default function WritingScreen() {
   // ── Letter advance → next letter or quiz ──────────────────────────────────
   const advanceLetter = () => {
     stopAudio();
-    speakArabic(letter.nameAudio);
+    playLetterAudio();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const newDL = [...dlRef.current, letter.id];
     dlRef.current = newDL;
@@ -580,7 +628,7 @@ export default function WritingScreen() {
       {/* Name + audio */}
       <View style={styles.nameRow}>
         <Text style={styles.nameTrans}>{letter.name} · /{letter.transliteration}/</Text>
-        <Pressable style={styles.audioCircle} onPress={() => speakArabic(letter.nameAudio)}>
+        <Pressable style={styles.audioCircle} onPress={playLetterAudio}>
           <Ionicons name="volume-high" size={14} color={theme.colors.bgBase} />
         </Pressable>
       </View>
