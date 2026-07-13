@@ -6,6 +6,13 @@ const corsHeaders = {
 
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';
 const MAX_TEXT_LENGTH = 500;
+// Optimized for pronunciation consistency in language-learning audio.
+const DEFAULT_VOICE_SETTINGS = {
+  stability: 0.75,
+  similarity_boost: 0.85,
+  style: 0,
+  use_speaker_boost: true,
+};
 
 type ErrorCode =
   | 'method_not_allowed'
@@ -89,12 +96,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           text,
           model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.35,
-            similarity_boost: 0.85,
-            style: 0.25,
-            use_speaker_boost: true,
-          },
+          voice_settings: DEFAULT_VOICE_SETTINGS,
         }),
       },
     );

@@ -89,6 +89,7 @@ const SCENARIO_CONFIG: Record<string, { exportName: string; folder: string; labe
   taxi: { exportName: 'TAXI_DIALOGUE', folder: 'taxi', label: 'TAXI_DIALOGUE' },
   restaurant: { exportName: 'RESTAURANT_DIALOGUE', folder: 'restaurant', label: 'RESTAURANT_DIALOGUE' },
   supermarket: { exportName: 'SUPERMARKET_DIALOGUE', folder: 'supermarket', label: 'SUPERMARKET_DIALOGUE' },
+  pharmacy: { exportName: 'PHARMACY_DIALOGUE', folder: 'pharmacy', label: 'PHARMACY_DIALOGUE' },
 };
 const SCENARIO_ONLY = SCENARIO ? SCENARIO_CONFIG[SCENARIO] ?? null : null;
 const LINE_ARG = optionValue('--line');
@@ -171,6 +172,13 @@ const ROOT = process.cwd();
 const AUTO_DIR = resolve(ROOT, 'assets/audio/auto');
 const MANIFEST_JSON = resolve(ROOT, 'assets/audio/manifest.json');
 const MANIFEST_TS = resolve(ROOT, 'constants/audio-manifest.ts');
+// Optimized for pronunciation consistency in language-learning audio.
+const DEFAULT_VOICE_SETTINGS = {
+  stability: 0.75,
+  similarity_boost: 0.85,
+  style: 0,
+  use_speaker_boost: true,
+};
 
 type Bucket = 'gulf' | 'egyptian' | 'en';
 interface Target {
@@ -647,7 +655,7 @@ async function synth(target: Target, destPath: string): Promise<boolean> {
         body: JSON.stringify({
           text: target.text,
           model_id: 'eleven_multilingual_v2',
-          voice_settings: target.voiceSettings ?? { stability: 0.35, similarity_boost: 0.85, style: 0.25, use_speaker_boost: true },
+          voice_settings: target.voiceSettings ?? DEFAULT_VOICE_SETTINGS,
         }),
       });
       if (!r.ok) {
