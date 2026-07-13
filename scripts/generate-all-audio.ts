@@ -59,6 +59,10 @@ const flags = new Set(args);
 const DRY_RUN = flags.has('--dry-run');
 const MATCH_ONLY = flags.has('--match-only');
 const FORCE = flags.has('--force');
+const CATALOG_DRY_RUN = flags.has('--catalog-dry-run');
+const VARIANT_TEST = flags.has('--variant-test');
+const SEQUENCE_TEST = flags.has('--sequence-test');
+const SULTAN_ALPHABET_TEST = flags.has('--sultan-alphabet-test');
 
 function optionValue(name: string): string | null {
   const prefix = `${name}=`;
@@ -74,10 +78,17 @@ const BASIC_WORDS_ONLY = LESSON === 'basic-words';
 const GREETINGS_ONLY = LESSON === 'greetings';
 const INTRO_ONLY = LESSON === 'intro';
 const NARROW_LESSON = BASIC_WORDS_ONLY || GREETINGS_ONLY || INTRO_ONLY;
+const SOURCE = optionValue('--source');
+const ALPHABET_SOURCE_ONLY = SOURCE === 'alphabet';
+const UNIT_4_SOURCE_ONLY = SOURCE === 'unit-4';
+const PROVIDER = optionValue('--provider');
+const ALPHABET_MODE = optionValue('--alphabet-mode');
 const SCENARIO = optionValue('--scenario');
 const SCENARIO_CONFIG: Record<string, { exportName: string; folder: string; label: string }> = {
   cafe: { exportName: 'CAFE_DIALOGUE', folder: 'cafe', label: 'CAFE_DIALOGUE' },
   taxi: { exportName: 'TAXI_DIALOGUE', folder: 'taxi', label: 'TAXI_DIALOGUE' },
+  restaurant: { exportName: 'RESTAURANT_DIALOGUE', folder: 'restaurant', label: 'RESTAURANT_DIALOGUE' },
+  supermarket: { exportName: 'SUPERMARKET_DIALOGUE', folder: 'supermarket', label: 'SUPERMARKET_DIALOGUE' },
 };
 const SCENARIO_ONLY = SCENARIO ? SCENARIO_CONFIG[SCENARIO] ?? null : null;
 const LINE_ARG = optionValue('--line');
@@ -95,8 +106,31 @@ if (SCENARIO && !SCENARIO_ONLY) {
   process.exit(1);
 }
 
-if (LESSON && SCENARIO) {
-  console.error('✗ Use either --lesson or --scenario, not both');
+if (SOURCE && !ALPHABET_SOURCE_ONLY && !UNIT_4_SOURCE_ONLY) {
+  console.error(`✗ Unsupported --source value: ${SOURCE}`);
+  console.error('  Supported: alphabet, unit-4');
+  process.exit(1);
+}
+
+if (PROVIDER && PROVIDER !== 'elevenlabs') {
+  console.error(`✗ Unsupported --provider value: ${PROVIDER}`);
+  console.error('  Supported: elevenlabs');
+  process.exit(1);
+}
+
+if (ALPHABET_MODE && ALPHABET_MODE !== 'stable') {
+  console.error(`✗ Unsupported --alphabet-mode value: ${ALPHABET_MODE}`);
+  console.error('  Supported: stable');
+  process.exit(1);
+}
+
+if (ALPHABET_MODE && !ALPHABET_SOURCE_ONLY) {
+  console.error('✗ --alphabet-mode is only supported with --source alphabet');
+  process.exit(1);
+}
+
+if ([LESSON, SCENARIO, SOURCE].filter(Boolean).length > 1) {
+  console.error('✗ Use only one of --lesson, --scenario, or --source');
   process.exit(1);
 }
 
@@ -109,8 +143,23 @@ if (LINE_ARG !== null) {
   }
 }
 
-if (LINE_ARG !== null && !SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY) {
-  console.error(`✗ --line is only supported with --scenario ${Object.keys(SCENARIO_CONFIG).join('|')}, --lesson greetings, or --lesson intro`);
+if (LINE_ARG !== null && !SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY && !ALPHABET_SOURCE_ONLY) {
+  console.error(`✗ --line is only supported with --scenario ${Object.keys(SCENARIO_CONFIG).join('|')}, --lesson greetings, --lesson intro, or --source alphabet`);
+  process.exit(1);
+}
+
+if (VARIANT_TEST && (!ALPHABET_SOURCE_ONLY || LINE_INDEX !== 1)) {
+  console.error('✗ --variant-test is only supported with --source alphabet --line 1');
+  process.exit(1);
+}
+
+if (SEQUENCE_TEST && (!ALPHABET_SOURCE_ONLY || LINE_INDEX !== null)) {
+  console.error('✗ --sequence-test is only supported with --source alphabet');
+  process.exit(1);
+}
+
+if (SULTAN_ALPHABET_TEST && (!ALPHABET_SOURCE_ONLY || LINE_INDEX !== 1)) {
+  console.error('✗ --sultan-alphabet-test is only supported with --source alphabet --line 1');
   process.exit(1);
 }
 
@@ -134,6 +183,7 @@ interface Target {
   itemIndex?: number;  // 1-based lesson item index for narrow lesson logs
   lineIndex?: number;  // 0-based scenario line index for narrow scenario logs
   turnType?: string;   // scenario speaker type for narrow scenario logs
+  voiceSettings?: { stability: number; similarity_boost: number; style: number; use_speaker_boost: boolean };
 }
 
 // Normalization must match utils/tts.ts cache-key rule: trim + lowercase,
@@ -171,7 +221,7 @@ function collectTargets(): Target[] {
     bucket: Bucket,
     source: string,
     manifestKey: 'gulf' | 'egyptian' = bucket === 'egyptian' ? 'egyptian' : 'gulf',
-    options: Pick<Target, 'outputPath' | 'itemIndex' | 'lineIndex' | 'turnType'> = {},
+    options: Pick<Target, 'outputPath' | 'itemIndex' | 'lineIndex' | 'turnType' | 'voiceSettings'> & { allowDuplicate?: boolean } = {},
   ) => {
     if (typeof text !== 'string') return;
     const trimmed = text.trim();
@@ -179,10 +229,97 @@ function collectTargets(): Target[] {
     const voiceId = manifestKey === 'egyptian' ? VOICE_EGYPTIAN : VOICE_GULF;
     // Dedupe by (manifestKey, normalized) so we generate each voice+text once.
     const dedupeKey = manifestKey + '::' + normalize(trimmed);
-    if (seen.has(dedupeKey)) return;
-    seen.add(dedupeKey);
-    out.push({ text: trimmed, bucket, manifestKey, voiceId, source, ...options });
+    if (!options.allowDuplicate) {
+      if (seen.has(dedupeKey)) return;
+      seen.add(dedupeKey);
+    }
+    const { allowDuplicate: _allowDuplicate, ...targetOptions } = options;
+    out.push({ text: trimmed, bucket, manifestKey, voiceId, source, ...targetOptions });
   };
+
+  if (ALPHABET_SOURCE_ONLY && SULTAN_ALPHABET_TEST) {
+    const highStabilitySettings = {
+      stability: 0.8,
+      similarity_boost: 0.85,
+      style: 0,
+      use_speaker_boost: true,
+    };
+    const tests = [
+      { suffix: 'a', text: 'ألف' },
+      { suffix: 'b', text: 'اَلِف' },
+      { suffix: 'c', text: 'أَلِف' },
+      { suffix: 'd', text: 'ألف', voiceSettings: highStabilitySettings },
+      { suffix: 'e', text: 'اَلِف', voiceSettings: highStabilitySettings },
+      { suffix: 'f', text: 'أَلِف', voiceSettings: highStabilitySettings },
+    ];
+    tests.forEach((test, i) => {
+      add(test.text, 'gulf', `audio-catalog:sultan-alphabet-test[${test.suffix}]`, 'gulf', {
+        outputPath: resolve(ROOT, 'assets/audio/alphabet', `test-sultan-alif-${test.suffix}.mp3`),
+        itemIndex: i + 1,
+        voiceSettings: test.voiceSettings,
+        allowDuplicate: true,
+      });
+    });
+    return out;
+  }
+
+  if (ALPHABET_SOURCE_ONLY && VARIANT_TEST) {
+    const variants = ['أَلِفْ', 'أَلِف', 'أَلِفٌ', 'اَلِفْ'];
+    variants.forEach((text, i) => {
+      add(text, 'gulf', `audio-catalog:alphabet-variant-test[${i + 1}]`, 'gulf', {
+        outputPath: resolve(ROOT, 'assets/audio/alphabet', `test-alif-${i + 1}.mp3`),
+        itemIndex: i + 1,
+      });
+    });
+    return out;
+  }
+
+  if (ALPHABET_SOURCE_ONLY && SEQUENCE_TEST) {
+    add('ألف\nباء\nتاء\nثاء\nجيم', 'gulf', 'audio-catalog:alphabet-sequence-test[1-5]', 'gulf', {
+      outputPath: resolve(ROOT, 'assets/audio/alphabet/test-sequence-1-5.mp3'),
+      itemIndex: 1,
+    });
+    return out;
+  }
+
+  if (ALPHABET_SOURCE_ONLY) {
+    const { getAudioTargets } = require('./audio-catalog');
+    const alphabetTargets = getAudioTargets({ sourceKey: 'alphabet' });
+    const stableAlphabetSettings = ALPHABET_MODE === 'stable'
+      ? {
+          stability: 0.8,
+          similarity_boost: 0.85,
+          style: 0,
+          use_speaker_boost: true,
+        }
+      : undefined;
+    if (LINE_INDEX !== null && !alphabetTargets.some((target: any) => target.line === LINE_INDEX)) {
+      console.error(`✗ --line ${LINE_INDEX} is out of range for alphabet (1-${alphabetTargets.length})`);
+      process.exit(1);
+    }
+    alphabetTargets.forEach((target: any) => {
+      if (LINE_INDEX !== null && target.line !== LINE_INDEX) return;
+      add(ALPHABET_MODE === 'stable' ? target.displayArabic : target.audioText, 'gulf', `audio-catalog:alphabet[${target.index}]`, 'gulf', {
+        outputPath: resolve(ROOT, target.audioPath),
+        itemIndex: target.line ?? target.index + 1,
+        voiceSettings: stableAlphabetSettings,
+      });
+    });
+    return out;
+  }
+
+  if (UNIT_4_SOURCE_ONLY) {
+    const { getAudioTargets } = require('./audio-catalog');
+    const unit4Targets = getAudioTargets({ sourceKey: 'unit-4' });
+    unit4Targets.forEach((target: any) => {
+      add(target.audioText, 'gulf', `audio-catalog:${target.sourceKey}[${target.index}]`, 'gulf', {
+        outputPath: resolve(ROOT, target.audioPath),
+        itemIndex: target.line ?? target.index + 1,
+        allowDuplicate: true,
+      });
+    });
+    return out;
+  }
 
   if (SCENARIO_ONLY) {
     const gd = require('../data/gulf-dialogues');
@@ -510,7 +647,7 @@ async function synth(target: Target, destPath: string): Promise<boolean> {
         body: JSON.stringify({
           text: target.text,
           model_id: 'eleven_multilingual_v2',
-          voice_settings: { stability: 0.35, similarity_boost: 0.85, style: 0.25, use_speaker_boost: true },
+          voice_settings: target.voiceSettings ?? { stability: 0.35, similarity_boost: 0.85, style: 0.25, use_speaker_boost: true },
         }),
       });
       if (!r.ok) {
@@ -542,10 +679,52 @@ async function main() {
     DRY_RUN && 'DRY-RUN',
     MATCH_ONLY && 'MATCH-ONLY',
     FORCE && 'FORCE',
+    CATALOG_DRY_RUN && 'CATALOG-DRY-RUN',
+    VARIANT_TEST && 'VARIANT-TEST',
+    SEQUENCE_TEST && 'SEQUENCE-TEST',
+    SULTAN_ALPHABET_TEST && 'SULTAN-ALPHABET-TEST',
     LESSON && `LESSON=${LESSON}`,
     SCENARIO && `SCENARIO=${SCENARIO}`,
+    SOURCE && `SOURCE=${SOURCE}`,
+    PROVIDER && `PROVIDER=${PROVIDER}`,
+    ALPHABET_MODE && `ALPHABET-MODE=${ALPHABET_MODE}`,
     LINE_INDEX !== null && `LINE=${LINE_INDEX}`,
   ].filter(Boolean).join(' ') || '(none)');
+
+  if (CATALOG_DRY_RUN) {
+    const { getAudioCatalog } = require('./audio-catalog');
+    const catalog = getAudioCatalog();
+    const bySourceKey = new Map<string, number>();
+
+    for (const target of catalog) {
+      bySourceKey.set(target.sourceKey, (bySourceKey.get(target.sourceKey) ?? 0) + 1);
+    }
+
+    console.log(`→ catalog targets: ${catalog.length}`);
+    console.log('\nby sourceKey:');
+    [...bySourceKey.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .forEach(([sourceKey, count]) => {
+        console.log(`  ${sourceKey.padEnd(16)} ${count}`);
+      });
+
+    console.log('\nfirst 10 targets:');
+    for (const target of catalog.slice(0, 10)) {
+      console.log(JSON.stringify({
+        id: target.id,
+        dialect: target.dialect,
+        kind: target.kind,
+        sourceKey: target.sourceKey,
+        line: target.line,
+        speaker: target.speaker,
+        audioText: target.audioText,
+        audioPath: target.audioPath,
+      }));
+    }
+
+    console.log('\n(catalog dry-run — no files written, no ElevenLabs calls, no manifest changes)');
+    return;
+  }
 
   const targets = collectTargets();
   console.log(`→ collected ${targets.length} unique (voice × text) targets`);
@@ -558,7 +737,7 @@ async function main() {
   const exactIdx = new Map<string, string>();
   // Secondary index: fuzzy match on (voice × tashkeel-stripped text)
   const fuzzyIdx = new Map<string, string>();
-  const reuseDisabled = NARROW_LESSON || (SCENARIO_ONLY && FORCE);
+  const reuseDisabled = NARROW_LESSON || ALPHABET_SOURCE_ONLY || UNIT_4_SOURCE_ONLY || (SCENARIO_ONLY && FORCE);
   if (!reuseDisabled) {
     for (const e of [...fromWired, ...fromSiblings]) {
       const k1 = e.voiceId + '::' + normalize(e.text);
@@ -568,6 +747,10 @@ async function main() {
     }
   } else if (SCENARIO_ONLY) {
     console.log(`→ ${SCENARIO} scenario mode: existing-file reuse disabled with --force; targets will use audioText`);
+  } else if (ALPHABET_SOURCE_ONLY) {
+    console.log('→ alphabet source mode: existing-file reuse disabled; targets will use catalog audioText');
+  } else if (UNIT_4_SOURCE_ONLY) {
+    console.log('→ unit-4 source mode: existing-file reuse disabled; targets will use catalog audioText');
   } else {
     console.log(`→ ${LESSON} lesson mode: existing-file reuse disabled; targets will use audioText`);
   }
@@ -612,7 +795,10 @@ async function main() {
   if (toGen.length) {
     const breakdown = new Map<string, number>();
     for (const x of toGen) {
-      const label = x.target.source.split(/[:\[]/)[0];
+      const sourceParts = x.target.source.split(/[:\[]/);
+      const label = x.target.source.startsWith('audio-catalog:')
+        ? sourceParts[1] ?? sourceParts[0]
+        : sourceParts[0];
       breakdown.set(label, (breakdown.get(label) ?? 0) + 1);
     }
     console.log('\nto-generate by source:');
@@ -623,10 +809,12 @@ async function main() {
 
   // Sample of what'd be generated
   if (toGen.length && (DRY_RUN || flags.has('--verbose'))) {
-    const sample = NARROW_LESSON || SCENARIO_ONLY ? toGen : toGen.slice(0, 15);
-    console.log(NARROW_LESSON || SCENARIO_ONLY ? '\nwould generate:' : '\nsample (first 15):');
+    const sample = NARROW_LESSON || SCENARIO_ONLY || SOURCE ? toGen : toGen.slice(0, 15);
+    console.log(NARROW_LESSON || SCENARIO_ONLY || SOURCE ? '\nwould generate:' : '\nsample (first 15):');
     for (const x of sample) {
       if (NARROW_LESSON) {
+        console.log(`  ${String(x.target.itemIndex).padStart(2, '0')}. ${x.target.text} → ${relative(ROOT, x.dest)}`);
+      } else if (SOURCE) {
         console.log(`  ${String(x.target.itemIndex).padStart(2, '0')}. ${x.target.text} → ${relative(ROOT, x.dest)}`);
       } else if (SCENARIO_ONLY) {
         console.log(`  ${x.target.itemIndex}. ${x.target.turnType} "${x.target.text}" → ${relative(ROOT, x.dest)}`);
@@ -681,6 +869,19 @@ async function main() {
 
   if (SCENARIO) {
     console.log(`\n--scenario ${SCENARIO}: skipped manifest writing; existing manifests were left untouched`);
+    if (failed.length) {
+      console.log(`\n⚠ ${failed.length} failed:`);
+      for (const f of failed.slice(0, 20)) {
+        console.log(`  [${f.manifestKey}] ${f.text.slice(0, 60)}  (${f.source})`);
+      }
+      if (failed.length > 20) console.log(`  … and ${failed.length - 20} more`);
+    }
+    console.log('\n🎉 done');
+    return;
+  }
+
+  if (SOURCE) {
+    console.log(`\n--source ${SOURCE}: skipped manifest writing; existing manifests were left untouched`);
     if (failed.length) {
       console.log(`\n⚠ ${failed.length} failed:`);
       for (const f of failed.slice(0, 20)) {
