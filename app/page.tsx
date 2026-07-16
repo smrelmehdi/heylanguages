@@ -74,7 +74,7 @@ export default function HomePage() {
               title="HeyYusuf"
               subtitle="Arabic that belongs in real life."
               description="Learn useful Arabic through short lessons, realistic scenarios, local audio, and speaking practice built for daily progress."
-              chips={["Arabic varieties", "Scenario practice", "Pronunciation support", "Offline-friendly packs"]}
+              chips={["Arabic varieties", "Scenario practice", "Pronunciation support", "Premium practice"]}
               href={siteConfig.routes.heyyusuf}
             />
           </div>

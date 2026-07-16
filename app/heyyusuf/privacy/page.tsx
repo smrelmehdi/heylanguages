@@ -53,10 +53,11 @@ export default function PrivacyPage() {
 
       <h2 id="voice">Voice and pronunciation data</h2>
       <p>
-        If you use speaking or pronunciation features, the app may process audio
-        you submit so it can evaluate or support your practice. Voice data is
-        used to provide the requested learning feature and improve reliability
-        of that interaction.
+        If you use speaking or pronunciation features, voice recordings you
+        submit may be transmitted to speech or AI-processing providers so the
+        app can evaluate pronunciation and return feedback. We do not use voice
+        recordings for advertising. Microphone permission is required only when
+        you choose to use voice features.
       </p>
       <p>
         Do not submit sensitive personal information through voice practice.
@@ -76,8 +77,8 @@ export default function PrivacyPage() {
       <h2 id="use">How we use information</h2>
       <p>
         We use information to provide lessons, save progress, enable Premium
-        access, support offline features, respond to support requests, maintain
-        security, fix bugs, and comply with legal obligations.
+        access, respond to support requests, maintain security, fix bugs, and
+        comply with legal obligations.
       </p>
       <p>
         Depending on where you live, our legal bases may include providing the

@@ -75,10 +75,9 @@ export default function TermsPage() {
 
       <h2 id="premium">Premium subscriptions</h2>
       <p>
-        Premium unlocks all available lessons, offline packs, and premium
-        practice where supported. Subscriptions are purchased through Apple App
-        Store or Google Play and are managed by the store account used to buy
-        them.
+        Premium unlocks all currently available lessons and practice activities.
+        Subscriptions are purchased through Apple App Store or Google Play and
+        are managed by the store account used to buy them.
       </p>
       <p>
         Subscriptions may renew automatically unless cancelled through the
@@ -117,8 +116,9 @@ export default function TermsPage() {
       <h2 id="contact">Changes, governing terms, and contact</h2>
       <p>
         We may update these Terms. Continued use after updates means you accept
-        the updated Terms. These Terms apply to the fullest extent permitted by
-        applicable law without inventing a separate jurisdiction statement here.
+        the updated Terms. These Terms are governed and interpreted in
+        accordance with applicable laws. Any mandatory consumer protections
+        available in your place of residence remain unaffected.
       </p>
       <p>
         Contact: <a href={mailtoSupport("HeyYusuf Terms")}>dev@heylanguages.com</a>

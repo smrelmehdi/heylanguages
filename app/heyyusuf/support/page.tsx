@@ -7,7 +7,7 @@ import { mailtoSupport, siteConfig } from "@/lib/site";
 export const metadata = createPageMetadata({
   title: "HeyYusuf Support",
   description:
-    "Get support for HeyYusuf accounts, subscriptions, restore purchases, offline packs, pronunciation, and account deletion.",
+    "Get support for HeyYusuf accounts, subscriptions, restore purchases, pronunciation, and account deletion.",
   path: siteConfig.routes.support,
 });
 
@@ -19,10 +19,6 @@ const topics = [
   {
     title: "Premium and subscriptions",
     body: "Premium is managed through Apple App Store or Google Play. Use Restore Purchases in the app if Premium does not appear after purchase.",
-  },
-  {
-    title: "Offline packs",
-    body: "Downloaded packs may require Premium access and enough device storage. Try reconnecting, reopening the app, and downloading again if a pack fails.",
   },
   {
     title: "Audio or pronunciation",
@@ -77,7 +73,35 @@ export default function SupportPage() {
         <Notice title="Subscription cancellation">
           Subscriptions must be cancelled through Apple App Store or Google Play.
           Deleting your HeyYusuf account does not cancel an active subscription.
+          Menu names may vary slightly by device and store version.
         </Notice>
+      </div>
+
+      <div className="mt-10 grid gap-6 md:grid-cols-2">
+        <div className="rounded-lg border border-line bg-panel/70 p-6">
+          <h2 className="text-xl font-semibold text-cream">
+            Cancel on Google Play
+          </h2>
+          <ol className="mt-4 space-y-3 pl-5 text-sm leading-6 text-muted">
+            <li>Open Google Play.</li>
+            <li>Tap the profile icon.</li>
+            <li>Tap Payments & subscriptions.</li>
+            <li>Tap Subscriptions.</li>
+            <li>Select HeyYusuf.</li>
+            <li>Tap Cancel subscription.</li>
+          </ol>
+        </div>
+
+        <div className="rounded-lg border border-line bg-panel/70 p-6">
+          <h2 className="text-xl font-semibold text-cream">Cancel on Apple</h2>
+          <ol className="mt-4 space-y-3 pl-5 text-sm leading-6 text-muted">
+            <li>Open Settings.</li>
+            <li>Tap the Apple ID name.</li>
+            <li>Tap Subscriptions.</li>
+            <li>Select HeyYusuf.</li>
+            <li>Tap Cancel Subscription.</li>
+          </ol>
+        </div>
       </div>
     </main>
   );

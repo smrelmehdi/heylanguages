@@ -27,8 +27,8 @@ const features = [
     body: "Hear clean local audio and repeat it so the phrase feels usable, not just readable.",
   },
   {
-    title: "Offline-friendly learning",
-    body: "Premium access is designed to support downloadable packs where available in the app.",
+    title: "Premium practice",
+    body: "Premium unlocks all currently available lessons and practice activities.",
   },
 ];
 
@@ -46,7 +46,7 @@ const faqs = [
   {
     question: "Is there free content?",
     answer:
-      "Yes. V1 includes free starter content, including selected lessons and scenarios. Premium unlocks the full available learning path.",
+      "Yes. V1 includes free starter content, including selected lessons and scenarios. Premium unlocks all currently available lessons and practice activities.",
   },
   {
     question: "How do subscriptions work?",
@@ -108,16 +108,12 @@ export default function HeyYusufPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-16">
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="max-w-3xl">
           <Notice title="Free and Premium">
             HeyYusuf is free to download. V1 includes selected free lessons and
-            scenarios. Monthly Premium unlocks all available lessons, offline
-            packs, and premium practice. Subscriptions are store-managed and
+            scenarios. Monthly Premium unlocks all currently available lessons
+            and practice activities. Subscriptions are store-managed and
             auto-renew until cancelled through Apple or Google.
-          </Notice>
-          <Notice title="No rewarded ads in V1">
-            Locked content points to Premium access. Rewarded ads are not part
-            of the V1 product experience.
           </Notice>
         </div>
       </section>
