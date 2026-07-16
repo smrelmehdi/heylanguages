@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #17130f;
+  --color-panel: #241d17;
+  --color-elevated: #30261d;
+  --color-cream: #fff4df;
+  --color-muted: #c9ad8c;
+  --color-amber: #d99a3d;
+  --color-line: rgba(255, 244, 223, 0.14);
+  --color-success: #78c69a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-ink);
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(217, 154, 61, 0.16), transparent 32rem),
+    linear-gradient(180deg, #17130f 0%, #1d1712 45%, #17130f 100%);
+  color: var(--color-cream);
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(217, 154, 61, 0.7);
+  outline-offset: 4px;
+}
+
+::selection {
+  background: rgba(217, 154, 61, 0.35);
+}
+
+.legal-content {
+  color: var(--color-muted);
+}
+
+.legal-content h2 {
+  margin-top: 2.5rem;
+  scroll-margin-top: 7rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-cream);
+}
+
+.legal-content h3 {
+  margin-top: 1.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-cream);
+}
+
+.legal-content p,
+.legal-content li {
+  margin-top: 1rem;
+  line-height: 1.8;
+}
+
+.legal-content ul,
+.legal-content ol {
+  margin-top: 1rem;
+  padding-left: 1.25rem;
+}
+
+.legal-content a {
+  color: var(--color-amber);
+  text-decoration: none;
+}
+
+.legal-content a:hover {
+  color: var(--color-cream);
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
