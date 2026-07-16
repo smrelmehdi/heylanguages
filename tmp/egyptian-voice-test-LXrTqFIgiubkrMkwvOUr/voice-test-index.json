@@ -1,0 +1,201 @@
+{
+  "voiceId": "LXrTqFIgiubkrMkwvOUr",
+  "samples": [
+    {
+      "filename": "01-basic-yes.mp3",
+      "arabic": "أيوه",
+      "english": "Yes",
+      "source": "data/egyptian-words.ts BASIC_WORDS_EG[0]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "02-basic-thanks.mp3",
+      "arabic": "شكراً",
+      "english": "Thank you",
+      "source": "data/egyptian-words.ts BASIC_WORDS_EG[2]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "03-basic-please.mp3",
+      "arabic": "لو سمحت",
+      "english": "Please / Excuse me",
+      "source": "data/egyptian-words.ts BASIC_WORDS_EG[3]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "04-basic-how-much.mp3",
+      "arabic": "بكام؟",
+      "english": "How much?",
+      "source": "data/egyptian-words.ts BASIC_WORDS_EG[19] stress variant",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "05-greeting-how-are-you.mp3",
+      "arabic": "إزيك؟",
+      "english": "How are you?",
+      "source": "data/egyptian-words.ts GREETINGS_WORDS_EG[3]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "06-goodbye.mp3",
+      "arabic": "مع السلامة",
+      "english": "Goodbye",
+      "source": "data/egyptian-words.ts GREETINGS_WORDS_EG[10]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "07-stress-want.mp3",
+      "arabic": "عايز",
+      "english": "I want",
+      "source": "pronunciation stress test from Egyptian content root word",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "08-stress-where.mp3",
+      "arabic": "فين؟",
+      "english": "Where?",
+      "source": "pronunciation stress test from Egyptian dialogue usage",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "09-stress-tired.mp3",
+      "arabic": "أنا تعبان",
+      "english": "I am tired",
+      "source": "pronunciation stress test",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "10-cafe-line.mp3",
+      "arabic": "عايز قهوة تركي لو سمحت",
+      "english": "I want Turkish coffee please",
+      "source": "data/egyptian-dialogues.ts CAFE_DIALOGUE_EG[3]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "11-taxi-airport-stress.mp3",
+      "arabic": "عايز أروح المطار",
+      "english": "I want to go to the airport",
+      "source": "pronunciation stress test adapted from data/egyptian-dialogues.ts TAXI_DIALOGUE_EG[2]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "12-cafe-bill-stress.mp3",
+      "arabic": "الحساب كام؟",
+      "english": "How much is the bill?",
+      "source": "pronunciation stress test adapted from data/egyptian-dialogues.ts CAFE_DIALOGUE_EG[9]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "13-pharmacy-line.mp3",
+      "arabic": "بنادول لو سمحت. بكام العلبة؟",
+      "english": "Panadol please. How much is the box?",
+      "source": "data/egyptian-dialogues.ts PHARMACY_DIALOGUE_EG[2]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "14-barbershop-line.mp3",
+      "arabic": "عايز أحلق شعري",
+      "english": "I want to cut my hair",
+      "source": "data/egyptian-dialogues.ts BARBERSHOP_DIALOGUE_EG[2]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    },
+    {
+      "filename": "15-airport-line.mp3",
+      "arabic": "لو سمحت، كاونتر مصر للطيران فين؟",
+      "english": "Excuse me, where is the EgyptAir counter?",
+      "source": "data/egyptian-dialogues.ts AIRPORT_DIALOGUE_EG[0]",
+      "voiceId": "LXrTqFIgiubkrMkwvOUr",
+      "settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      }
+    }
+  ],
+  "errors": []
+}

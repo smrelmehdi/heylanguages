@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Key, Lock, Mail, Send, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../utils/supabase';
 import { theme } from '../constants/theme';
+import { supabase } from '../utils/supabase';
 
 async function mergeGuestProgress(userId: string) {
   const guestProgress = await AsyncStorage.getItem('guest_progress');
+  const guestXpRaw = await AsyncStorage.getItem('guest_xp_cache');
   if (!guestProgress) return;
 
   const progressMap: Record<string, boolean> = JSON.parse(guestProgress);
@@ -35,10 +36,13 @@ async function mergeGuestProgress(userId: string) {
   }
 
   const completedCount = Object.values(progressMap).filter(Boolean).length;
-  const xpEarned = completedCount * 60;
-  await supabase.from('users').update({ xp: xpEarned }).eq('id', userId);
+  const guestXp = guestXpRaw ? parseInt(guestXpRaw, 10) : NaN;
+  const xpEarned = Number.isFinite(guestXp) ? guestXp : completedCount * 60;
+  const { data: existingUser } = await supabase.from('users').select('xp').eq('id', userId).single();
+  await supabase.from('users').update({ xp: (existingUser?.xp ?? 0) + xpEarned }).eq('id', userId);
 
   await AsyncStorage.removeItem('guest_progress');
+  await AsyncStorage.removeItem('guest_xp_cache');
   await AsyncStorage.removeItem('guest_chat_count');
 }
 

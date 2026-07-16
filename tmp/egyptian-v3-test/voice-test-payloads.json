@@ -1,0 +1,308 @@
+{
+  "voice_id": "LXrTqFIgiubkrMkwvOUr",
+  "model_id": "eleven_v3",
+  "output_format": null,
+  "samples": [
+    {
+      "filename": "01-izzayyak.mp3",
+      "text": "إزيك؟",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "إزيك؟",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "02-izzayak-alt.mp3",
+      "text": "إزايك؟",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "إزايك؟",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "03-izzayyak-aamel-eih.mp3",
+      "text": "إزيك؟ عامل إيه؟",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "إزيك؟ عامل إيه؟",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "04-airport.mp3",
+      "text": "أنا عايز أروح المطار",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "أنا عايز أروح المطار",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "05-bill.mp3",
+      "text": "الحساب كام؟",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "الحساب كام؟",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "06-bathroom.mp3",
+      "text": "فين الحمام؟",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "فين الحمام؟",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "07-thanks.mp3",
+      "text": "شكراً",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "شكراً",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "08-goodbye.mp3",
+      "text": "مع السلامة",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "مع السلامة",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "09-coffee.mp3",
+      "text": "عايز قهوة",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "عايز قهوة",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "10-tired.mp3",
+      "text": "أنا تعبان",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "أنا تعبان",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "11-how-much-this.mp3",
+      "text": "بكام ده؟",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "بكام ده؟",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    },
+    {
+      "filename": "12-please.mp3",
+      "text": "من فضلك",
+      "voice_id": "LXrTqFIgiubkrMkwvOUr",
+      "model_id": "eleven_v3",
+      "voice_settings": {
+        "stability": 0.75,
+        "similarity_boost": 0.85,
+        "style": 0,
+        "use_speaker_boost": true
+      },
+      "output_format": null,
+      "request_url": "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+      "request_body": {
+        "text": "من فضلك",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.75,
+          "similarity_boost": 0.85,
+          "style": 0,
+          "use_speaker_boost": true
+        }
+      },
+      "response_status": 200
+    }
+  ],
+  "errors": []
+}

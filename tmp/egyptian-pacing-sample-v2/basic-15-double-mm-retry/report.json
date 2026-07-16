@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-07-16T09:28:07.219Z",
+  "voiceId": "LXrTqFIgiubkrMkwvOUr",
+  "modelId": "eleven_v3",
+  "voiceSettings": {
+    "stability": 0.75,
+    "similarity_boost": 0.85,
+    "style": 0,
+    "use_speaker_boost": true
+  },
+  "outputDirectory": "tmp/egyptian-pacing-sample-v2/basic-15-double-mm-retry",
+  "generatedCount": 4,
+  "errorCount": 0,
+  "generated": [
+    {
+      "id": "basic-15-mayya-mm-a",
+      "displayArabic": "ماية",
+      "audioText": "ممَيَّة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Pronunciation-only doubled initial m.",
+      "filename": "basic-15-mayya-mm-a.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "basic-15-mayya-mm-b",
+      "displayArabic": "ماية",
+      "audioText": "مِمَيَّة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Doubled initial m with short kasra separator.",
+      "filename": "basic-15-mayya-mm-b.mp3",
+      "bytes": 21359
+    },
+    {
+      "id": "basic-15-mayya-mm-c",
+      "displayArabic": "ماية",
+      "audioText": "مْمَيَّة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Sukun plus doubled initial m.",
+      "filename": "basic-15-mayya-mm-c.mp3",
+      "bytes": 16344
+    },
+    {
+      "id": "basic-15-mayya-mm-d",
+      "displayArabic": "ماية",
+      "audioText": "ممَيَّة، لو سمحت.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Doubled initial m with request context.",
+      "filename": "basic-15-mayya-mm-d.mp3",
+      "bytes": 26793
+    }
+  ],
+  "errors": []
+}

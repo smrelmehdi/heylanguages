@@ -1,31 +1,52 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useState, useEffect } from 'react';
-import { supabase } from '../utils/supabase';
-import { recordActivity } from '../utils/streak';
-import * as Haptics from 'expo-haptics';
-import { ArrowLeft } from 'lucide-react-native';
-import { speakArabic, playLocalAudio, stopAudio } from '../utils/tts';
-import { stripTashkeel } from '../utils/arabic';
+import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
-import {
-  BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS,
-  NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
-  NUMBERS_AGE_WORDS, NUMBERS_PRICES_WORDS, NUMBERS_PHONE_WORDS, NUMBERS_HOURS_WORDS,
-  NUMBERS_MINUTES_WORDS, NUMBERS_DAYS_WORDS, NUMBERS_MONTHS_WORDS, NUMBERS_DATES_WORDS,
-  NUMBERS_ORDERING_WORDS, NUMBERS_TOGETHER_WORDS,
-  GRAMMAR_PRONOUNS_WORDS, GRAMMAR_THIS_THAT_WORDS, GRAMMAR_POSSESSIVES_WORDS,
-  GRAMMAR_PRESENT_VERBS_WORDS, GRAMMAR_PAST_VERBS_WORDS, GRAMMAR_WANT_NEED_WORDS,
-  GRAMMAR_QUESTIONS_WORDS, GRAMMAR_NEGATION_WORDS, GRAMMAR_ADJECTIVES_WORDS,
-  GRAMMAR_SENTENCES_WORDS,
-} from '../constants/words';
 import type { Word } from '../constants/words';
+import {
+    BASIC_WORDS,
+    GRAMMAR_ADJECTIVES_WORDS,
+    GRAMMAR_NEGATION_WORDS,
+    GRAMMAR_PAST_VERBS_WORDS,
+    GRAMMAR_POSSESSIVES_WORDS,
+    GRAMMAR_PRESENT_VERBS_WORDS,
+    GRAMMAR_PRONOUNS_WORDS,
+    GRAMMAR_QUESTIONS_WORDS,
+    GRAMMAR_SENTENCES_WORDS,
+    GRAMMAR_THIS_THAT_WORDS,
+    GRAMMAR_WANT_NEED_WORDS,
+    GREETINGS_WORDS, INTRO_WORDS,
+    NUMBERS_11_20_WORDS,
+    NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS,
+    NUMBERS_AGE_WORDS,
+    NUMBERS_DATES_WORDS,
+    NUMBERS_DAYS_WORDS,
+    NUMBERS_HOURS_WORDS,
+    NUMBERS_MINUTES_WORDS,
+    NUMBERS_MONTHS_WORDS,
+    NUMBERS_ORDERING_WORDS,
+    NUMBERS_PHONE_WORDS,
+    NUMBERS_PRICES_WORDS,
+    NUMBERS_TENS_WORDS,
+    NUMBERS_TOGETHER_WORDS,
+} from '../constants/words';
+import { useDialect } from '../contexts/DialectContext';
+import { stripTashkeel } from '../utils/arabic';
+import { getQuizContentId } from '../utils/access';
+import { feedbackCorrect, feedbackStreak, feedbackWrong } from '../utils/feedback';
+import { getQuizSrsSummary, recordQuizSrsResult, selectQuizItems, type QuizSrsSummary } from '../utils/srs';
+import { recordActivity } from '../utils/streak';
+import { supabase } from '../utils/supabase';
+import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
 
 type QuestionType = 'mc_ar_to_en' | 'mc_en_to_ar' | 'audio';
 
 interface Question {
+  id: string;
   type: QuestionType;
   arabic: string;
   audioText: string;
@@ -40,9 +61,11 @@ const getDisplayArabic = (word: Word) => word.displayArabic ?? word.arabic;
 const getAudioText = (word: Word) => word.audioText ?? word.displayArabic ?? word.arabic;
 const shuffleOptions = (options: string[]) => [...options].sort(() => Math.random() - 0.5);
 
-function generateQuiz(allWords: Word[], count = 15): Question[] {
-  const shuffled = [...allWords].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, Math.min(count, allWords.length));
+function buildWordSrsId(scope: string, word: Word): string {
+  return `${scope}:${getDisplayArabic(word)}:${word.english}`;
+}
+
+function generateQuiz(selected: Word[], allWords: Word[], count = 15, scope = 'quiz'): Question[] {
   const arToEnCutoff = Math.round(count * 8 / 15);
   const enToArCutoff = Math.round(count * 12 / 15);
 
@@ -69,6 +92,7 @@ function generateQuiz(allWords: Word[], count = 15): Question[] {
     }
 
     return {
+      id: buildWordSrsId(scope, word),
       type,
       arabic: displayArabic,
       audioText,
@@ -81,11 +105,12 @@ function generateQuiz(allWords: Word[], count = 15): Question[] {
   });
 }
 
-function buildQuestion(type: QuestionType, word: Word, wrongOptions: string[]): Question {
+function buildQuestion(type: QuestionType, word: Word, wrongOptions: string[], scope: string): Question {
   const displayArabic = getDisplayArabic(word);
   const correctAnswer = type === 'mc_en_to_ar' ? displayArabic : word.english;
 
   return {
+    id: buildWordSrsId(scope, word),
     type,
     arabic: displayArabic,
     audioText: getAudioText(word),
@@ -97,117 +122,48 @@ function buildQuestion(type: QuestionType, word: Word, wrongOptions: string[]): 
   };
 }
 
-function generateUnit1Quiz(): Question[] {
+function generateUnit1Quiz(lessonWords: { basic: Word[]; greetings: Word[]; intro: Word[] }, scopePrefix = 'unit1'): Question[] {
+  const BASIC = lessonWords.basic;
+  const GREETINGS = lessonWords.greetings;
+  const INTRO = lessonWords.intro;
+  if (BASIC.length < 20 || GREETINGS.length < 15 || INTRO.length < 15) return [];
+
   return [
-    buildQuestion('mc_ar_to_en', BASIC_WORDS[0], [
-      BASIC_WORDS[1].english,
-      BASIC_WORDS[4].english,
-      BASIC_WORDS[13].english,
-    ]),
-    buildQuestion('mc_ar_to_en', BASIC_WORDS[1], [
-      BASIC_WORDS[13].english,
-      BASIC_WORDS[14].english,
-      BASIC_WORDS[15].english,
-    ]),
-    buildQuestion('mc_ar_to_en', BASIC_WORDS[12], [
-      BASIC_WORDS[11].english,
-      BASIC_WORDS[10].english,
-      GREETINGS_WORDS[11].english,
-    ]),
-    buildQuestion('mc_ar_to_en', INTRO_WORDS[0], [
-      INTRO_WORDS[2].english,
-      INTRO_WORDS[4].english,
-      INTRO_WORDS[8].english,
-    ]),
-    buildQuestion('mc_ar_to_en', INTRO_WORDS[3], [
-      INTRO_WORDS[5].english,
-      INTRO_WORDS[1].english,
-      INTRO_WORDS[9].english,
-    ]),
-    buildQuestion('mc_ar_to_en', INTRO_WORDS[10], [
-      INTRO_WORDS[11].english,
-      INTRO_WORDS[12].english,
-      INTRO_WORDS[14].english,
-    ]),
-    buildQuestion('mc_en_to_ar', BASIC_WORDS[13], [
-      getDisplayArabic(BASIC_WORDS[1]),
-      getDisplayArabic(BASIC_WORDS[14]),
-      getDisplayArabic(BASIC_WORDS[15]),
-    ]),
-    buildQuestion('mc_en_to_ar', BASIC_WORDS[9], [
-      getDisplayArabic(BASIC_WORDS[10]),
-      getDisplayArabic(BASIC_WORDS[18]),
-      getDisplayArabic(BASIC_WORDS[19]),
-    ]),
-    buildQuestion('mc_en_to_ar', INTRO_WORDS[4], [
-      getDisplayArabic(INTRO_WORDS[2]),
-      getDisplayArabic(INTRO_WORDS[6]),
-      getDisplayArabic(INTRO_WORDS[8]),
-    ]),
-    buildQuestion('mc_en_to_ar', INTRO_WORDS[5], [
-      getDisplayArabic(INTRO_WORDS[3]),
-      getDisplayArabic(INTRO_WORDS[1]),
-      getDisplayArabic(INTRO_WORDS[9]),
-    ]),
-    buildQuestion('mc_en_to_ar', INTRO_WORDS[11], [
-      getDisplayArabic(INTRO_WORDS[10]),
-      getDisplayArabic(INTRO_WORDS[12]),
-      getDisplayArabic(INTRO_WORDS[14]),
-    ]),
-    buildQuestion('audio', BASIC_WORDS[4], [
-      BASIC_WORDS[3].english,
-      BASIC_WORDS[5].english,
-      BASIC_WORDS[15].english,
-    ]),
-    buildQuestion('audio', GREETINGS_WORDS[11], [
-      GREETINGS_WORDS[0].english,
-      GREETINGS_WORDS[7].english,
-      GREETINGS_WORDS[14].english,
-    ]),
-    buildQuestion('audio', INTRO_WORDS[7], [
-      INTRO_WORDS[6].english,
-      INTRO_WORDS[5].english,
-      INTRO_WORDS[3].english,
-    ]),
-    buildQuestion('audio', INTRO_WORDS[14], [
-      BASIC_WORDS[11].english,
-      GREETINGS_WORDS[14].english,
-      INTRO_WORDS[0].english,
-    ]),
+    buildQuestion('mc_ar_to_en', BASIC[0], [BASIC[1].english, BASIC[4].english, BASIC[13].english], scopePrefix),
+    buildQuestion('mc_ar_to_en', BASIC[1], [BASIC[13].english, BASIC[14].english, BASIC[15].english], scopePrefix),
+    buildQuestion('mc_ar_to_en', BASIC[12], [BASIC[11].english, BASIC[10].english, GREETINGS[11].english], scopePrefix),
+    buildQuestion('mc_ar_to_en', INTRO[0], [INTRO[2].english, INTRO[4].english, INTRO[8].english], scopePrefix),
+    buildQuestion('mc_ar_to_en', INTRO[3], [INTRO[5].english, INTRO[1].english, INTRO[9].english], scopePrefix),
+    buildQuestion('mc_ar_to_en', INTRO[10], [INTRO[11].english, INTRO[12].english, INTRO[14].english], scopePrefix),
+    buildQuestion('mc_en_to_ar', BASIC[13], [getDisplayArabic(BASIC[1]), getDisplayArabic(BASIC[14]), getDisplayArabic(BASIC[15])], scopePrefix),
+    buildQuestion('mc_en_to_ar', BASIC[9], [getDisplayArabic(BASIC[10]), getDisplayArabic(BASIC[18]), getDisplayArabic(BASIC[19])], scopePrefix),
+    buildQuestion('mc_en_to_ar', INTRO[4], [getDisplayArabic(INTRO[2]), getDisplayArabic(INTRO[6]), getDisplayArabic(INTRO[8])], scopePrefix),
+    buildQuestion('mc_en_to_ar', INTRO[5], [getDisplayArabic(INTRO[3]), getDisplayArabic(INTRO[1]), getDisplayArabic(INTRO[9])], scopePrefix),
+    buildQuestion('mc_en_to_ar', INTRO[11], [getDisplayArabic(INTRO[10]), getDisplayArabic(INTRO[12]), getDisplayArabic(INTRO[14])], scopePrefix),
+    buildQuestion('audio', BASIC[4], [BASIC[3].english, BASIC[5].english, BASIC[15].english], scopePrefix),
+    buildQuestion('audio', GREETINGS[11], [GREETINGS[0].english, GREETINGS[7].english, GREETINGS[14].english], scopePrefix),
+    buildQuestion('audio', INTRO[7], [INTRO[6].english, INTRO[5].english, INTRO[3].english], scopePrefix),
+    buildQuestion('audio', INTRO[14], [BASIC[11].english, GREETINGS[14].english, INTRO[0].english], scopePrefix),
   ];
 }
 
 export default function QuizScreen() {
   const router = useRouter();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
+  const { dialect, content } = useDialect();
+  const routeContentId = getQuizContentId(unit);
+  const routeLabel = unit ? `Unit ${unit} Quiz` : 'Unit 1 Quiz';
 
-  const [questions] = useState<Question[]>(() => {
-    if (unit === '4') {
-      const allUnit4Words = [
-        ...NUMBERS_1_5_WORDS, ...NUMBERS_6_10_WORDS, ...NUMBERS_11_20_WORDS, ...NUMBERS_TENS_WORDS,
-        ...NUMBERS_AGE_WORDS, ...NUMBERS_PRICES_WORDS, ...NUMBERS_PHONE_WORDS, ...NUMBERS_HOURS_WORDS,
-        ...NUMBERS_MINUTES_WORDS, ...NUMBERS_DAYS_WORDS, ...NUMBERS_MONTHS_WORDS, ...NUMBERS_DATES_WORDS,
-        ...NUMBERS_ORDERING_WORDS, ...NUMBERS_TOGETHER_WORDS,
-      ];
-      return generateQuiz(allUnit4Words);
-    }
-    if (unit === '5') {
-      const allUnit5Words = [
-        ...GRAMMAR_PRONOUNS_WORDS, ...GRAMMAR_THIS_THAT_WORDS, ...GRAMMAR_POSSESSIVES_WORDS,
-        ...GRAMMAR_PRESENT_VERBS_WORDS, ...GRAMMAR_PAST_VERBS_WORDS, ...GRAMMAR_WANT_NEED_WORDS,
-        ...GRAMMAR_QUESTIONS_WORDS, ...GRAMMAR_NEGATION_WORDS, ...GRAMMAR_ADJECTIVES_WORDS,
-        ...GRAMMAR_SENTENCES_WORDS,
-      ];
-      return generateQuiz(allUnit5Words, 18);
-    }
-    return generateUnit1Quiz();
-  });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(true);
+  const [srsSummary, setSrsSummary] = useState<QuizSrsSummary | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [xpEarned, setXpEarned] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
 
   const currentQuestion = questions[currentIndex];
   const arabicPromptLength = currentQuestion ? stripTashkeel(currentQuestion.arabic).length : 0;
@@ -221,12 +177,70 @@ export default function QuizScreen() {
   const progress = currentIndex / questions.length;
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadQuestions = async () => {
+      setIsLoadingQuiz(true);
+
+      if (dialect === 'gulf' && unit === '4') {
+        const allUnit4Words = [
+          ...NUMBERS_1_5_WORDS, ...NUMBERS_6_10_WORDS, ...NUMBERS_11_20_WORDS, ...NUMBERS_TENS_WORDS,
+          ...NUMBERS_AGE_WORDS, ...NUMBERS_PRICES_WORDS, ...NUMBERS_PHONE_WORDS, ...NUMBERS_HOURS_WORDS,
+          ...NUMBERS_MINUTES_WORDS, ...NUMBERS_DAYS_WORDS, ...NUMBERS_MONTHS_WORDS, ...NUMBERS_DATES_WORDS,
+          ...NUMBERS_ORDERING_WORDS, ...NUMBERS_TOGETHER_WORDS,
+        ];
+        const selected = await selectQuizItems(allUnit4Words, word => buildWordSrsId('unit4', word), 15);
+        if (!cancelled) {
+          const builtQuestions = generateQuiz(selected, allUnit4Words, 15, 'unit4');
+          setQuestions(builtQuestions);
+          setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
+        }
+      } else if (dialect === 'gulf' && unit === '5') {
+        const allUnit5Words = [
+          ...GRAMMAR_PRONOUNS_WORDS, ...GRAMMAR_THIS_THAT_WORDS, ...GRAMMAR_POSSESSIVES_WORDS,
+          ...GRAMMAR_PRESENT_VERBS_WORDS, ...GRAMMAR_PAST_VERBS_WORDS, ...GRAMMAR_WANT_NEED_WORDS,
+          ...GRAMMAR_QUESTIONS_WORDS, ...GRAMMAR_NEGATION_WORDS, ...GRAMMAR_ADJECTIVES_WORDS,
+          ...GRAMMAR_SENTENCES_WORDS,
+        ];
+        const selected = await selectQuizItems(allUnit5Words, word => buildWordSrsId('unit5', word), 18);
+        if (!cancelled) {
+          const builtQuestions = generateQuiz(selected, allUnit5Words, 18, 'unit5');
+          setQuestions(builtQuestions);
+          setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
+        }
+      } else {
+        if (!cancelled) {
+          const builtQuestions = generateUnit1Quiz(content.lessons, `${dialect}_unit1`);
+          setQuestions(builtQuestions);
+          setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
+        }
+      }
+
+      if (!cancelled) setIsLoadingQuiz(false);
+    };
+
+    loadQuestions().catch(error => {
+      console.warn('Quiz load error:', error);
+      if (!cancelled) {
+        const builtQuestions = generateUnit1Quiz(content.lessons, `${dialect}_unit1`);
+        setQuestions(builtQuestions);
+        setSrsSummary(null);
+        setIsLoadingQuiz(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [unit, dialect, content]);
+
+  useEffect(() => {
     if (currentQuestion?.type === 'audio') {
       const t = setTimeout(() => {
         if (currentQuestion.audio) {
           playLocalAudio(currentQuestion.audio);
         } else {
-          speakArabic(currentQuestion.audioText);
+          speakArabic(currentQuestion.audioText, content.voiceId);
         }
       }, 400);
       return () => clearTimeout(t);
@@ -258,11 +272,16 @@ export default function QuizScreen() {
           await supabase.from('scenario_progress').insert({
             user_id: session.user.id,
             scenario: scenarioKey,
-            dialect: 'gulf',
+            dialect,
             completed: true,
             best_score: Math.round((correctCount / questions.length) * 100),
             attempts: 1,
           });
+        }
+        // Save XP (always, since quiz can be retaken for practice)
+        if (xpEarned > 0) {
+          const { data: userData } = await supabase.from('users').select('xp').eq('id', session.user.id).single();
+          await supabase.from('users').update({ xp: (userData?.xp ?? 0) + xpEarned }).eq('id', session.user.id);
         }
       } catch (err) {
         console.warn('Quiz save error:', err);
@@ -275,6 +294,7 @@ export default function QuizScreen() {
     if (selectedAnswer) return;
 
     const correct = answer === currentQuestion.correctAnswer;
+    recordQuizSrsResult(currentQuestion.id, correct).catch(console.warn);
 
     setSelectedAnswer(answer);
     setIsCorrect(correct);
@@ -282,9 +302,18 @@ export default function QuizScreen() {
     if (correct) {
       setXpEarned(xp => xp + 10);
       setCorrectCount(c => c + 1);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setCurrentStreak(s => {
+        const next = s + 1;
+        if (next > 0 && next % 3 === 0) {
+          feedbackStreak();
+        } else {
+          feedbackCorrect();
+        }
+        return next;
+      });
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setCurrentStreak(0);
+      feedbackWrong();
     }
   };
 
@@ -304,7 +333,7 @@ export default function QuizScreen() {
     if (currentQuestion.audio) {
       playLocalAudio(currentQuestion.audio);
     } else {
-      speakArabic(currentQuestion.audioText);
+      speakArabic(currentQuestion.audioText, content.voiceId);
     }
   };
 
@@ -317,6 +346,20 @@ export default function QuizScreen() {
     setCorrectCount(0);
   };
 
+  if (isLoadingQuiz || !currentQuestion) {
+    return (
+      <PremiumRouteGate contentId={routeContentId} contentLabel={routeLabel}>
+        <SafeAreaView style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <View style={styles.loadingWrap}>
+            <Text style={styles.loadingTitle}>Building your review…</Text>
+            <Text style={styles.loadingSub}>Weak and overdue words come first.</Text>
+          </View>
+        </SafeAreaView>
+      </PremiumRouteGate>
+    );
+  }
+
   // ─── Completion screen ───
   if (completed) {
     const percentage = Math.round((correctCount / questions.length) * 100);
@@ -326,9 +369,10 @@ export default function QuizScreen() {
       '💪 Keep practicing!';
 
     return (
-      <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.completionContainer}>
+      <PremiumRouteGate contentId={routeContentId} contentLabel={routeLabel}>
+        <SafeAreaView style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <View style={styles.completionContainer}>
           <Text style={styles.gradeText}>{grade}</Text>
           <Text style={styles.scoreText}>{percentage}%</Text>
           <Text style={styles.scoreSub}>{correctCount} / {questions.length} correct</Text>
@@ -354,19 +398,28 @@ export default function QuizScreen() {
             <Text style={styles.doneButtonText}>Back to Home</Text>
           </Pressable>
 
+          {srsSummary && (
+            <View style={styles.srsSummaryCard}>
+              <Text style={styles.srsSummaryTitle}>Review impact</Text>
+              <Text style={styles.srsSummaryText}>{srsSummary.dueCount} due items, {srsSummary.weakCount} weak items, {srsSummary.unseenCount} fresh items.</Text>
+            </View>
+          )}
+
           {percentage < 80 && (
             <Pressable style={styles.retryButton} onPress={handleRetry}>
               <Text style={styles.retryText}>Try Again</Text>
             </Pressable>
           )}
-        </View>
-      </SafeAreaView>
+          </View>
+        </SafeAreaView>
+      </PremiumRouteGate>
     );
   }
 
   // ─── Quiz screen ───
   return (
-    <SafeAreaView style={styles.container}>
+    <PremiumRouteGate contentId={routeContentId} contentLabel={routeLabel}>
+      <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -509,12 +562,16 @@ export default function QuizScreen() {
         </Animated.View>
       )}
 
-    </SafeAreaView>
+      </SafeAreaView>
+    </PremiumRouteGate>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  loadingTitle: { fontSize: 24, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8 },
+  loadingSub: { fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center' },
 
   // Header
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 8 },
@@ -578,6 +635,9 @@ const styles = StyleSheet.create({
   statVal: { fontSize: 24, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
   statLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, textTransform: 'uppercase', marginTop: 2, letterSpacing: 1.5 },
   statDivider: { width: 0.5, backgroundColor: theme.colors.borderDefault },
+  srsSummaryCard: { width: '100%', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 16, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 12 },
+  srsSummaryTitle: { fontSize: 15, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 6 },
+  srsSummaryText: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 18 },
   doneButton: { width: '100%', height: 56, backgroundColor: theme.colors.accentPrimary, borderRadius: theme.radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   doneButtonText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
   retryButton: { width: '100%', height: 48, alignItems: 'center', justifyContent: 'center' },

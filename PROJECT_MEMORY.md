@@ -100,7 +100,8 @@ scripts/
 ---
 
 ## 🎙️ ElevenLabs TTS
-- **Voice:** Sultan (Gulf Arabic male) — ID: `rUaPbzcZIu8df8iNL9WZ`
+- **Voice (Gulf):** Sultan (Gulf Arabic male) — ID: `rUaPbzcZIu8df8iNL9WZ`
+- **Voice (MSA):** Omar (MSA male) — ID: `xvhpbk8otnNHtT3fjCpr`
 - **Model:** `eleven_multilingual_v2`
 - **Plan:** Starter ($5/mo)
 - **Key:** in .env as EXPO_PUBLIC_ELEVENLABS_API_KEY

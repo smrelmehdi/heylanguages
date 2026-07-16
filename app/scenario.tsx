@@ -1,41 +1,43 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  BackHandler,
-  Modal,
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  ArrowLeft, ArrowRight, BookOpen, CheckCircle,
-  Lightbulb, Mic, StopCircle, Volume2,
-} from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system/legacy';
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
+    RecordingPresets,
+    requestRecordingPermissionsAsync,
+    useAudioRecorder,
 } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+    ArrowLeft, ArrowRight, BookOpen, CheckCircle,
+    Lightbulb, Mic, StopCircle, Volume2,
+} from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Animated,
+    BackHandler,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CafeScene from '../components/CafeScene';
-import { playLocalAudio, stopAudio } from '../utils/tts';
-import { evaluatePronunciation } from '../utils/pronunciation';
-import { stripTashkeel } from '../utils/arabic';
-import { supabase } from '../utils/supabase';
-import { getLevelFromXP } from '../constants/levels';
-import { useDialect } from '../contexts/DialectContext';
-import type { DialogueTurn } from '../data/content-registry';
-import { DIALECT_LABELS } from '../data/content-registry';
-import { recordActivity } from '../utils/streak';
+import PremiumRouteGate from '../components/PremiumRouteGate';
+import ScenarioCompletionCelebration from '../components/ScenarioCompletionCelebration';
 import { theme } from '../constants/theme';
+import { useDialect } from '../contexts/DialectContext';
+import { useXP } from '../contexts/XPContext';
+import { DIALECT_LABELS } from '../data/content-registry';
+import { stripTashkeel } from '../utils/arabic';
+import { getScenarioContentId } from '../utils/access';
+import { feedbackLevelUp } from '../utils/feedback';
+import { evaluatePronunciation } from '../utils/pronunciation';
+import { recordActivity } from '../utils/streak';
+import { supabase } from '../utils/supabase';
+import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 type RecordingState = 'idle' | 'recording' | 'playing' | 'feedback';
 type ScenarioEvalStatus = 'passed' | 'close' | 'failed' | 'unavailable';
@@ -43,6 +45,7 @@ type ScenarioEvalResult = {
   status: ScenarioEvalStatus;
   score?: number;
   feedback: string;
+  transcript?: string;
 };
 
 function getPartLabel(index: number, type: string | undefined): string {
@@ -192,6 +195,167 @@ function getSpeakerRoleLabel(type: string | undefined): string {
   }
 }
 
+function getScenarioCompletionCopy(type: string | undefined) {
+  switch (type) {
+    case 'Taxi':
+      return {
+        headline: 'You handled a taxi ride in Arabic.',
+        subtitle: 'Directions, destination, and the ride itself are now part of your active vocabulary.',
+      };
+    case 'Hotel':
+      return {
+        headline: 'You checked into a hotel in Arabic.',
+        subtitle: 'That is practical travel Arabic, not isolated flashcard knowledge.',
+      };
+    case 'Restaurant':
+      return {
+        headline: 'You got through a full restaurant exchange.',
+        subtitle: 'Ordering, clarifying, and paying all stayed inside one real conversation.',
+      };
+    case 'Supermarket':
+      return {
+        headline: 'You navigated a supermarket in Arabic.',
+        subtitle: 'Small everyday shopping language is exactly what builds confidence fast.',
+      };
+    case 'Pharmacy':
+      return {
+        headline: 'You handled a pharmacy visit in Arabic.',
+        subtitle: 'That kind of useful pressure practice is what turns memorized words into usable speech.',
+      };
+    case 'Barbershop':
+      return {
+        headline: 'You made it through a barbershop conversation.',
+        subtitle: 'Specific requests and follow-up answers are getting easier to say out loud.',
+      };
+    case 'Airport':
+      return {
+        headline: 'You completed an airport conversation in Arabic.',
+        subtitle: 'Check-in and travel phrases are now tied to a real situation, not just a list.',
+      };
+    case 'MorningRoutine':
+      return {
+        headline: 'You talked through a morning routine in Arabic.',
+        subtitle: 'That kind of familiar daily language is what makes practice stick between sessions.',
+      };
+    case 'AtGym':
+      return {
+        headline: 'You got through a gym conversation in Arabic.',
+        subtitle: 'Casual real-world dialogue is becoming something you can actually respond to.',
+      };
+    case 'CookingHome':
+      return {
+        headline: 'You carried a cooking conversation in Arabic.',
+        subtitle: 'Home vocabulary lands better when it lives inside actions and decisions.',
+      };
+    case 'WeatherChat':
+      return {
+        headline: 'You kept a weather chat going in Arabic.',
+        subtitle: 'Small talk matters because it is often the doorway into every other conversation.',
+      };
+    case 'DoctorVisit':
+      return {
+        headline: 'You made it through a doctor visit in Arabic.',
+        subtitle: 'High-utility phrases get more valuable the moment you can say them under pressure.',
+      };
+    case 'AtBank':
+      return {
+        headline: 'You handled a bank conversation in Arabic.',
+        subtitle: 'Formal requests and practical questions are now part of your usable toolkit.',
+      };
+    case 'FridayGathering':
+      return {
+        headline: 'You joined a Friday gathering in Arabic.',
+        subtitle: 'Social language is where fluency starts to feel human instead of academic.',
+      };
+    case 'NeighborVisit':
+      return {
+        headline: 'You visited a neighbor in Arabic.',
+        subtitle: 'Warm everyday phrases are what make the dialect feel lived-in and natural.',
+      };
+    case 'LostInCity':
+      return {
+        headline: 'You found your way through the city in Arabic.',
+        subtitle: 'Asking for directions is one of the clearest signs that the language is becoming useful.',
+      };
+    case 'CarBreakdown':
+      return {
+        headline: 'You dealt with a car breakdown in Arabic.',
+        subtitle: 'Stress-test scenarios like this are where real retention gets built.',
+      };
+    case 'PoliceStation':
+      return {
+        headline: 'You reported the situation in Arabic.',
+        subtitle: 'Explaining details under structure is a strong step beyond beginner practice.',
+      };
+    case 'HospitalEmergency':
+      return {
+        headline: 'You handled an emergency conversation in Arabic.',
+        subtitle: 'The more serious the situation, the more valuable this kind of scenario training becomes.',
+      };
+    case 'LostWallet':
+      return {
+        headline: 'You reported a lost wallet in Arabic.',
+        subtitle: 'Useful phrases stick better when they solve an actual problem.',
+      };
+    case 'FlightProblem':
+      return {
+        headline: 'You worked through a flight problem in Arabic.',
+        subtitle: 'Travel disruption language is hard to fake, which makes it powerful practice.',
+      };
+    case 'AskingForHelp':
+      return {
+        headline: 'You asked for help in Arabic.',
+        subtitle: 'That is one of the most important thresholds in real communication.',
+      };
+    case 'FriendsNewNeighbor':
+      return {
+        headline: 'You met a new neighbor in Arabic.',
+        subtitle: 'Friendly, low-pressure dialogue is how speaking starts to feel natural.',
+      };
+    case 'FriendsFootball':
+      return {
+        headline: 'You talked football in Arabic.',
+        subtitle: 'Interest-based conversations are where retention gets much stronger.',
+      };
+    case 'FriendsGaming':
+      return {
+        headline: 'You got through a gaming chat in Arabic.',
+        subtitle: 'Personal topics make repeated practice much easier to come back to.',
+      };
+    case 'FriendsWeekend':
+      return {
+        headline: 'You planned a weekend in Arabic.',
+        subtitle: 'Planning language is a strong sign you are moving from response mode into expression.',
+      };
+    case 'FriendsSocialMedia':
+      return {
+        headline: 'You talked social media in Arabic.',
+        subtitle: 'Modern casual topics help the language feel current and alive.',
+      };
+    case 'FriendsRoadTrip':
+      return {
+        headline: 'You planned a road trip in Arabic.',
+        subtitle: 'Longer playful exchanges are exactly what build conversational stamina.',
+      };
+    case 'FriendsBirthday':
+      return {
+        headline: 'You made it through a birthday conversation in Arabic.',
+        subtitle: 'Celebration language is social glue, and now it is part of your active speech.',
+      };
+    case 'FriendsFarewell':
+      return {
+        headline: 'You said goodbye in Arabic with confidence.',
+        subtitle: 'Emotional conversations are where spoken language starts to feel real.',
+      };
+    case 'Cafe':
+    default:
+      return {
+        headline: 'You ordered at a cafe in Arabic.',
+        subtitle: 'That is real-world speaking practice, not just recognition. Keep stacking situations like this.',
+      };
+  }
+}
+
 function getEvalTitle(status: ScenarioEvalStatus): string {
   switch (status) {
     case 'passed': return 'Nice!';
@@ -207,12 +371,35 @@ function getEvalSubtitle(result: ScenarioEvalResult): string {
 }
 
 const SCENARIO_ACCEPTED_ALTERNATIVES = [
-  { target: 'مشكور', accepts: ['شكرا', 'شكراً', 'تسلم', 'مشكور'] },
-  { target: 'شكراً', accepts: ['شكرا', 'مشكور', 'تسلم'] },
-  { target: 'وعليكم السلام', accepts: ['وعليكم السلام', 'وعليكم', 'السلام'] },
-  { target: 'السلام عليكم', accepts: ['السلام عليكم', 'سلام عليكم', 'السلام'] },
-  { target: 'إي', accepts: ['اي', 'ايوه', 'نعم'] },
-  { target: 'لا', accepts: ['لا'] },
+  // Greetings
+  { target: 'السلام عليكم', accepts: ['السلام عليكم', 'سلام عليكم', 'السلام', 'سلام'] },
+  { target: 'وعليكم السلام', accepts: ['وعليكم السلام', 'وعليكم', 'السلام', 'سلام'] },
+  { target: 'هلا', accepts: ['هلا', 'هلا والله', 'مرحبا', 'اهلا'] },
+  { target: 'هلا والله', accepts: ['هلا والله', 'هلا', 'اهلا', 'مرحبا'] },
+  { target: 'مرحبا', accepts: ['مرحبا', 'هلا', 'اهلا', 'يا هلا'] },
+  // Yes / No
+  { target: 'إي', accepts: ['اي', 'ايوه', 'نعم', 'اه', 'صح', 'زين'] },
+  { target: 'اي', accepts: ['اي', 'ايوه', 'نعم', 'اه', 'إي'] },
+  { target: 'نعم', accepts: ['نعم', 'ايوه', 'اي', 'إي', 'اه'] },
+  { target: 'لا', accepts: ['لا', 'لأ'] },
+  // Thank you variants
+  { target: 'شكراً', accepts: ['شكرا', 'مشكور', 'تسلم', 'يسلمو', 'ماشكور'] },
+  { target: 'شكرا', accepts: ['شكرا', 'شكراً', 'مشكور', 'تسلم', 'يسلمو'] },
+  { target: 'مشكور', accepts: ['مشكور', 'شكرا', 'شكراً', 'تسلم'] },
+  // Please / here you go
+  { target: 'تفضل', accepts: ['تفضل', 'تفضلي', 'تفضلوا', 'فضلا'] },
+  { target: 'لو سمحت', accepts: ['لو سمحت', 'لو سمحتي', 'من فضلك', 'ارجوك'] },
+  // Goodbye
+  { target: 'مع السلامة', accepts: ['مع السلامة', 'مع السلامه', 'يسلمك', 'الله يسلمك', 'باي'] },
+  { target: 'الله يسلمك', accepts: ['الله يسلمك', 'يسلمك', 'مع السلامة', 'سلامات'] },
+  // Good
+  { target: 'زين', accepts: ['زين', 'زيين', 'تمام', 'حلو', 'ماشي', 'اوكيه'] },
+  { target: 'تمام', accepts: ['تمام', 'زين', 'حلو', 'ماشي'] },
+  // Common filler / responses
+  { target: 'ماشي', accepts: ['ماشي', 'تمام', 'اوكيه', 'زين'] },
+  { target: 'إن شاء الله', accepts: ['إن شاء الله', 'ان شاء الله', 'انشالله', 'إنشالله'] },
+  { target: 'الحمد لله', accepts: ['الحمد لله', 'الحمدلله', 'بخير'] },
+  { target: 'آمين', accepts: ['آمين', 'امين'] },
 ];
 
 function normalizeScenarioArabic(value: string): string {
@@ -247,6 +434,7 @@ export default function ScenarioScreen() {
   const router = useRouter();
   const { type: typeParam } = useLocalSearchParams();
   const typeStr = Array.isArray(typeParam) ? typeParam[0] : typeParam;
+  const routeContentId = getScenarioContentId(typeStr);
   const isTaxi = typeStr === 'Taxi';
   const isHotel = typeStr === 'Hotel';
 
@@ -298,6 +486,7 @@ export default function ScenarioScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [showNext, setShowNext] = useState(false);
   const [scenarioEvalResult, setScenarioEvalResult] = useState<ScenarioEvalResult | null>(null);
   const [scenarioScores, setScenarioScores] = useState<Record<number, number>>({});
@@ -305,6 +494,7 @@ export default function ScenarioScreen() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
 
+  const { addXP } = useXP();
   const isComingSoon = DIALOGUE.length === 0;
 
   const currentTurn = isComingSoon ? { type: 'waiter' as const, arabic: '', transliteration: '', english: '' } : DIALOGUE[currentIndex];
@@ -312,6 +502,7 @@ export default function ScenarioScreen() {
   const currentTurnAudioText = currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
   const scenarioEvalTarget = currentTurn.evalTarget ?? currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
   const speakerRoleLabel = getSpeakerRoleLabel(typeStr);
+  const completionCopy = getScenarioCompletionCopy(typeStr);
   const isUserTurn = currentTurn.type === 'user';
   const isWaiterTurn = currentTurn.type === 'waiter';
   const total = DIALOGUE.length;
@@ -323,6 +514,7 @@ export default function ScenarioScreen() {
       : 0;
   const progressWidth = `${((currentIndex + 1) / total) * 100}%` as any;
   const scenarioKey = typeStr?.toLowerCase() || 'cafe';
+  const scenarioProgressStorageKey = `scenario_progress_local:${dialect}:${scenarioKey}`;
   const unitId =
     ['cafe', 'taxi', 'hotel', 'restaurant', 'supermarket', 'pharmacy', 'barbershop', 'airport'].includes(scenarioKey) ? 'unit-2' :
     ['morningroutine', 'atgym', 'cookinghome', 'weatherchat', 'doctorvisit', 'atbank', 'fridaygathering', 'neighborvisit'].includes(scenarioKey) ? 'unit-6' :
@@ -353,6 +545,19 @@ export default function ScenarioScreen() {
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recordingStartPromiseRef = useRef<Promise<boolean> | null>(null);
+  const hasRestoredScenarioProgressRef = useRef(false);
+
+  const clearSavedScenarioProgress = async () => {
+    await AsyncStorage.removeItem(scenarioProgressStorageKey);
+  };
+
+  const leaveScenario = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   const waitForRecordingFile = async (): Promise<{ uri: string; info: FileSystem.FileInfo } | null> => {
     const startedAt = Date.now();
@@ -377,24 +582,103 @@ export default function ScenarioScreen() {
     handleAutoPlay();
   }, [currentIndex]);
 
-  useEffect(() => () => { stopAudio(); }, []);
+  // Restore saved progress for this dialect + scenario.
+  useEffect(() => {
+    let isCancelled = false;
+
+    const restoreScenarioProgress = async () => {
+      hasRestoredScenarioProgressRef.current = false;
+
+      if (isComingSoon || total === 0) {
+        hasRestoredScenarioProgressRef.current = true;
+        return;
+      }
+
+      const raw = await AsyncStorage.getItem(scenarioProgressStorageKey);
+      if (!raw) {
+        hasRestoredScenarioProgressRef.current = true;
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw) as { currentIndex?: number };
+        const savedIndex = typeof parsed.currentIndex === 'number' ? parsed.currentIndex : 0;
+        const boundedIndex = Math.max(0, Math.min(savedIndex, total - 1));
+        if (!isCancelled && boundedIndex > 0) {
+          setCurrentIndex(boundedIndex);
+        }
+      } catch (error) {
+        console.warn('Scenario progress restore error:', error);
+      } finally {
+        hasRestoredScenarioProgressRef.current = true;
+      }
+    };
+
+    restoreScenarioProgress();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [scenarioProgressStorageKey, total, isComingSoon]);
+
+  // Save current turn so the user can resume later.
+  useEffect(() => {
+    if (!hasRestoredScenarioProgressRef.current || isComingSoon || completed) return;
+
+    const persistScenarioProgress = async () => {
+      if (currentIndex <= 0) {
+        await AsyncStorage.removeItem(scenarioProgressStorageKey);
+        return;
+      }
+
+      await AsyncStorage.setItem(
+        scenarioProgressStorageKey,
+        JSON.stringify({
+          currentIndex,
+          savedAt: new Date().toISOString(),
+        })
+      );
+    };
+
+    persistScenarioProgress().catch(error => {
+      console.warn('Scenario progress save error:', error);
+    });
+  }, [completed, currentIndex, isComingSoon, scenarioProgressStorageKey]);
+
+  // Finished scenarios should not restore into the middle again.
+  useEffect(() => {
+    if (!completed) return;
+    clearSavedScenarioProgress().catch(error => {
+      console.warn('Scenario progress clear error:', error);
+    });
+  }, [completed, scenarioProgressStorageKey]);
+
+  useEffect(() => () => {
+    stopAudio();
+    restorePlaybackAudioMode('scenario-unmount').catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!completed) return;
+    feedbackLevelUp().catch(() => {});
+  }, [completed]);
 
   // Android hardware back button confirmation
   useEffect(() => {
     const backAction = () => {
       Alert.alert(
         'Leave Scenario?',
-        'Your conversation progress will be lost.',
+        'Your progress is saved. You can continue this scenario later.',
         [
           { text: 'Keep Going', style: 'cancel' },
-          { text: 'Leave', style: 'destructive', onPress: () => router.canGoBack() ? router.back() : router.replace('/(tabs)') },
+          { text: 'Leave', style: 'destructive', onPress: leaveScenario },
         ]
       );
       return true;
     };
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
-  }, []);
+  }, [router]);
 
   // Pulse animation when recording
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -414,19 +698,29 @@ export default function ScenarioScreen() {
 
   const handleAutoPlay = async () => {
     setIsSpeaking(true);
-    if (currentTurn.audio) {
-      await playLocalAudio(currentTurn.audio);
-    } else {
-      await speakInDialect(currentTurnAudioText);
+    try {
+      if (currentTurn.audio) {
+        await playLocalAudio(currentTurn.audio);
+      } else {
+        await speakInDialect(currentTurnAudioText);
+      }
+    } finally {
+      setIsSpeaking(false);
     }
-    setIsSpeaking(false);
   };
 
   const handleSpeak = async () => {
     if (isSpeaking) return;
     setIsSpeaking(true);
-    await speakInDialect(currentTurnAudioText);
-    setIsSpeaking(false);
+    try {
+      if (currentTurn.audio) {
+        await playLocalAudio(currentTurn.audio);
+      } else {
+        await speakInDialect(currentTurnAudioText);
+      }
+    } finally {
+      setIsSpeaking(false);
+    }
   };
 
   const handleMicPressIn = async () => {
@@ -438,17 +732,23 @@ export default function ScenarioScreen() {
       try {
         const { granted } = await requestRecordingPermissionsAsync();
         if (!granted) {
-          console.warn('Scenario recording permission not granted');
           setRecordingState('idle');
+          setMicPermissionDenied(true);
+          Alert.alert(
+            'Microphone Access Required',
+            'To practice speaking, please enable microphone access for HeyYusuf in your device Settings.',
+            [{ text: 'OK' }]
+          );
           return false;
         }
 
-        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        await prepareRecordingAudioMode('scenario');
         await audioRecorder.prepareToRecordAsync();
         audioRecorder.record();
         return true;
       } catch (err) {
         console.warn('Scenario recording start error:', err);
+        await restorePlaybackAudioMode('scenario-record-start-error');
         setRecordingState('idle');
         return false;
       }
@@ -497,8 +797,9 @@ export default function ScenarioScreen() {
         return;
       }
 
-      await audioRecorder.stop();
-      const recordingFile = await waitForRecordingFile();
+	      await audioRecorder.stop();
+	      await restorePlaybackAudioMode('scenario-stop');
+	      const recordingFile = await waitForRecordingFile();
       uri = recordingFile?.uri ?? audioRecorder.uri ?? null;
 
       if (__DEV__) {
@@ -570,7 +871,7 @@ export default function ScenarioScreen() {
           return;
         }
 
-        const evaluation = await evaluatePronunciation(stableUri, scenarioEvalTarget, dialect, 'scenario');
+        const evaluation = await evaluatePronunciation(stableUri, scenarioEvalTarget, dialect, 'scenario', currentTurn.english);
         const acceptedAlternative = isAcceptedScenarioAlternative(scenarioEvalTarget, evaluation.transcript);
         const adjustedScore =
           acceptedAlternative && (evaluation.score ?? 0) < 60
@@ -628,6 +929,7 @@ export default function ScenarioScreen() {
           status,
           score,
           feedback: adjustedFeedback,
+          transcript: evaluation.transcript,
         });
       } else {
         if (__DEV__) {
@@ -644,9 +946,9 @@ export default function ScenarioScreen() {
           feedback: 'Could not check pronunciation. You can continue.',
         });
       }
-    } catch (err) {
-      console.warn('Recording evaluation error:', err);
-      if (__DEV__) {
+	    } catch (err) {
+	      console.warn('Recording evaluation error:', err);
+	      if (__DEV__) {
         const error = err as any;
         console.warn('[scenario eval:error]', {
           message: error?.message,
@@ -665,6 +967,7 @@ export default function ScenarioScreen() {
         feedback: 'Could not check pronunciation. You can continue.',
       });
     } finally {
+      await restorePlaybackAudioMode('scenario-finally');
       if (stableUri) {
         FileSystem.deleteAsync(stableUri, { idempotent: true }).catch(() => {});
       }
@@ -690,6 +993,11 @@ export default function ScenarioScreen() {
         const progress = raw ? JSON.parse(raw) : {};
         progress[scenarioKey] = true;
         await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+        const levelUp = await addXP(xpEarned);
+        if (levelUp) {
+          setLevelUpData(levelUp);
+          setShowLevelUp(true);
+        }
         if (__DEV__) {
           console.log('[completion write:done]', {
             completionType: 'scenario',
@@ -743,22 +1051,11 @@ export default function ScenarioScreen() {
       }
 
       if (!existing) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('xp')
-          .eq('id', userId)
-          .maybeSingle();
-        const previousXP = userData?.xp ?? 0;
-        const oldLevel = getLevelFromXP(previousXP);
-        const newLevel = getLevelFromXP(previousXP + xpEarned);
-        if (oldLevel.name !== newLevel.name) {
-          setLevelUpData({ newLevel: newLevel.name, icon: newLevel.icon, color: newLevel.color });
+        const levelUp = await addXP(xpEarned);
+        if (levelUp) {
+          setLevelUpData(levelUp);
           setShowLevelUp(true);
         }
-
-        await supabase.from('users').update({
-          xp: previousXP + xpEarned,
-        }).eq('id', userId);
       }
 
       if (__DEV__) {
@@ -794,32 +1091,35 @@ export default function ScenarioScreen() {
 
   if (isComingSoon) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
-          <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
-          <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
-            This scenario is not available for your selected dialect yet. We're working on it!
-          </Text>
-          <Pressable style={styles.completionButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
-            <Text style={styles.completionButtonText}>Go Back</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+      <PremiumRouteGate contentId={routeContentId} contentLabel={getSceneBadge()}>
+        <SafeAreaView style={styles.container}>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
+            <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
+            <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
+              This scenario is not available for your selected dialect yet. We're working on it!
+            </Text>
+            <Pressable style={[styles.gotItButton, { maxWidth: 220, width: '100%' }]} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
+              <Text style={styles.gotItText}>Go Back</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </PremiumRouteGate>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <PremiumRouteGate contentId={routeContentId} contentLabel={getSceneBadge()}>
+      <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => {
           Alert.alert(
             'Leave Scenario?',
-            'Your conversation progress will be lost.',
+            'Your progress is saved. You can continue this scenario later.',
             [
               { text: 'Keep Going', style: 'cancel' },
-              { text: 'Leave', style: 'destructive', onPress: () => router.canGoBack() ? router.back() : router.replace('/(tabs)') },
+              { text: 'Leave', style: 'destructive', onPress: leaveScenario },
             ]
           );
         }} style={styles.backButton}>
@@ -846,61 +1146,25 @@ export default function ScenarioScreen() {
 
       {/* Completion overlay */}
       <Modal visible={completed} transparent animationType="fade">
-        <View style={styles.completionOverlay}>
-          <View style={styles.completionCard}>
-
-            <Text style={styles.completionTitle}>انتهى!</Text>
-            <Text style={styles.completionSubtitle}>{
-              typeStr === 'Taxi'        ? 'Taxi scenario complete' :
-              typeStr === 'Hotel'       ? 'Hotel scenario complete' :
-              typeStr === 'Restaurant'  ? 'Restaurant scenario complete' :
-              typeStr === 'Supermarket' ? 'Supermarket scenario complete' :
-              typeStr === 'Pharmacy'    ? 'Pharmacy scenario complete' :
-              typeStr === 'Barbershop'  ? 'Barbershop scenario complete' :
-              typeStr === 'Airport'     ? 'Airport scenario complete' :
-              'Café scenario complete'
-            }</Text>
-
-            <View style={styles.completionStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userTurnCount}</Text>
-                <Text style={styles.statLabel}>Phrases spoken</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>+120</Text>
-                <Text style={styles.statLabel}>XP earned</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{scenarioScore}%</Text>
-                <Text style={styles.statLabel}>Score</Text>
-              </View>
-            </View>
-
-            <Pressable
-              style={styles.completionButton}
-              onPress={goHomeAfterCompletion}
-            >
-              <Text style={styles.completionButtonText}>Back to Home</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.tryAgainButton}
-              onPress={() => {
-                setCompleted(false);
-                setCurrentIndex(0);
-                setRecordingState('idle');
-                setShowNext(false);
-                setScenarioEvalResult(null);
-                setScenarioScores({});
-              }}
-            >
-              <Text style={styles.tryAgainText}>Try Again</Text>
-            </Pressable>
-
-          </View>
-        </View>
+        <ScenarioCompletionCelebration
+          headline={completionCopy.headline}
+          subtitle={completionCopy.subtitle}
+          phrasesSpoken={userTurnCount}
+          xpEarned={120}
+          score={scenarioScore}
+          onBackHome={() => {
+            clearSavedScenarioProgress().then(goHomeAfterCompletion).catch(goHomeAfterCompletion);
+          }}
+          onTryAgain={() => {
+            clearSavedScenarioProgress().catch(() => {});
+            setCompleted(false);
+            setCurrentIndex(0);
+            setRecordingState('idle');
+            setShowNext(false);
+            setScenarioEvalResult(null);
+            setScenarioScores({});
+          }}
+        />
       </Modal>
 
       {/* Level Up Modal */}
@@ -984,20 +1248,22 @@ export default function ScenarioScreen() {
 
                   <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                     <Pressable
-                      onPressIn={handleMicPressIn}
-                      onPressOut={handleMicPressOut}
+                      onPressIn={micPermissionDenied ? () => Alert.alert('Microphone Access Required', 'To practice speaking, please enable microphone access for HeyYusuf in your device Settings.', [{ text: 'OK' }]) : handleMicPressIn}
+                      onPressOut={micPermissionDenied ? undefined : handleMicPressOut}
                       disabled={recordingState === 'playing'}
                       style={[
                         styles.micButton,
-                        recordingState === 'recording' && { backgroundColor: theme.colors.accentDanger },
-                        recordingState === 'playing'   && { backgroundColor: theme.colors.textTertiary },
-                        recordingState === 'feedback'  && { backgroundColor: theme.colors.accentSuccess },
+                        micPermissionDenied                                    && { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderDefault },
+                        !micPermissionDenied && recordingState === 'recording' && { backgroundColor: theme.colors.accentDanger },
+                        !micPermissionDenied && recordingState === 'playing'   && { backgroundColor: theme.colors.textTertiary },
+                        !micPermissionDenied && recordingState === 'feedback'  && { backgroundColor: theme.colors.accentSuccess },
                       ]}
                     >
-                      {recordingState === 'idle'      && <Mic color={theme.colors.bgBase} size={26} />}
-                      {recordingState === 'recording' && <StopCircle color={theme.colors.textPrimary} size={26} />}
-                      {recordingState === 'playing'   && <ActivityIndicator color={theme.colors.textPrimary} />}
-                      {recordingState === 'feedback'  && <CheckCircle color={theme.colors.textPrimary} size={26} />}
+                      {micPermissionDenied                      && <Mic color={theme.colors.textTertiary} size={26} />}
+                      {!micPermissionDenied && recordingState === 'idle'      && <Mic color={theme.colors.bgBase} size={26} />}
+                      {!micPermissionDenied && recordingState === 'recording' && <StopCircle color={theme.colors.textPrimary} size={26} />}
+                      {!micPermissionDenied && recordingState === 'playing'   && <ActivityIndicator color={theme.colors.textPrimary} />}
+                      {!micPermissionDenied && recordingState === 'feedback'  && <CheckCircle color={theme.colors.textPrimary} size={26} />}
                     </Pressable>
                   </Animated.View>
 
@@ -1018,6 +1284,13 @@ export default function ScenarioScreen() {
                   </Pressable>
                 </View>
 
+                {recordingState === 'playing' && !scenarioEvalResult && (
+                  <View style={styles.evalPanelChecking}>
+                    <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+                    <Text style={styles.evalCheckingText}>Checking pronunciation…</Text>
+                  </View>
+                )}
+
                 {scenarioEvalResult && (
                   <View style={[
                     styles.evalPanel,
@@ -1028,6 +1301,11 @@ export default function ScenarioScreen() {
                     <View>
                       <Text style={styles.evalTitle}>{getEvalTitle(scenarioEvalResult.status)}</Text>
                       <Text style={styles.evalFeedback}>{getEvalSubtitle(scenarioEvalResult)}</Text>
+                      {scenarioEvalResult.transcript ? (
+                        <Text style={styles.evalTranscript} numberOfLines={1}>
+                          {`Heard: "${scenarioEvalResult.transcript}"`}
+                        </Text>
+                      ) : null}
                     </View>
                     {typeof scenarioEvalResult.score === 'number' ? (
                       <Text style={styles.evalScore}>{scenarioEvalResult.score}%</Text>
@@ -1047,7 +1325,8 @@ export default function ScenarioScreen() {
           </>
 
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </PremiumRouteGate>
   );
 }
 
@@ -1222,6 +1501,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  evalPanelChecking: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: theme.radii.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    backgroundColor: theme.colors.bgElevated,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  evalCheckingText: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.body,
+  },
   evalPanel: {
     marginHorizontal: 16,
     marginBottom: 10,
@@ -1258,6 +1554,12 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: theme.fontSize.body,
   },
+  evalTranscript: {
+    color: theme.colors.textTertiary,
+    fontSize: theme.fontSize.caption,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
   evalScore: {
     color: theme.colors.textPrimary,
     fontSize: 18,
@@ -1279,55 +1581,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: theme.fontWeight.medium,
   },
-  // Completion overlay
-  completionOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  completionCard: {
-    backgroundColor: theme.colors.bgSurface,
-    borderRadius: theme.radii.lg,
-    padding: 32,
-    width: '100%',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.borderDefault,
-  },
-  completionTitle: { fontSize: 36, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 4 },
-  completionSubtitle: { fontSize: 16, color: theme.colors.textTertiary, marginBottom: 32 },
-  completionStats: {
-    flexDirection: 'row',
-    marginBottom: 32,
-    backgroundColor: theme.colors.bgElevated,
-    borderRadius: theme.radii.lg,
-    padding: 20,
-    width: '100%',
-    justifyContent: 'space-around',
-  },
-  statItem: { alignItems: 'center' },
-  statValue: { fontSize: 24, fontWeight: theme.fontWeight.medium, color: theme.colors.textAccent },
-  statLabel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1.5 },
-  statDivider: { width: 1, backgroundColor: theme.colors.borderDefault },
-  completionButton: {
-    backgroundColor: theme.colors.accentPrimary,
-    width: '100%',
-    height: 56,
-    borderRadius: theme.radii.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  completionButtonText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
-  tryAgainButton: {
-    width: '100%',
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tryAgainText: { color: theme.colors.textTertiary, fontSize: 15 },
   levelUpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 32 },
   levelUpCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 32, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   levelUpEmoji: { fontSize: 64, marginBottom: 8 },

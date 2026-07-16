@@ -1,0 +1,257 @@
+[
+  {
+    "filename": "01-basic-01-aywa.mp3",
+    "text": "أيوه",
+    "english": "Yes",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 15090
+  },
+  {
+    "filename": "02-basic-03-shukran.mp3",
+    "text": "شكراً",
+    "english": "Thank you",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 15926
+  },
+  {
+    "filename": "03-basic-04-law-samaht.mp3",
+    "text": "لو سمحت",
+    "english": "Please / excuse me",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 18852
+  },
+  {
+    "filename": "04-basic-05-kwayyis.mp3",
+    "text": "كويس. الحمد لله.",
+    "english": "Good",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 31391
+  },
+  {
+    "filename": "05-basic-10-shwayya.mp3",
+    "text": "شُوَيَّة.",
+    "english": "A little",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 16762
+  },
+  {
+    "filename": "06-basic-15-ahwa.mp3",
+    "text": "قهوة.",
+    "english": "Coffee",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 15090
+  },
+  {
+    "filename": "07-greetings-04-izzayyak.mp3",
+    "text": "إزيك؟",
+    "english": "How are you?",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 15926
+  },
+  {
+    "filename": "08-greetings-05-aamil-eih.mp3",
+    "text": "عامل إيه؟",
+    "english": "How are you doing?",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 18852
+  },
+  {
+    "filename": "09-intro-13-repeat.mp3",
+    "text": "ممكن تعيد تاني؟",
+    "english": "Can you repeat?",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 25539
+  },
+  {
+    "filename": "10-cafe-u2-coffee.mp3",
+    "text": "عايز قهوة تركي لو سمحت",
+    "english": "I want Turkish coffee please",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 30973
+  },
+  {
+    "filename": "11-taxi-u2-downtown.mp3",
+    "text": "عايز أروح وسط البلد لو سمحت",
+    "english": "I want to go downtown please",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 37660
+  },
+  {
+    "filename": "12-hotel-w4-room.mp3",
+    "text": "شكراً، الأوضة رقم تلتمية واتناشر، الدور التالت",
+    "english": "Room number three twelve, third floor",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 63573
+  },
+  {
+    "filename": "13-restaurant-u5-water.mp3",
+    "text": "ماية معدنية لو سمحت",
+    "english": "Mineral water please",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 28465
+  },
+  {
+    "filename": "14-supermarket-u6-total.mp3",
+    "text": "أيوه لو سمحت، المجموع بكام؟",
+    "english": "Yes please, how much is the total?",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 38078
+  },
+  {
+    "filename": "15-pharmacy-w3-sunscreen.mp3",
+    "text": "أيوه، فيه نوعين، المستورد بميت جنيه والمصري بخمسين",
+    "english": "Two types, imported and Egyptian",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 70261
+  },
+  {
+    "filename": "16-barbershop-u3-sides.mp3",
+    "text": "قصير من الجنبين وسيبه طويل من فوق",
+    "english": "Short on the sides and leave it long on top",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 46437
+  },
+  {
+    "filename": "17-airport-w6-boarding.mp3",
+    "text": "تمام، عشرين كيلو، البوردينج باس بتاعك، البوابة رقم تمنية",
+    "english": "Boarding pass, gate eight",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_multilingual_v2",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "output_format": "default",
+    "bytes": 75276
+  }
+]

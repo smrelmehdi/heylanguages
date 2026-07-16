@@ -1,21 +1,28 @@
-import { useState, useRef, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Dimensions,
-  PanResponder, ScrollView,
+    Dimensions,
+    PanResponder,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import PremiumRouteGate from '../components/PremiumRouteGate';
 import Svg, { Path } from 'react-native-svg';
-import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
-import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
-import { supabase } from '../utils/supabase';
-import { useDialect } from '../contexts/DialectContext';
-import { recordActivity } from '../utils/streak';
-import { stripTashkeel } from '../utils/arabic';
 import { theme } from '../constants/theme';
+import { useDialect } from '../contexts/DialectContext';
 import { ALPHABET_AUDIO } from '../data/alphabet-audio';
+import { stripTashkeel } from '../utils/arabic';
+import { getWritingContentId } from '../utils/access';
+import { feedbackCorrect, feedbackWrong } from '../utils/feedback';
+import { recordActivity } from '../utils/streak';
+import { supabase } from '../utils/supabase';
+import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
 
 const { width } = Dimensions.get('window');
 const CANVAS_W = width - 48;
@@ -357,6 +364,7 @@ export default function WritingScreen() {
   const { dialect } = useDialect();
 
   const familyStr = Array.isArray(family) ? family[0] : (family ?? 'ba');
+  const routeContentId = getWritingContentId(Array.isArray(family) ? family[0] : family);
 
   const CURRENT_FAMILY: ArabicLetter[] =
     familyStr === 'alif' ? ALIF_FAMILY  :
@@ -468,49 +476,85 @@ export default function WritingScreen() {
   const quizScoreRef  = useRef(0);
   const quizIdxRef    = useRef(0);
   const quizQsRef     = useRef<QuizQuestion[]>([]);
+  const alphabetPlaybackTokenRef = useRef(0);
+  const hasAlphabetPlaybackRef = useRef(false);
 
   const letter = familyRef.current[letterIdx];
-  const alphabetAudioMatch = getAlphabetAudioForLetter(letter);
-  const alphabetAudio = alphabetAudioMatch.item;
 
-  const playLetterAudio = () => {
-    if (alphabetAudio?.audio) {
+  const playLetterAudio = (
+    targetLetter = letter,
+    targetIndex = letterIdx,
+    shouldStopPrevious = true,
+  ) => {
+    const playbackToken = ++alphabetPlaybackTokenRef.current;
+    const match = getAlphabetAudioForLetter(targetLetter);
+    const targetAudio = match.item;
+    const stoppedPrevious = shouldStopPrevious && hasAlphabetPlaybackRef.current;
+    if (shouldStopPrevious) {
+      stopAudio();
+    }
+
+    const isStale = () =>
+      playbackToken !== alphabetPlaybackTokenRef.current ||
+      targetIndex !== liRef.current ||
+      targetLetter.id !== familyRef.current[liRef.current]?.id;
+
+    if (targetAudio?.audio) {
+      const stalePlaybackBlocked = isStale();
       if (__DEV__) {
         console.log('[alphabet audio]', {
-          index: alphabetAudio.index,
-          displayArabic: alphabetAudio.displayArabic,
-          audioText: alphabetAudio.audioText,
-          hasLocalAudio: Boolean(alphabetAudio.audio),
-          path: alphabetAudio.audioPath,
+          index: targetAudio.index,
+          displayArabic: targetAudio.displayArabic,
+          audioText: targetAudio.audioText,
+          hasLocalAudio: Boolean(targetAudio.audio),
+          path: targetAudio.audioPath,
+          source: 'local',
+          stoppedPrevious,
+          stalePlaybackBlocked,
+          reason: stalePlaybackBlocked ? 'stale-letter' : undefined,
           fallbackUsed: false,
         });
       }
-      playLocalAudio(alphabetAudio.audio);
+      if (stalePlaybackBlocked) return;
+      hasAlphabetPlaybackRef.current = true;
+      playLocalAudio(targetAudio.audio);
       return;
     }
 
+    const stalePlaybackBlocked = isStale();
     if (__DEV__) {
       console.log('[alphabet audio]', {
-        index: alphabetAudioMatch.index,
-        displayArabic: alphabetAudio?.displayArabic ?? letter.nameAudio,
-        audioText: alphabetAudio?.audioText ?? letter.nameAudio,
+        index: match.index,
+        displayArabic: targetAudio?.displayArabic ?? targetLetter.nameAudio,
+        audioText: targetAudio?.audioText ?? targetLetter.nameAudio,
         hasLocalAudio: false,
-        path: alphabetAudio?.audioPath,
+        path: targetAudio?.audioPath,
+        source: 'fallback',
+        stoppedPrevious,
+        stalePlaybackBlocked,
+        reason: stalePlaybackBlocked ? 'stale-letter' : undefined,
         fallbackUsed: true,
       });
     }
-    speakArabic(alphabetAudio?.audioText ?? letter.nameAudio);
+    if (stalePlaybackBlocked) return;
+    hasAlphabetPlaybackRef.current = true;
+    speakArabic(targetAudio?.audioText ?? targetLetter.nameAudio);
   };
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
-  useEffect(() => () => { stopAudio(); }, []);
+  useEffect(() => () => {
+    alphabetPlaybackTokenRef.current++;
+    stopAudio();
+    hasAlphabetPlaybackRef.current = false;
+  }, []);
 
   useEffect(() => {
     phaseRef.current = 'learn';
     setPhase('learn');
     setDrawnStrokes([]);
     activeDrawRef.current = [];
+    playLetterAudio(familyRef.current[letterIdx], letterIdx);
   }, [letterIdx]);
 
   // ── PanResponder (practice only) ───────────────────────────────────────────
@@ -533,9 +577,9 @@ export default function WritingScreen() {
 
   // ── Letter advance → next letter or quiz ──────────────────────────────────
   const advanceLetter = () => {
+    alphabetPlaybackTokenRef.current++;
     stopAudio();
-    playLetterAudio();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    feedbackCorrect();
     const newDL = [...dlRef.current, letter.id];
     dlRef.current = newDL;
     setDoneLetters(newDL);
@@ -569,9 +613,9 @@ export default function WritingScreen() {
     if (correct) {
       quizScoreRef.current += 1;
       setQuizScore(quizScoreRef.current);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      feedbackCorrect();
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      feedbackWrong();
     }
     setTimeout(() => {
       const nextQIdx = quizIdxRef.current + 1;
@@ -628,7 +672,7 @@ export default function WritingScreen() {
       {/* Name + audio */}
       <View style={styles.nameRow}>
         <Text style={styles.nameTrans}>{letter.name} · /{letter.transliteration}/</Text>
-        <Pressable style={styles.audioCircle} onPress={playLetterAudio}>
+        <Pressable style={styles.audioCircle} onPress={() => playLetterAudio()}>
           <Ionicons name="volume-high" size={14} color={theme.colors.bgBase} />
         </Pressable>
       </View>
@@ -805,7 +849,8 @@ export default function WritingScreen() {
 
   // ── Main render ───────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
+    <PremiumRouteGate contentId={routeContentId} contentLabel={getFamilyTitle()}>
+      <SafeAreaView style={styles.container}>
 
       {/* Header */}
       <View style={styles.header}>
@@ -866,7 +911,8 @@ export default function WritingScreen() {
       {phase === 'practice' && renderPractice()}
       {phase === 'quiz'     && renderQuiz()}
 
-    </SafeAreaView>
+      </SafeAreaView>
+    </PremiumRouteGate>
   );
 }
 

@@ -107,8 +107,7 @@ export async function recordActivity(): Promise<void> {
         .from('users')
         .update({ longest_streak: newLongest })
         .eq('id', session.user.id)
-        .then(() => {})
-        .catch(() => {});
+        .then(() => {});
     }
   } catch (e) {
     console.warn('recordActivity error:', e);

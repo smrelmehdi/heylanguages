@@ -28,13 +28,14 @@ export function DialectProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setDialect = useCallback(async (newDialect: string) => {
+    if (newDialect === dialect) return;
     setDialectState(newDialect);
     await AsyncStorage.setItem('wizard_dialect', newDialect);
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       await supabase.from('users').update({ dialect: newDialect }).eq('id', session.user.id);
     }
-  }, []);
+  }, [dialect]);
 
   const content = getDialectContent(dialect);
 

@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-07-16T09:19:42.686Z",
+  "voiceId": "LXrTqFIgiubkrMkwvOUr",
+  "modelId": "eleven_v3",
+  "voiceSettings": {
+    "stability": 0.75,
+    "similarity_boost": 0.85,
+    "style": 0,
+    "use_speaker_boost": true
+  },
+  "outputDirectory": "tmp/egyptian-pacing-sample-v2/bad-three-retry",
+  "sampleCount": 9,
+  "generatedCount": 9,
+  "errorCount": 0,
+  "generated": [
+    {
+      "id": "basic-05-kwayyis-a",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[4]",
+      "displayArabic": "كويس",
+      "audioText": "كُوَيِّس.",
+      "evalTarget": "كويس",
+      "english": "Good",
+      "note": "Light tashkeel to guide Egyptian kwayyis pronunciation.",
+      "filename": "basic-05-kwayyis-a.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "basic-05-kwayyis-b",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[4]",
+      "displayArabic": "كويس",
+      "audioText": "كويس، تمام.",
+      "evalTarget": "كويس",
+      "english": "Good",
+      "note": "Adds a natural following word to avoid clipped one-word output.",
+      "filename": "basic-05-kwayyis-b.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "basic-05-kwayyis-c",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[4]",
+      "displayArabic": "كويس",
+      "audioText": "كويس. الحمد لله.",
+      "evalTarget": "كويس",
+      "english": "Good",
+      "note": "Phrase context for pacing; use only if isolated word keeps clipping.",
+      "filename": "basic-05-kwayyis-c.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "basic-10-shwayya-a",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[9]",
+      "displayArabic": "شوية",
+      "audioText": "شُوَيَّة.",
+      "evalTarget": "شوية",
+      "english": "A little",
+      "note": "Light tashkeel to guide shwayya pronunciation.",
+      "filename": "basic-10-shwayya-a.mp3",
+      "bytes": 16344
+    },
+    {
+      "id": "basic-10-shwayya-b",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[9]",
+      "displayArabic": "شوية",
+      "audioText": "شوية، بس.",
+      "evalTarget": "شوية",
+      "english": "A little",
+      "note": "Adds short context to reduce clipped output.",
+      "filename": "basic-10-shwayya-b.mp3",
+      "bytes": 30555
+    },
+    {
+      "id": "basic-10-shwayya-c",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[9]",
+      "displayArabic": "شوية",
+      "audioText": "عايز شوية.",
+      "evalTarget": "شوية",
+      "english": "A little",
+      "note": "Natural phrase context if isolated word is too short.",
+      "filename": "basic-10-shwayya-c.mp3",
+      "bytes": 20106
+    },
+    {
+      "id": "basic-15-mayya-a",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[14]",
+      "displayArabic": "ماية",
+      "audioText": "مَيَّه.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Same clean tashkeel baseline for comparison.",
+      "filename": "basic-15-mayya-a.mp3",
+      "bytes": 15090
+    },
+    {
+      "id": "basic-15-mayya-b",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[14]",
+      "displayArabic": "ماية",
+      "audioText": "مَيَّه، لو سمحت.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Natural request context to slow the target word.",
+      "filename": "basic-15-mayya-b.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "basic-15-mayya-c",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[14]",
+      "displayArabic": "ماية",
+      "audioText": "عايز مَيَّه.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Natural phrase context for pronunciation and pacing.",
+      "filename": "basic-15-mayya-c.mp3",
+      "bytes": 20106
+    }
+  ],
+  "errors": []
+}

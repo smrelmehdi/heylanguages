@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-07-16T09:24:03.087Z",
+  "voiceId": "LXrTqFIgiubkrMkwvOUr",
+  "modelId": "eleven_v3",
+  "voiceSettings": {
+    "stability": 0.75,
+    "similarity_boost": 0.85,
+    "style": 0,
+    "use_speaker_boost": true
+  },
+  "outputDirectory": "tmp/egyptian-pacing-sample-v2/basic-15-mayya-retry",
+  "generatedCount": 5,
+  "errorCount": 0,
+  "generated": [
+    {
+      "id": "basic-15-mayya-d",
+      "displayArabic": "ماية",
+      "audioText": "مَيَّة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Common Egyptian spelling with shadda to guide mayya.",
+      "filename": "basic-15-mayya-d.mp3",
+      "bytes": 16344
+    },
+    {
+      "id": "basic-15-mayya-e",
+      "displayArabic": "ماية",
+      "audioText": "مَيَّة، لو سمحت.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Request context while keeping target word first.",
+      "filename": "basic-15-mayya-e.mp3",
+      "bytes": 17598
+    },
+    {
+      "id": "basic-15-mayya-f",
+      "displayArabic": "ماية",
+      "audioText": "عايز مَيَّة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Natural phrase context.",
+      "filename": "basic-15-mayya-f.mp3",
+      "bytes": 17598
+    },
+    {
+      "id": "basic-15-mayya-g",
+      "displayArabic": "ماية",
+      "audioText": "مَيَّة باردة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Adds a following adjective to avoid clipping.",
+      "filename": "basic-15-mayya-g.mp3",
+      "bytes": 20106
+    },
+    {
+      "id": "basic-15-mayya-h",
+      "displayArabic": "ماية",
+      "audioText": "إزازة مَيَّة.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "note": "Very natural Egyptian phrase with clear target word.",
+      "filename": "basic-15-mayya-h.mp3",
+      "bytes": 26793
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "filename": "05-a-kwayyis-simple.mp3",
+    "text": "كويس.",
+    "english": "Good",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_v3",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "bytes": 13836
+  },
+  {
+    "filename": "05-b-kwayyis-pause.mp3",
+    "text": "كويس، الحمد لله.",
+    "english": "Good, praise God",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_v3",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "bytes": 18852
+  },
+  {
+    "filename": "05-c-ana-kwayyis.mp3",
+    "text": "أنا كويس.",
+    "english": "I am good",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_v3",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "bytes": 11328
+  },
+  {
+    "filename": "05-d-kwayyis-elhamdulillah.mp3",
+    "text": "كويس. الحمد لله.",
+    "english": "Good. Praise God",
+    "voice_id": "LXrTqFIgiubkrMkwvOUr",
+    "model_id": "eleven_v3",
+    "voice_settings": {
+      "stability": 0.75,
+      "similarity_boost": 0.85,
+      "style": 0,
+      "use_speaker_boost": true
+    },
+    "bytes": 17598
+  }
+]

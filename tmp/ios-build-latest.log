@@ -1,0 +1,458 @@
+env: load .env.local .env
+env: export EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_SUPABASE_URL ELEVENLABS_API_KEY OPENAI_API_KEY
+› Planning build
+› Preparing Pods/lottie-ios-LottiePrivacyInfo » ResourceBundle-LottiePrivacyInfo-lottie-ios-Info.plist
+› Preparing Pods/React-cxxreact-React-cxxreact_privacy » ResourceBundle-React-cxxreact_privacy-React-cxxreact-Info.plist
+› Preparing Pods/React-Core-React-Core_privacy » ResourceBundle-React-Core_privacy-React-Core-Info.plist
+› Preparing Pods/RNSVG-RNSVGFilters » ResourceBundle-RNSVGFilters-RNSVG-Info.plist
+› Preparing Pods/RNCAsyncStorage-RNCAsyncStorage_resources » ResourceBundle-RNCAsyncStorage_resources-RNCAsyncStorage-Info.plist
+› Preparing Pods/EXConstants-ExpoConstants_privacy » ResourceBundle-ExpoConstants_privacy-EXConstants-Info.plist
+› Preparing Pods/ExpoFileSystem-ExpoFileSystem_privacy » ResourceBundle-ExpoFileSystem_privacy-ExpoFileSystem-Info.plist
+› Preparing Pods/lottie-react-native-Lottie_React_Native_Privacy » ResourceBundle-Lottie_React_Native_Privacy-lottie-react-native-Info.plist
+› Preparing expo-image Pods/SDWebImage-SDWebImage » ResourceBundle-SDWebImage-SDWebImage-Info.plist
+› Executing react-native Pods/hermes-engine » [CP-User] [Hermes] Replace Hermes for the right configuration, if needed
+› Executing react-native Pods/ReactNativeDependencies » [CP-User] [RNDeps] Replace React Native Dependencies for the right configuration, if needed
+› Preparing expo-constants Pods/EXConstants-EXConstants » ResourceBundle-EXConstants-EXConstants-Info.plist
+› Executing react-native Pods/RCTSwiftUI » Copy generated compatibility header
+› Executing lottie-react-native Pods/lottie-ios » Copy generated compatibility header
+› Executing expo-dev-menu-interface Pods/expo-dev-menu-interface » Copy generated compatibility header
+› Executing react-native Pods/hermes-engine » [CP] Copy XCFrameworks
+› Preparing Pods/expo-dev-menu-EXDevMenu » ResourceBundle-EXDevMenu-expo-dev-menu-Info.plist
+› Preparing Pods/expo-dev-launcher-EXDevLauncher » ResourceBundle-EXDevLauncher-expo-dev-launcher-Info.plist
+› Executing react-native Pods/ReactNativeDependencies » [CP] Copy XCFrameworks
+› Executing react-native Pods/React-Core-prebuilt » [CP-User] [RNDeps] Replace React Native Core for the right configuration, if needed
+› Compiling react-native Pods/RCTSwiftUIWrapper » RCTSwiftUIWrapper-dummy.m
+› Executing react-native Pods/React-Core-prebuilt » [CP] Copy XCFrameworks
+› Compiling react-native Pods/RCTSwiftUIWrapper » RCTSwiftUIContainerViewWrapper.m
+› Packaging react-native Pods/RCTSwiftUIWrapper » libRCTSwiftUIWrapper.a
+› Executing react-native Pods/React-RCTFBReactNativeSpec » [CP-User] [RN]Check FBReactNativeSpec
+› Executing heyyusuf2 Pods/ReactCodegen » [CP-User] Generate Specs
+› Executing @expo/log-box Pods/ExpoLogBox » Copy generated compatibility header
+› Compiling heyyusuf2 Pods/ReactCodegen » ComponentDescriptors.cpp
+› Compiling heyyusuf2 Pods/ReactAppDependencyProvider » RCTAppDependencyProvider.mm
+› Compiling react-native-reanimated Pods/RNReanimated » NativeProxy.mm
+› Compiling heyyusuf2 Pods/ReactCodegen » ComponentDescriptors.cpp
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » react-native-safe-area-context-dummy.m
+› Compiling @react-native-async-storage/async-storage Pods/RNCAsyncStorage » RNCAsyncStorage.mm
+› Compiling react-native-worklets Pods/RNWorklets » RNWorklets-dummy.m
+› Compiling react-native-svg Pods/RNSVG » RNSVG-dummy.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewState.cpp
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewShadowNode.cpp
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewMode.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewManager.m
+
+❌  (node_modules/expo-modules-core/ios/Core/Functions/AsyncFunctionDefinition.swift:143:23)
+
+  141 |       // Checks if this is a view function unregistered in the view registry. The check can be performed from the main thread only.
+  142 |       if retryCount < maxRetryCount,
+> 143 |         let viewTag = arguments.first as? Int,
+      |                       ^ capture of 'arguments' with non-sendable type '[Any]' in a `@Sendable` closure
+  144 |         let uiManager = appContext.reactBridge?.uiManager,
+  145 |         self.dynamicArgumentTypes.first is DynamicViewType,
+  146 |         Thread.isMainThread, // swiftlint:disable:next legacy_objc_type
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Functions/AsyncFunctionDefinition.swift:149:136)
+
+  147 |         uiManager.view(forReactTag: NSNumber(value: viewTag)) == nil {
+  148 |         // Schedule the block on the original queue through UI manager if view is missing in the registry.
+> 149 |         self.dispatchOnQueueUntilViewRegisters(appContext: appContext, arguments: arguments, queue: queue, retryCount: retryCount + 1, block)
+      |                                                                                                                                        ^ capture of 'block' with non-sendable type '-> Void' in a `@Sendable` closure
+  150 |         return
+  151 |       }
+  152 |       // Schedule the block as normal.
+
+
+❌  (node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegate.swift:41:39)
+
+  39 |     return self.handlers.lazy
+  40 |       .compactMap { $0.createRootViewController() }
+> 41 |       .first(where: { _ in true }) ?? UIViewController()
+     |                                       ^ call to main actor-isolated initializer 'init' in a synchronous nonisolated context
+  42 |   }
+  43 | }
+  44 |
+
+
+❌  (node_modules/expo-modules-core/ios/Legacy/NativeModulesProxy/NativeModulesProxyModule.swift:33:9)
+
+  31 |       }
+  32 |       legacyModule.methodQueue().async {
+> 33 |         legacyModule.callExportedMethod(methodName, withArguments: arguments, resolver: promise.resolver, rejecter: promise.legacyRejecter)
+     |         ^ capture of 'legacyModule' with non-sendable type 'EXExportedModule' in a `@Sendable` closure
+  34 |       }
+  35 |     }
+  36 |   }
+
+
+❌  (node_modules/expo-modules-core/ios/Legacy/NativeModulesProxy/NativeModulesProxyModule.swift:33:68)
+
+  31 |       }
+  32 |       legacyModule.methodQueue().async {
+> 33 |         legacyModule.callExportedMethod(methodName, withArguments: arguments, resolver: promise.resolver, rejecter: promise.legacyRejecter)
+     |                                                                    ^ capture of 'arguments' with non-sendable type '[Any]' in a `@Sendable` closure
+  34 |       }
+  35 |     }
+  36 |   }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift:64:9)
+
+  62 |       do {
+  63 |         try self.appendTextToFile(text: entry + "\n")
+> 64 |         completionHandler?(nil)
+     |         ^ capture of 'completionHandler' with non-sendable type 'PersistentFileLogCompletionHandler?' -> ()>') in a `@Sendable` closure
+  65 |       } catch {
+  66 |         completionHandler?(error)
+  67 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift:79:54)
+
+  77 |       do {
+  78 |         let contents = try self.readFileSync()
+> 79 |         let newcontents = contents.filter { entry in filter(entry) }
+     |                                                      ^ capture of 'filter' with non-sendable type 'PersistentFileLogFilter' -> Bool') in a `@Sendable` closure
+  80 |         try self.writeFileSync(newcontents)
+  81 |         completionHandler(nil)
+  82 |       } catch {
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift:81:9)
+
+  79 |         let newcontents = contents.filter { entry in filter(entry) }
+  80 |         try self.writeFileSync(newcontents)
+> 81 |         completionHandler(nil)
+     |         ^ capture of 'completionHandler' with non-sendable type 'PersistentFileLogCompletionHandler' -> ()') in a `@Sendable` closure
+  82 |       } catch {
+  83 |         completionHandler(error)
+  84 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift:79:54)
+
+  77 |       do {
+  78 |         let contents = try self.readFileSync()
+> 79 |         let newcontents = contents.filter { entry in filter(entry) }
+     |                                                      ^ capture of 'filter' with non-sendable type 'PersistentFileLogFilter' -> Bool') in an isolated closure
+  80 |         try self.writeFileSync(newcontents)
+  81 |         completionHandler(nil)
+  82 |       } catch {
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Logging/PersistentFileLog.swift:95:9)
+
+  93 |       do {
+  94 |         try self.deleteFileSync()
+> 95 |         completionHandler(nil)
+     |         ^ capture of 'completionHandler' with non-sendable type 'PersistentFileLogCompletionHandler' -> ()') in a `@Sendable` closure
+  96 |       } catch {
+  97 |         completionHandler(error)
+  98 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift:45:89)
+
+  43 |    A hosting view that renders a SwiftUI view inside the UIKit view hierarchy.
+  44 |    */
+> 45 |   public final class HostingView<Props: ViewProps, ContentView: View<Props>>: ExpoView, @MainActor AnyExpoSwiftUIHostingView {
+     |                                                                                         ^ unknown attribute 'MainActor'
+  46 |     /**
+  47 |      Props object that stores all the props for this particular view.
+  48 |      It's an environment object that is observed by the content view.
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift:113:26)
+
+  111 |      Updates the environment object with props, based on the given dictionary with raw props.
+  112 |      */
+> 113 |     public override func updateProps(_ rawProps: [String: Any]) {
+      |                          ^ main actor-isolated instance method 'updateProps' cannot be used to satisfy nonisolated protocol requirement
+  114 |       guard let appContext else {
+  115 |         log.error("AppContext is not available, view props cannot be updated for \(ContentView.self)")
+  116 |         return
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift:135:17)
+
+  133 |      Returns inner SwiftUI view.
+  134 |      */
+> 135 |     public func getContentView() -> any ExpoSwiftUI.View {
+      |                 ^ main actor-isolated instance method 'getContentView' cannot be used to satisfy nonisolated protocol requirement
+  136 |       return contentView
+  137 |     }
+  138 |
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift:142:17)
+
+  140 |      Returns the view's props
+  141 |      */
+> 142 |     public func getProps() -> ExpoSwiftUI.ViewProps {
+      |                 ^ main actor-isolated instance method 'getProps' cannot be used to satisfy nonisolated protocol requirement
+  143 |       return props
+  144 |     }
+  145 |
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIViewFrameObserver.swift:29:38)
+
+  27 |         // Update layout metrics of the `Child` view. The `origin` needs to be frame's origin,
+  28 |         // as `bounds` refers to coordinates relative to view's own space (instead of the parent's space).
+> 29 |         callback(CGRect(origin: view.frame.origin, size: newValue.size))
+     |                                      ^ main actor-isolated property 'frame' can not be referenced from a Sendable closure
+  30 |       }
+  31 |     }
+  32 |   }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:196:43)
+
+  194 | // MARK: - ViewWrapper
+  195 |
+> 196 | extension ExpoSwiftUI.SwiftUIVirtualView: @MainActor ExpoSwiftUI.ViewWrapper {
+      |                                           ^ unknown attribute 'MainActor'
+  197 |   func getWrappedView() -> Any {
+  198 |     if let wrapper = contentView as? ExpoSwiftUI.ViewWrapper {
+  199 |       return wrapper.getWrappedView()
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:197:8)
+
+  195 |
+  196 | extension ExpoSwiftUI.SwiftUIVirtualView: @MainActor ExpoSwiftUI.ViewWrapper {
+> 197 |   func getWrappedView() -> Any {
+      |        ^ main actor-isolated instance method 'getWrappedView' cannot be used to satisfy nonisolated protocol requirement
+  198 |     if let wrapper = contentView as? ExpoSwiftUI.ViewWrapper {
+  199 |       return wrapper.getWrappedView()
+  200 |     }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:84:17)
+
+  82 |      */
+  83 |     override func updateProps(_ rawProps: [String: Any]) {
+> 84 |       guard let appContext else {
+     |                 ^ main actor-isolated property 'appContext' can not be referenced from a nonisolated context
+  85 |         log.error("AppContext is not available, view props cannot be updated for \(self)")
+  86 |         return
+  87 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:89:13)
+
+  87 |       }
+  88 |       do {
+> 89 |         try props.updateRawProps(rawProps, appContext: appContext)
+     |             ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  90 |       } catch let error {
+  91 |         log.error("Updating props for \(self) has failed: \(error.localizedDescription)")
+  92 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:130:22)
+
+  128 |      */
+  129 |     override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+> 130 |       var children = props.children ?? []
+      |                      ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  131 |       let child: any AnyChild
+  132 |       if let view = childComponentView as AnyObject as? (any ExpoSwiftUI.View) {
+  133 |         child = view
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:139:7)
+
+  137 |       children.insert(child, at: index)
+  138 |
+> 139 |       props.children = children
+      |       ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  140 |       props.objectWillChange.send()
+  141 |     }
+  142 |
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:140:7)
+
+  138 |
+  139 |       props.children = children
+> 140 |       props.objectWillChange.send()
+      |       ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  141 |     }
+  142 |
+  143 |     /**
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:148:26)
+
+  146 |     override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
+  147 |       // Make sure the view has no superview, React Native asserts against this.
+> 148 |       childComponentView.removeFromSuperview()
+      |                          ^ call to main actor-isolated instance method 'removeFromSuperview' in a synchronous nonisolated context
+  149 |
+  150 |       let childViewId: ObjectIdentifier
+  151 |       if let child = childComponentView as AnyObject as? (any AnyChild) {
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:152:29)
+
+  150 |       let childViewId: ObjectIdentifier
+  151 |       if let child = childComponentView as AnyObject as? (any AnyChild) {
+> 152 |         childViewId = child.id
+      |                             ^ main actor-isolated property 'id' can not be referenced from a nonisolated context
+  153 |       } else {
+  154 |         childViewId = ObjectIdentifier(childComponentView)
+  155 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:157:25)
+
+  155 |       }
+  156 |
+> 157 |       if let children = props.children {
+      |                         ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  158 |         props.children = children.filter({ $0.id != childViewId })
+  159 |         #if DEBUG
+  160 |         assert(props.children?.count == children.count - 1, "Failed to remove child view")
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:158:9)
+
+  156 |
+  157 |       if let children = props.children {
+> 158 |         props.children = children.filter({ $0.id != childViewId })
+      |         ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  159 |         #if DEBUG
+  160 |         assert(props.children?.count == children.count - 1, "Failed to remove child view")
+  161 |         #endif
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:158:47)
+
+  156 |
+  157 |       if let children = props.children {
+> 158 |         props.children = children.filter({ $0.id != childViewId })
+      |                                               ^ main actor-isolated property 'id' can not be referenced from a nonisolated context
+  159 |         #if DEBUG
+  160 |         assert(props.children?.count == children.count - 1, "Failed to remove child view")
+  161 |         #endif
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:160:16)
+
+  158 |         props.children = children.filter({ $0.id != childViewId })
+  159 |         #if DEBUG
+> 160 |         assert(props.children?.count == children.count - 1, "Failed to remove child view")
+      |                ^ main actor-isolated property 'props' can not be referenced from a nonisolated autoclosure
+  161 |         #endif
+  162 |         props.objectWillChange.send()
+  163 |       }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIVirtualView.swift:162:9)
+
+  160 |         assert(props.children?.count == children.count - 1, "Failed to remove child view")
+  161 |         #endif
+> 162 |         props.objectWillChange.send()
+      |         ^ main actor-isolated property 'props' can not be referenced from a nonisolated context
+  163 |       }
+  164 |     }
+  165 |
+
+
+❌  (node_modules/expo-modules-core/ios/DevTools/URLAuthenticationChallengeForwardSender.swift:7:7)
+
+   5 |  */
+   6 | internal final class URLAuthenticationChallengeForwardSender: NSObject, URLAuthenticationChallengeSender {
+>  7 |   let completionHandler: (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+     |       ^ stored property 'completionHandler' of 'Sendable'-conforming class 'URLAuthenticationChallengeForwardSender' has non-sendable type '-> Void'
+   8 |
+   9 |   init(completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+  10 |     self.completionHandler = completionHandler
+
+
+❌  (node_modules/expo-modules-core/ios/DevTools/URLSessionSessionDelegateProxy.swift:8:15)
+
+   6 | public final class URLSessionSessionDelegateProxy: NSObject, URLSessionDataDelegate {
+   7 |   private let dispatchQueue: DispatchQueue
+>  8 |   private var delegateMap: [AnyHashable: URLSessionDataDelegate] = [:]
+     |               ^ stored property 'delegateMap' of 'Sendable'-conforming class 'URLSessionSessionDelegateProxy' is mutable
+   9 |
+  10 |   public init(dispatchQueue: DispatchQueue) {
+  11 |     self.dispatchQueue = dispatchQueue
+
+
+❌  (node_modules/expo-modules-core/ios/DevTools/URLSessionSessionDelegateProxy.swift:65:28)
+
+  63 |         dataTask: dataTask,
+  64 |         didReceive: didReceive,
+> 65 |         completionHandler: completionHandler)
+     |                            ^ passing non-sendable parameter 'completionHandler' to function expecting a @Sendable closure
+  66 |     }
+  67 |   }
+  68 |
+
+
+❌  (node_modules/expo-modules-core/ios/DevTools/URLSessionSessionDelegateProxy.swift:82:28)
+
+  80 |         willPerformHTTPRedirection: willPerformHTTPRedirection,
+  81 |         newRequest: newRequest,
+> 82 |         completionHandler: completionHandler)
+     |                            ^ passing non-sendable parameter 'completionHandler' to function expecting a @Sendable closure
+  83 |     }
+  84 |   }
+  85 |
+
+
+❌  (node_modules/expo-modules-core/ios/DevTools/URLSessionSessionDelegateProxy.swift:98:28)
+
+   96 |         task: task,
+   97 |         didReceive: challenge,
+>  98 |         completionHandler: completionHandler)
+      |                            ^ passing non-sendable parameter 'completionHandler' to function expecting a @Sendable closure
+   99 |     } else {
+  100 |       completionHandler(.performDefaultHandling, nil)
+  101 |     }
+
+
+❌  (node_modules/expo-modules-core/ios/Core/Views/ViewDefinition.swift:121:19)
+
+  119 | }
+  120 |
+> 121 | extension UIView: @MainActor AnyArgument {
+      |                   ^ unknown attribute 'MainActor'
+  122 |   public static func getDynamicType() -> AnyDynamicType {
+  123 |     return DynamicViewType(innerType: Self.self)
+  124 |   }
+
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewLocalData.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewEdges.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewEdgeMode.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaViewComponentView.mm
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaView.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaUtils.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaShadowView.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaProviderManager.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaProviderComponentView.mm
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaProvider.m
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCSafeAreaContext.mm
+› Compiling react-native-safe-area-context Pods/react-native-safe-area-context » RNCOnInsetsChangeEvent.m
+› Compiling heyyusuf2 Pods/ReactAppDependencyProvider » ReactAppDependencyProvider-dummy.m
+› Compiling react-native-worklets Pods/RNWorklets » WorkletsModule.mm
+› Compiling react-native-svg Pods/RNSVG » RNSVGUse.mm
+› Compiling react-native-svg Pods/RNSVG » RNSVGTextPath.mm
+› Compiling react-native-svg Pods/RNSVG » RNSVGText.mm
+› Compiling react-native-svg Pods/RNSVG » RNSVGTSpan.mm
+› Compiling heyyusuf2 Pods/ReactCodegen » safeareacontext-generated.mm
+› Compiling heyyusuf2 Pods/ReactCodegen » rnworklets-generated.mm
+› Compiling heyyusuf2 Pods/ReactCodegen » rnsvg-generated.mm
+› Compiling heyyusuf2 Pods/ReactCodegen » rnscreens-generated.mm
+⚠️  Script has ambiguous dependencies causing it to run on every build.
+   To fix, go to: Xcode » HeyYusuf/HeyYusuf » Build Phases » '[Expo Dev Launcher] Strip Local Network Keys for Release'
+   Either: Uncheck "Based on dependency analysis", or select output files to trigger the script
+
+⚠️  Pods/SDWebImage-SDWebImage: iOS@9.0 deployment version mismatch, expected >= 2.0 <= 18.1.99
+
+› 35 error(s), and 2 warning(s)
+
+CommandError: Failed to build iOS project. "xcodebuild" exited with error code 65.

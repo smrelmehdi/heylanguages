@@ -2,12 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
-  setAudioModeAsync,
   useAudioRecorder,
 } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Mic, Plus, Send, Volume2 } from 'lucide-react-native';
+import { ArrowLeft, Plus, Send, Volume2 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -24,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DIALECT_LABELS } from '../data/content-registry';
 import { useDialect } from '../contexts/DialectContext';
-import { playLocalAudio, stopAudio } from '../utils/tts';
+import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 import { supabase } from '../utils/supabase';
 import { buildMemoryPrompt, fetchMemory, saveMemory, type UserMemory } from '../utils/memory';
 import SignUpPrompt from '../components/SignUpPrompt';
@@ -33,6 +32,7 @@ import { theme } from '../constants/theme';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const GUEST_MSG_LIMIT = 3;
+const CHAT_VOICE_INPUT_ENABLED = false;
 
 const SCENARIO_CONFIG: Record<string, {
   label: string; emoji: string; npcRole: string; dbKey: string;
@@ -217,12 +217,17 @@ Rules:
   };
 
   // ── Initialization ─────────────────────────────────────────────────────────
-  useEffect(() => { return () => { stopAudio(); }; }, []);
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      restorePlaybackAudioMode('chat-unmount').catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
       await requestRecordingPermissionsAsync();
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await restorePlaybackAudioMode('chat-init');
 
       // Load user data
       const name = (await AsyncStorage.getItem('wizard_name')) ?? '';
@@ -391,7 +396,7 @@ Rules:
         supabase.from('messages').insert([
           { conversation_id: conversationId, role: 'user',      arabic_text: name },
           { conversation_id: conversationId, role: 'assistant', arabic_text: HARDCODED_MSG_GIBBERISH.arabic, transliteration: HARDCODED_MSG_GIBBERISH.transliteration, translation: HARDCODED_MSG_GIBBERISH.english },
-        ]).then(() => {}).catch(() => {});
+        ]);
       }
       return;
     }
@@ -418,7 +423,7 @@ Rules:
       supabase.from('messages').insert([
         { conversation_id: conversationId, role: 'user',      arabic_text: name },
         { conversation_id: conversationId, role: 'assistant', arabic_text: HARDCODED_MSG_2.arabic, transliteration: HARDCODED_MSG_2.transliteration, translation: HARDCODED_MSG_2.english },
-      ]).then(() => {}).catch(() => {});
+      ]);
     }
   };
 
@@ -577,7 +582,7 @@ Rules:
         supabase.from('messages').insert([
           { conversation_id: conversationId, role: 'user',      arabic_text: text.trim() },
           { conversation_id: conversationId, role: 'assistant', arabic_text: parsed.arabic, transliteration: parsed.transliteration, translation: parsed.english },
-        ]).then(() => {}).catch(() => {});
+        ]);
       }
     } catch (err: any) {
       console.error('Chat error:', err);
@@ -599,7 +604,15 @@ Rules:
   const handleMicPressIn = async () => {
     setIsRecording(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try { audioRecorder.record(); } catch (e) { console.warn('Record start error:', e); }
+    try {
+      await prepareRecordingAudioMode('chat');
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    } catch (e) {
+      console.warn('Record start error:', e);
+      await restorePlaybackAudioMode('chat-record-start-error');
+      setIsRecording(false);
+    }
   };
 
   const handleMicPressOut = async () => {
@@ -607,6 +620,7 @@ Rules:
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
       await audioRecorder.stop();
+      await restorePlaybackAudioMode('chat-stop');
       await new Promise(r => setTimeout(r, 200));
       const uri = audioRecorder.uri;
       if (!uri) return;
@@ -620,12 +634,15 @@ Rules:
       };
       setMessages(prev => [...prev, voiceMsg]);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-    } catch (e) { console.warn('Record stop error:', e); }
+    } catch (e) {
+      console.warn('Record stop error:', e);
+      await restorePlaybackAudioMode('chat-stop-error');
+    }
   };
 
   const playVoice = async (uri: string) => {
     try {
-      playLocalAudio({ uri });
+      await playLocalAudio({ uri });
     } catch (e) { console.warn('Playback error:', e); }
   };
 
@@ -643,7 +660,7 @@ Rules:
               supabase.from('conversations')
                 .update({ status: 'completed', completed_at: new Date().toISOString() })
                 .eq('id', conversationId)
-                .then(() => {}).catch(() => {});
+                .then(() => {});
             }
             setConversationId(null);
             setMessages([]);
@@ -795,13 +812,13 @@ Rules:
 
           {/* ── Input bar ── */}
           <View style={styles.inputBar}>
-            <Pressable
-              style={[styles.micBtn, isRecording && styles.micBtnActive]}
-              onPressIn={handleMicPressIn}
-              onPressOut={handleMicPressOut}
-            >
-              <Mic color={isRecording ? theme.colors.textPrimary : theme.colors.textTertiary} size={18} />
-            </Pressable>
+            {CHAT_VOICE_INPUT_ENABLED && (
+              <Pressable
+                style={[styles.micBtn, isRecording && styles.micBtnActive]}
+                onPressIn={handleMicPressIn}
+                onPressOut={handleMicPressOut}
+              />
+            )}
 
             <View style={styles.textWrap}>
               <TextInput

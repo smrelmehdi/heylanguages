@@ -6,9 +6,11 @@ import { Stack, useRouter } from 'expo-router';
 import * as ExpoSplash from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
-import '../global.css';
 import SplashScreen from '../components/SplashScreen';
 import { DialectProvider } from '../contexts/DialectContext';
+import { PremiumProvider } from '../contexts/PremiumContext';
+import { XPProvider } from '../contexts/XPContext';
+import '../global.css';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { Session } from '@supabase/supabase-js';
@@ -105,58 +107,62 @@ function RootLayoutNav() {
   }, [initialized]); // session intentionally excluded — login/logout are handled in their own screens
 
   return (
-    <DialectProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="lesson" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario" options={{ headerShown: false }} />
-          <Stack.Screen name="quiz" options={{ headerShown: false }} />
-          <Stack.Screen name="quiz-unit2" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-taxi" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-hotel" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-restaurant" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-supermarket" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-pharmacy" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-barbershop" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-airport" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-morning-routine" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-gym" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-cooking-home" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-weather-chat" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-doctor-visit" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-bank" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friday-gathering" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-neighbor-visit" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-lost-in-city" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-car-breakdown" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-police-station" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-hospital-emergency" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-lost-wallet" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-flight-problem" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-asking-for-help" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-new-neighbor" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-football" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-gaming" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-weekend" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-social-media" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-road-trip" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-birthday" options={{ headerShown: false }} />
-          <Stack.Screen name="scenario-intro-friends-farewell" options={{ headerShown: false }} />
-          <Stack.Screen name="chat" options={{ headerShown: false }} />
-          <Stack.Screen name="writing" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-        {!splashHidden && (
-          <SplashScreen
-            ready={initialized}
-            onReady={() => setSplashHidden(true)}
-          />
-        )}
-      </ThemeProvider>
-    </DialectProvider>
+    <PremiumProvider>
+      <XPProvider>
+        <DialectProvider>
+          {/* TEMP: offline gate disabled for simulator testing until native expo-network build is available. */}
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="lesson" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario" options={{ headerShown: false }} />
+            <Stack.Screen name="quiz" options={{ headerShown: false }} />
+            <Stack.Screen name="quiz-unit2" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-taxi" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-hotel" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-restaurant" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-supermarket" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-pharmacy" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-barbershop" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-airport" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-morning-routine" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-gym" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-cooking-home" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-weather-chat" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-doctor-visit" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-bank" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friday-gathering" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-neighbor-visit" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-lost-in-city" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-car-breakdown" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-police-station" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-hospital-emergency" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-lost-wallet" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-flight-problem" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-asking-for-help" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-new-neighbor" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-football" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-gaming" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-weekend" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-social-media" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-road-trip" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-birthday" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-friends-farewell" options={{ headerShown: false }} />
+            <Stack.Screen name="chat" options={{ headerShown: false }} />
+            <Stack.Screen name="writing" options={{ headerShown: false }} />
+            </Stack>
+            {!splashHidden && (
+              <SplashScreen
+                ready={initialized}
+                onReady={() => setSplashHidden(true)}
+              />
+            )}
+          </ThemeProvider>
+        </DialectProvider>
+      </XPProvider>
+    </PremiumProvider>
   );
 }

@@ -1,0 +1,358 @@
+{
+  "generatedAt": "2026-07-16T09:02:45.431Z",
+  "voiceId": "LXrTqFIgiubkrMkwvOUr",
+  "modelId": "eleven_v3",
+  "voiceSettings": {
+    "stability": 0.75,
+    "similarity_boost": 0.85,
+    "style": 0,
+    "use_speaker_boost": true
+  },
+  "outputDirectory": "tmp/egyptian-pacing-sample-v2",
+  "sampleCount": 34,
+  "generatedCount": 34,
+  "errorCount": 0,
+  "generated": [
+    {
+      "id": "basic-01-aywa",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[0]",
+      "displayArabic": "أيوه",
+      "audioText": "أيوه.",
+      "evalTarget": "أيوه",
+      "english": "Yes",
+      "filename": "basic-01-aywa.mp3",
+      "bytes": 8821
+    },
+    {
+      "id": "basic-02-la",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[1]",
+      "displayArabic": "لا",
+      "audioText": "لا.",
+      "evalTarget": "لا",
+      "english": "No",
+      "filename": "basic-02-la.mp3",
+      "bytes": 5059
+    },
+    {
+      "id": "basic-03-shukran",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[2]",
+      "displayArabic": "شكراً",
+      "audioText": "شكراً.",
+      "evalTarget": "شكراً",
+      "english": "Thank you",
+      "filename": "basic-03-shukran.mp3",
+      "bytes": 8821
+    },
+    {
+      "id": "basic-04-law-samaht",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[3]",
+      "displayArabic": "لو سمحت",
+      "audioText": "لو سمحت.",
+      "evalTarget": "لو سمحت",
+      "english": "Please / Excuse me",
+      "filename": "basic-04-law-samaht.mp3",
+      "bytes": 11328
+    },
+    {
+      "id": "basic-05-kwayyis",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[4]",
+      "displayArabic": "كويس",
+      "audioText": "كويس.",
+      "evalTarget": "كويس",
+      "english": "Good",
+      "filename": "basic-05-kwayyis.mp3",
+      "bytes": 7567
+    },
+    {
+      "id": "basic-10-shwayya",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[9]",
+      "displayArabic": "شوية",
+      "audioText": "شوية.",
+      "evalTarget": "شوية",
+      "english": "A little",
+      "filename": "basic-10-shwayya.mp3",
+      "bytes": 7567
+    },
+    {
+      "id": "basic-15-mayya",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[14]",
+      "displayArabic": "ماية",
+      "audioText": "مَيَّه.",
+      "evalTarget": "ماية",
+      "english": "Water",
+      "filename": "basic-15-mayya.mp3",
+      "bytes": 16344
+    },
+    {
+      "id": "basic-18-tamaam",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[17]",
+      "displayArabic": "تمام",
+      "audioText": "تمام.",
+      "evalTarget": "تمام",
+      "english": "OK / Perfect",
+      "filename": "basic-18-tamaam.mp3",
+      "bytes": 7567
+    },
+    {
+      "id": "basic-19-yalla",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[18]",
+      "displayArabic": "يلا",
+      "audioText": "يلا.",
+      "evalTarget": "يلا",
+      "english": "Let's go",
+      "filename": "basic-19-yalla.mp3",
+      "bytes": 7567
+    },
+    {
+      "id": "basic-20-bikam",
+      "source": "data/egyptian-words.ts:BASIC_WORDS_EG[19]",
+      "displayArabic": "بكام",
+      "audioText": "بكام؟",
+      "evalTarget": "بكام",
+      "english": "How much",
+      "filename": "basic-20-bikam.mp3",
+      "bytes": 11328
+    },
+    {
+      "id": "greetings-01-salaam",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[0]",
+      "displayArabic": "السلام عليكم",
+      "audioText": "السلام عليكم.",
+      "evalTarget": "السلام عليكم",
+      "english": "Peace be upon you",
+      "filename": "greetings-01-salaam.mp3",
+      "bytes": 24285
+    },
+    {
+      "id": "greetings-03-ahlan",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[2]",
+      "displayArabic": "أهلاً وسهلاً",
+      "audioText": "أهلاً وسهلاً.",
+      "evalTarget": "أهلاً وسهلاً",
+      "english": "Welcome",
+      "filename": "greetings-03-ahlan.mp3",
+      "bytes": 21359
+    },
+    {
+      "id": "greetings-04-izzayyak",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[3]",
+      "displayArabic": "إزيك؟",
+      "audioText": "إزيك؟",
+      "evalTarget": "إزيك؟",
+      "english": "How are you?",
+      "filename": "greetings-04-izzayyak.mp3",
+      "bytes": 12582
+    },
+    {
+      "id": "greetings-05-aamel-eih",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[4]",
+      "displayArabic": "عامل إيه؟",
+      "audioText": "عامل إيه؟",
+      "evalTarget": "عامل إيه؟",
+      "english": "How are you doing?",
+      "filename": "greetings-05-aamel-eih.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "greetings-combo-izzayyak-aamel-eih",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[3-4] pacing test",
+      "displayArabic": "إزيك؟ عامل إيه؟",
+      "audioText": "إزيك؟ عامل إيه؟",
+      "evalTarget": "إزيك؟ عامل إيه؟",
+      "english": "How are you? How are you doing?",
+      "filename": "greetings-combo-izzayyak-aamel-eih.mp3",
+      "bytes": 23031
+    },
+    {
+      "id": "greetings-06-alhamdulillah",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[5]",
+      "displayArabic": "الحمد لله، كويس",
+      "audioText": "الحمد لله. كويس.",
+      "evalTarget": "الحمد لله، كويس",
+      "english": "I'm good, praise God",
+      "filename": "greetings-06-alhamdulillah.mp3",
+      "bytes": 21359
+    },
+    {
+      "id": "greetings-11-goodbye",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[10]",
+      "displayArabic": "مع السلامة",
+      "audioText": "مع السلامة.",
+      "evalTarget": "مع السلامة",
+      "english": "Goodbye",
+      "filename": "greetings-11-goodbye.mp3",
+      "bytes": 12582
+    },
+    {
+      "id": "greetings-13-itfaddal",
+      "source": "data/egyptian-words.ts:GREETINGS_WORDS_EG[12]",
+      "displayArabic": "اتفضل",
+      "audioText": "اتفضل.",
+      "evalTarget": "اتفضل",
+      "english": "Please / Go ahead / Here you go",
+      "filename": "greetings-13-itfaddal.mp3",
+      "bytes": 21359
+    },
+    {
+      "id": "intro-01-ana-ismi",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[0]",
+      "displayArabic": "أنا اسمي...",
+      "audioText": "أنا اسمي.",
+      "evalTarget": "أنا اسمي",
+      "english": "My name is...",
+      "filename": "intro-01-ana-ismi.mp3",
+      "bytes": 12582
+    },
+    {
+      "id": "intro-02-ismak-eih",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[1]",
+      "displayArabic": "اسمك إيه؟",
+      "audioText": "اسمك إيه؟",
+      "evalTarget": "اسمك إيه؟",
+      "english": "What is your name?",
+      "filename": "intro-02-ismak-eih.mp3",
+      "bytes": 16344
+    },
+    {
+      "id": "intro-06-inta-minein",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[5]",
+      "displayArabic": "إنت منين؟",
+      "audioText": "إنت منين؟",
+      "evalTarget": "إنت منين؟",
+      "english": "Where are you from?",
+      "filename": "intro-06-inta-minein.mp3",
+      "bytes": 11328
+    },
+    {
+      "id": "intro-10-arabi-shwayya",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[9]",
+      "displayArabic": "أنا بتكلم عربي شوية",
+      "audioText": "أنا بتكلم عربي، شوية.",
+      "evalTarget": "أنا بتكلم عربي شوية",
+      "english": "I speak a little Arabic",
+      "filename": "intro-10-arabi-shwayya.mp3",
+      "bytes": 33062
+    },
+    {
+      "id": "intro-11-batallim-masri",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[10]",
+      "displayArabic": "أنا بتعلم مصري",
+      "audioText": "أنا بتعلم مصري.",
+      "evalTarget": "أنا بتعلم مصري",
+      "english": "I am learning Egyptian",
+      "filename": "intro-11-batallim-masri.mp3",
+      "bytes": 21359
+    },
+    {
+      "id": "intro-12-mish-faahim",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[11]",
+      "displayArabic": "مش فاهم",
+      "audioText": "مش فاهم.",
+      "evalTarget": "مش فاهم",
+      "english": "I don't understand",
+      "filename": "intro-12-mish-faahim.mp3",
+      "bytes": 11328
+    },
+    {
+      "id": "intro-pacing-birraaha",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[12] example pacing test",
+      "displayArabic": "بالراحة لو سمحت، مش فاهم",
+      "audioText": "بالراحة، لو سمحت. مش فاهم.",
+      "evalTarget": "بالراحة لو سمحت، مش فاهم",
+      "english": "Slowly please, I don't understand",
+      "filename": "intro-pacing-birraaha.mp3",
+      "bytes": 34316
+    },
+    {
+      "id": "intro-13-repeat",
+      "source": "data/egyptian-words.ts:INTRO_WORDS_EG[12]",
+      "displayArabic": "ممكن تعيد تاني؟",
+      "audioText": "ممكن تعيد تاني؟",
+      "evalTarget": "ممكن تعيد تاني؟",
+      "english": "Can you repeat?",
+      "filename": "intro-13-repeat.mp3",
+      "bytes": 17598
+    },
+    {
+      "id": "cafe-00-user-salaam",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[0]",
+      "displayArabic": "السلام عليكم",
+      "audioText": "السلام عليكم.",
+      "evalTarget": "السلام عليكم",
+      "english": "Peace be upon you",
+      "filename": "cafe-00-user-salaam.mp3",
+      "bytes": 21359
+    },
+    {
+      "id": "cafe-01-waiter-welcome",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[1]",
+      "displayArabic": "وعليكم السلام، أهلاً وسهلاً، اتفضل",
+      "audioText": "وعليكم السلام. أهلاً وسهلاً. اتفضل.",
+      "evalTarget": "وعليكم السلام، أهلاً وسهلاً، اتفضل",
+      "english": "And upon you peace, welcome, please sit down",
+      "filename": "cafe-01-waiter-welcome.mp3",
+      "bytes": 36824
+    },
+    {
+      "id": "cafe-02-waiter-drink",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[2]",
+      "displayArabic": "تحب تشرب إيه؟",
+      "audioText": "تحب تشرب إيه؟",
+      "evalTarget": "تحب تشرب إيه؟",
+      "english": "What would you like to drink?",
+      "filename": "cafe-02-waiter-drink.mp3",
+      "bytes": 23031
+    },
+    {
+      "id": "cafe-03-user-coffee",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[3]",
+      "displayArabic": "عايز قهوة تركي لو سمحت",
+      "audioText": "عايز قهوة تركي، لو سمحت.",
+      "evalTarget": "عايز قهوة تركي لو سمحت",
+      "english": "I want Turkish coffee please",
+      "filename": "cafe-03-user-coffee.mp3",
+      "bytes": 26793
+    },
+    {
+      "id": "cafe-04-waiter-sugar",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[4]",
+      "displayArabic": "سادة ولا مظبوط؟",
+      "audioText": "سادة، ولا مظبوط؟",
+      "evalTarget": "سادة ولا مظبوط؟",
+      "english": "Plain or medium sweet?",
+      "filename": "cafe-04-waiter-sugar.mp3",
+      "bytes": 24285
+    },
+    {
+      "id": "cafe-05-user-medium",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[5]",
+      "displayArabic": "مظبوط لو سمحت",
+      "audioText": "مظبوط، لو سمحت.",
+      "evalTarget": "مظبوط لو سمحت",
+      "english": "Medium sweet please",
+      "filename": "cafe-05-user-medium.mp3",
+      "bytes": 30555
+    },
+    {
+      "id": "cafe-06-waiter-anything-else",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[6]",
+      "displayArabic": "تمام، حاجة تانية؟",
+      "audioText": "تمام. حاجة تانية؟",
+      "evalTarget": "تمام، حاجة تانية؟",
+      "english": "Okay, anything else?",
+      "filename": "cafe-06-waiter-anything-else.mp3",
+      "bytes": 18852
+    },
+    {
+      "id": "cafe-09-user-bill",
+      "source": "data/egyptian-dialogues.ts:CAFE_DIALOGUE_EG[9]",
+      "displayArabic": "الحساب بكام؟",
+      "audioText": "الحساب كام؟ من فضلك.",
+      "evalTarget": "الحساب بكام؟",
+      "english": "How much is the bill?",
+      "filename": "cafe-09-user-bill.mp3",
+      "bytes": 26793
+    }
+  ],
+  "errors": []
+}

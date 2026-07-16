@@ -1,26 +1,57 @@
 import type { Word } from '../constants/words';
 import { BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS } from '../constants/words';
-import type { DialogueTurn } from './gulf-dialogues';
 import {
-  CAFE_DIALOGUE, TAXI_DIALOGUE, HOTEL_DIALOGUE,
-  RESTAURANT_DIALOGUE, SUPERMARKET_DIALOGUE, PHARMACY_DIALOGUE,
-  BARBERSHOP_DIALOGUE, AIRPORT_DIALOGUE,
-  MORNING_ROUTINE_DIALOGUE, GYM_DIALOGUE, COOKING_HOME_DIALOGUE,
-  WEATHER_CHAT_DIALOGUE, DOCTOR_VISIT_DIALOGUE, BANK_DIALOGUE,
-  FRIDAY_GATHERING_DIALOGUE, NEIGHBOR_VISIT_DIALOGUE,
-  LOST_IN_CITY_DIALOGUE, CAR_BREAKDOWN_DIALOGUE, POLICE_STATION_DIALOGUE,
-  HOSPITAL_EMERGENCY_DIALOGUE, LOST_WALLET_DIALOGUE,
-  FLIGHT_PROBLEM_DIALOGUE, ASKING_FOR_HELP_DIALOGUE,
-  FRIENDS_NEW_NEIGHBOR_DIALOGUE, FRIENDS_FOOTBALL_DIALOGUE, FRIENDS_GAMING_DIALOGUE,
-  FRIENDS_WEEKEND_DIALOGUE, FRIENDS_SOCIAL_MEDIA_DIALOGUE, FRIENDS_ROAD_TRIP_DIALOGUE,
-  FRIENDS_BIRTHDAY_DIALOGUE, FRIENDS_FAREWELL_DIALOGUE,
-} from './gulf-dialogues';
-import {
-  CAFE_DIALOGUE_EG, TAXI_DIALOGUE_EG, HOTEL_DIALOGUE_EG,
-  RESTAURANT_DIALOGUE_EG, SUPERMARKET_DIALOGUE_EG, PHARMACY_DIALOGUE_EG,
-  BARBERSHOP_DIALOGUE_EG, AIRPORT_DIALOGUE_EG,
+    AIRPORT_DIALOGUE_EG,
+    BARBERSHOP_DIALOGUE_EG,
+    CAFE_DIALOGUE_EG,
+    HOTEL_DIALOGUE_EG,
+    PHARMACY_DIALOGUE_EG,
+    RESTAURANT_DIALOGUE_EG, SUPERMARKET_DIALOGUE_EG,
+    TAXI_DIALOGUE_EG,
 } from './egyptian-dialogues';
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
+import type { DialogueTurn } from './gulf-dialogues';
+import {
+    AIRPORT_DIALOGUE,
+    ASKING_FOR_HELP_DIALOGUE,
+    BANK_DIALOGUE,
+    BARBERSHOP_DIALOGUE,
+    CAFE_DIALOGUE,
+    CAR_BREAKDOWN_DIALOGUE,
+    COOKING_HOME_DIALOGUE,
+    DOCTOR_VISIT_DIALOGUE,
+    FLIGHT_PROBLEM_DIALOGUE,
+    FRIDAY_GATHERING_DIALOGUE,
+    FRIENDS_BIRTHDAY_DIALOGUE, FRIENDS_FAREWELL_DIALOGUE,
+    FRIENDS_FOOTBALL_DIALOGUE, FRIENDS_GAMING_DIALOGUE,
+    FRIENDS_NEW_NEIGHBOR_DIALOGUE,
+    FRIENDS_ROAD_TRIP_DIALOGUE,
+    FRIENDS_SOCIAL_MEDIA_DIALOGUE,
+    FRIENDS_WEEKEND_DIALOGUE,
+    GYM_DIALOGUE,
+    HOSPITAL_EMERGENCY_DIALOGUE,
+    HOTEL_DIALOGUE,
+    LOST_IN_CITY_DIALOGUE,
+    LOST_WALLET_DIALOGUE,
+    MORNING_ROUTINE_DIALOGUE,
+    NEIGHBOR_VISIT_DIALOGUE,
+    PHARMACY_DIALOGUE,
+    POLICE_STATION_DIALOGUE,
+    RESTAURANT_DIALOGUE, SUPERMARKET_DIALOGUE,
+    TAXI_DIALOGUE,
+    WEATHER_CHAT_DIALOGUE,
+} from './gulf-dialogues';
+import {
+    AIRPORT_DIALOGUE_MSA,
+    BARBERSHOP_DIALOGUE_MSA,
+    CAFE_DIALOGUE_MSA,
+    HOTEL_DIALOGUE_MSA,
+    PHARMACY_DIALOGUE_MSA,
+    RESTAURANT_DIALOGUE_MSA,
+    SUPERMARKET_DIALOGUE_MSA,
+    TAXI_DIALOGUE_MSA,
+} from './msa-dialogues';
+import { BASIC_WORDS_MSA, GREETINGS_WORDS_MSA, INTRO_WORDS_MSA } from './msa-words';
 
 export type { DialogueTurn };
 
@@ -41,7 +72,6 @@ export const DIALECT_LABELS: Record<string, string> = {
   gulf: 'Gulf Arabic',
   egyptian: 'Egyptian Arabic',
   msa: 'Modern Standard',
-  levantine: 'Levantine',
   maghrebi: 'Maghrebi',
 };
 
@@ -105,6 +135,8 @@ const GULF_SCENE_IMAGES: Record<string, any> = {
   FriendsFarewellEntrance:    require('../assets/images/dubai-friends-farewell-entrance.png'),
 };
 
+const MSA_SCENE_IMAGES = GULF_SCENE_IMAGES; // reuse Dubai images for MSA
+
 const COMING_SOON_CONTENT: DialectContent = {
   voiceId: 'rUaPbzcZIu8df8iNL9WZ',
   lessons: { basic: [], greetings: [], intro: [] },
@@ -112,6 +144,28 @@ const COMING_SOON_CONTENT: DialectContent = {
   sceneImages: {},
   availableLessons: [],
   availableScenarios: [],
+};
+
+const MSA_CONTENT: DialectContent = {
+  voiceId: 'xvhpbk8otnNHtT3fjCpr',   // Omar
+  lessons: {
+    basic: BASIC_WORDS_MSA,
+    greetings: GREETINGS_WORDS_MSA,
+    intro: INTRO_WORDS_MSA,
+  },
+  scenarios: {
+    Cafe:        CAFE_DIALOGUE_MSA,
+    Taxi:        TAXI_DIALOGUE_MSA,
+    Hotel:       HOTEL_DIALOGUE_MSA,
+    Restaurant:  RESTAURANT_DIALOGUE_MSA,
+    Supermarket: SUPERMARKET_DIALOGUE_MSA,
+    Pharmacy:    PHARMACY_DIALOGUE_MSA,
+    Barbershop:  BARBERSHOP_DIALOGUE_MSA,
+    Airport:     AIRPORT_DIALOGUE_MSA,
+  },
+  sceneImages: MSA_SCENE_IMAGES,
+  availableLessons: ['basic', 'greetings', 'intro'],
+  availableScenarios: ['Cafe', 'Taxi', 'Hotel', 'Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop', 'Airport'],
 };
 
 const CONTENT_REGISTRY: Record<string, DialectContent> = {
@@ -166,8 +220,9 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       'FriendsSocialMedia', 'FriendsRoadTrip', 'FriendsBirthday', 'FriendsFarewell',
     ],
   },
+  msa: MSA_CONTENT,
   egyptian: {
-    voiceId: 'VMy40598IGgDeaOE8phq',
+    voiceId: 'LXrTqFIgiubkrMkwvOUr',
     lessons: { basic: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG },
     scenarios: {
       Cafe:        CAFE_DIALOGUE_EG,

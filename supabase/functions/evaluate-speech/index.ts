@@ -46,6 +46,16 @@ function normalizeArabic(text: string): string {
     .trim();
 }
 
+// Apply dialect-specific phonetic equivalences before comparing.
+// Egyptian: ق is often realised as a glottal stop; Whisper may transcribe it as ء/أ or drop it.
+// Gulf: no major letter substitutions, but accept ك/چ variation.
+function dialectNormalize(text: string, dialect: string): string {
+  if (dialect === 'egyptian') {
+    return text.replace(/ق/g, 'ء').replace(/[أإآء]/g, 'ا');
+  }
+  return text;
+}
+
 function levenshteinDistance(a: string, b: string): number {
   const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
   const current = Array.from({ length: b.length + 1 }, () => 0);
@@ -102,16 +112,57 @@ function isOnboardingPass(
   );
 }
 
-function evaluateTranscript(transcript: string, targetText: string, context: string): EvaluationResult {
+// For scenario mode: extract the key content words (4+ chars) from a phrase.
+// Short words like ال، في، من، على are common connectors — scoring is more robust
+// when it focuses on the distinctive content words only.
+function extractContentWords(text: string): string[] {
+  return text.split(' ').filter(w => w.length >= 3);
+}
+
+// In scenario mode the user may say extra words around the phrase, or drop
+// connector words. We check whether the majority of content words in the
+// target are present in the transcript (in any order).
+function scenarioContentMatch(normalizedTranscript: string, normalizedTarget: string): { matched: number; total: number } {
+  const targetWords = extractContentWords(normalizedTarget);
+  if (targetWords.length === 0) return { matched: 0, total: 0 };
+  const transcriptWords = normalizedTranscript.split(' ').filter(Boolean);
+  const matched = targetWords.filter(tw =>
+    transcriptWords.some(trw => similarity(trw, tw) >= 0.80)
+  ).length;
+  return { matched, total: targetWords.length };
+}
+
+function evaluateTranscript(transcript: string, targetText: string, context: string, dialect = 'gulf'): EvaluationResult {
   const normalizedTranscript = normalizeArabic(transcript);
   const normalizedTarget = normalizeArabic(targetText);
   const compactTranscript = normalizedTranscript.replace(/\s/g, '');
   const compactTarget = normalizedTarget.replace(/\s/g, '');
   const tooShortLength = Math.max(2, Math.ceil(compactTarget.length * 0.4));
   const isOnboarding = context === 'onboarding';
+  const isScenario = context === 'scenario';
+
+  // Exact / contained match (works for both directions: user says more or user
+  // says exactly the expected phrase)
+  const exactPass = compactTranscript === compactTarget ||
+    normalizedTranscript.split(' ').some(w => w === normalizedTarget) ||
+    normalizedTranscript.includes(normalizedTarget) ||
+    compactTranscript.includes(compactTarget) ||
+    normalizedTarget.includes(normalizedTranscript);   // user said a clean subset
+  // Dialect-aware match (e.g. Egyptian ق→ء equivalence)
+  const dialectTarget = dialectNormalize(normalizedTarget, dialect);
+  const dialectTranscript = dialectNormalize(normalizedTranscript, dialect);
+  const dialectPass = dialectTarget !== normalizedTarget &&
+    (dialectTranscript === dialectTarget || dialectTranscript.includes(dialectTarget));
+
+  // Scenario-specific: majority of content words present
+  const contentMatch = isScenario ? scenarioContentMatch(normalizedTranscript, normalizedTarget) : null;
+  const contentPassRatio = contentMatch && contentMatch.total > 0 ? contentMatch.matched / contentMatch.total : 0;
+
   const isPass = isOnboarding
     ? isOnboardingPass(normalizedTranscript, compactTranscript, compactTarget)
-    : normalizedTranscript.includes(normalizedTarget) || compactTranscript.includes(compactTarget);
+    : exactPass || dialectPass || (isScenario && contentPassRatio >= 0.80);
+
+  const isContentClose = isScenario && !isPass && contentPassRatio >= 0.50;
 
   let result: EvaluationResult['result'];
   let score: number;
@@ -133,6 +184,11 @@ function evaluateTranscript(transcript: string, targetText: string, context: str
     result = 'pass';
     score = 95;
     feedback = 'Great pronunciation.';
+  } else if (isContentClose) {
+    // Scenario: got most of the content words, just not perfectly
+    result = 'close';
+    score = Math.round(55 + contentPassRatio * 30); // 55–85 range
+    feedback = 'Almost there. Try to include all the words.';
   } else {
     const transcriptWords = normalizedTranscript.split(' ').filter(Boolean);
     const wordScores = transcriptWords.map(word => similarity(word, compactTarget));
@@ -149,10 +205,15 @@ function evaluateTranscript(transcript: string, targetText: string, context: str
       result = 'fail';
       if (isOnboarding) {
         score = characterOverlapRatio(compactTranscript, compactTarget) >= 0.25 ? 25 : 15;
+      } else if (isScenario) {
+        // Scenario is more forgiving on failure — user gets partial credit
+        score = characterOverlapRatio(compactTranscript, compactTarget) >= 0.25 ? 50 : 35;
+        feedback = "Not quite. Listen to Yusuf, then try again.";
       } else {
         score = characterOverlapRatio(compactTranscript, compactTarget) >= 0.25 ? 45 : 30;
+        feedback = "Not quite. Listen once, then try saying it again.";
       }
-      feedback = "Not quite. Listen once, then try saying it again.";
+      if (!feedback) feedback = "Not quite. Listen once, then try saying it again.";
     }
   }
 
@@ -215,6 +276,8 @@ Deno.serve(async (req: Request) => {
   const file = formData.get('file');
   const targetText = String(formData.get('targetText') ?? '').trim();
   const context = String(formData.get('context') ?? '').trim();
+  const dialect = String(formData.get('dialect') ?? 'gulf').trim();
+  const hint = String(formData.get('hint') ?? '').trim(); // English translation (optional)
   const allowedContexts = new Set(['onboarding', 'lesson', 'scenario']);
 
   if (!(file instanceof File) || file.size === 0) {
@@ -240,7 +303,12 @@ Deno.serve(async (req: Request) => {
 
   try {
     const transcript = await transcribeAudio(file, openAiApiKey);
-    return jsonResponse(evaluateTranscript(transcript, targetText, context));
+    const evalResult = evaluateTranscript(transcript, targetText, context, dialect);
+    // Enrich failed feedback with the English meaning when available
+    if (hint && evalResult.result === 'fail') {
+      evalResult.feedback = `Not quite. The phrase means "${hint}". Listen once and try again.`;
+    }
+    return jsonResponse(evalResult);
   } catch (error) {
     console.error('[evaluate-speech] transcription error:', error);
     return errorResponse(502, 'transcription_failed', 'Could not transcribe audio.');

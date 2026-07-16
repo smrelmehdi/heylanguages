@@ -1,38 +1,238 @@
-import { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSequence,
-} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { feedbackCorrect, feedbackWrong } from '../utils/feedback';
+import { getQuizSrsSummary, prioritizeQuizItems, recordQuizSrsResult, type QuizSrsSummary } from '../utils/srs';
 
-import { supabase } from '../utils/supabase';
-import { recordActivity } from '../utils/streak';
-import type { QuizQuestion } from '../data/quiz-types';
+import PremiumRouteGate from '../components/PremiumRouteGate';
 import { QUIZ_PART1_QUESTIONS } from '../data/quiz-part1';
 import { QUIZ_PART2_QUESTIONS } from '../data/quiz-part2';
+import type { QuizQuestion } from '../data/quiz-types';
 import { QUIZ_UNIT6_QUESTIONS } from '../data/quiz-unit6';
+import { useDialect } from '../contexts/DialectContext';
+import type { DialectContent, DialogueTurn } from '../data/content-registry';
+import { getQuizContentId } from '../utils/access';
+import { recordActivity } from '../utils/streak';
+import { supabase } from '../utils/supabase';
 
+import EmojiMatch from '../components/quiz/EmojiMatch';
+import FillConversation from '../components/quiz/FillConversation';
+import ListeningChallenge from '../components/quiz/ListeningChallenge';
 import QuizIntro from '../components/quiz/QuizIntro';
 import QuizProgress from '../components/quiz/QuizProgress';
 import QuizResults from '../components/quiz/QuizResults';
 import SceneReplay from '../components/quiz/SceneReplay';
-import FillConversation from '../components/quiz/FillConversation';
-import ListeningChallenge from '../components/quiz/ListeningChallenge';
-import EmojiMatch from '../components/quiz/EmojiMatch';
 import { theme } from '../constants/theme';
 
 type Phase = 'intro' | 'quiz' | 'results';
 
-// ── Shuffle: no two same formats adjacent ────────────────────────────────────
-function shuffleNoAdjacentFormats(questions: QuizQuestion[]): QuizQuestion[] {
-  const arr = [...questions];
+const UNIT2_PART1_SCENARIOS = ['Cafe', 'Taxi', 'Hotel'];
+const UNIT2_PART2_SCENARIOS = ['Restaurant', 'Supermarket', 'Pharmacy'];
+const EMOJI_POOL = ['☕', '🚕', '🏨', '🍽️', '🛒', '💊', '💬', '👋'];
+
+const displayTurnArabic = (turn: DialogueTurn) => turn.displayArabic ?? turn.arabic;
+const turnAudioText = (turn: DialogueTurn) => turn.audioText ?? turn.displayArabic ?? turn.arabic;
+const turnKey = (turn: DialogueTurn) => displayTurnArabic(turn).replace(/\s+/g, ' ').trim();
+
+const GENERIC_TURN_ARABIC = [
+  'السلام عليكم',
+  'وعليكم السلام',
+  'أهلاً',
+  'أهلاً بك',
+  'أهلاً وسهلاً',
+  'كيف حالك',
+  'بخير، الله يسلمك',
+  'شكراً',
+  'شكراً جزيلاً',
+  'تفضل',
+  'حسناً',
+  'مع السلامة',
+];
+
+const GENERIC_TURN_ENGLISH = [
+  'peace be upon you',
+  'and upon you peace',
+  'hello',
+  'welcome',
+  'welcome to you',
+  'how are you',
+  'fine god keep you safe',
+  'thank you',
+  'thank you very much',
+  'thanks',
+  'here you go',
+  'alright',
+  'goodbye',
+];
+
+function isGenericTurn(turn: DialogueTurn) {
+  const arabic = turnKey(turn).replace(/[،.!؟?]/g, '').trim();
+  const english = turn.english.toLowerCase().replace(/[,.!?]/g, '').trim();
+  return GENERIC_TURN_ARABIC.includes(arabic) || GENERIC_TURN_ENGLISH.includes(english);
+}
+
+function meaningfulTurns(turns: DialogueTurn[]) {
+  const filtered = turns.filter(turn => !isGenericTurn(turn));
+  return filtered.length > 0 ? filtered : turns;
+}
+
+function uniqueTurns(turns: DialogueTurn[], correct?: DialogueTurn) {
+  const seen = new Set<string>();
+  if (correct) seen.add(turnKey(correct));
+  return turns.filter(turn => {
+    const key = turnKey(turn);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function selectFollowUpPair(turns: DialogueTurn[]) {
+  const pairs = turns
+    .map((promptTurn, index) => ({ promptTurn, answerTurn: turns[index + 1] }))
+    .filter(pair => pair.promptTurn.type !== 'user' && pair.answerTurn?.type === 'user');
+
+  return pairs.find(pair => !isGenericTurn(pair.promptTurn) && !isGenericTurn(pair.answerTurn))
+    ?? pairs.find(pair => !isGenericTurn(pair.answerTurn))
+    ?? pairs[0]
+    ?? null;
+}
+
+function selectBlankTurn(turns: DialogueTurn[]) {
+  const userTurnsWithIndex = turns
+    .map((turn, index) => ({ turn, index }))
+    .filter(({ turn }) => turn.type === 'user');
+
+  return userTurnsWithIndex.find(({ turn, index }) => index > 0 && !isGenericTurn(turn))
+    ?? userTurnsWithIndex.find(({ turn }) => !isGenericTurn(turn))
+    ?? userTurnsWithIndex[0]
+    ?? null;
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+function makeOptions(correct: DialogueTurn, distractors: DialogueTurn[], fallbackDistractors: DialogueTurn[] = []) {
+  const wrongTurns = uniqueTurns([...meaningfulTurns(distractors), ...distractors, ...fallbackDistractors], correct)
+    .slice(0, 3);
+  return shuffle([
+    { arabic: displayTurnArabic(correct), transliteration: correct.transliteration, isCorrect: true },
+    ...shuffle(wrongTurns)
+      .map(turn => ({ arabic: displayTurnArabic(turn), transliteration: turn.transliteration, isCorrect: false })),
+  ]);
+}
+
+function buildDialectUnit2Quiz(
+  scenarioNames: string[],
+  content: DialectContent,
+  dialect: string,
+): QuizQuestion[] {
+  const scenarioEntries = scenarioNames
+    .map(name => ({ name, turns: content.scenarios[name] ?? [] }))
+    .filter(entry => entry.turns.length > 0);
+  const allTurns = scenarioEntries.flatMap(entry => entry.turns);
+  const userTurns = allTurns.filter(turn => turn.type === 'user');
+  const npcTurns = allTurns.filter(turn => turn.type !== 'user');
+  const questions: QuizQuestion[] = [];
+
+  scenarioEntries.forEach((entry, scenarioIndex) => {
+    const sceneImage = content.sceneImages[entry.name] ?? null;
+    const scenarioUserTurns = entry.turns.filter(turn => turn.type === 'user');
+    const scenarioNpcTurns = entry.turns.filter(turn => turn.type !== 'user');
+    const scenarioQuestionTurns = uniqueTurns([...scenarioUserTurns, ...scenarioNpcTurns]);
+    const followUpPair = selectFollowUpPair(entry.turns);
+
+    if (followUpPair) {
+      const { promptTurn, answerTurn } = followUpPair;
+      questions.push({
+        id: `${dialect}_${entry.name}_scene`,
+        format: 'scene_replay',
+        scenarioSource: entry.name.toLowerCase(),
+        xpValue: 10,
+        sceneImage,
+        audioFile: promptTurn.audio ?? null,
+        audioText: turnAudioText(promptTurn),
+        prompt: 'What is the correct response?',
+        options: makeOptions(answerTurn, scenarioUserTurns, userTurns),
+      });
+    }
+
+    const blank = selectBlankTurn(entry.turns);
+    if (blank) {
+      const blankTurn = blank.turn;
+      const start = Math.max(0, blank.index - 1);
+      const dialogue = entry.turns.slice(start, Math.min(entry.turns.length, blank.index + 2)).map((turn, offset) => ({
+        speaker: turn.type === 'user' ? 'yusuf' as const : 'npc' as const,
+        arabic: displayTurnArabic(turn),
+        transliteration: turn.transliteration,
+        isBlank: start + offset === blank.index,
+      }));
+      questions.push({
+        id: `${dialect}_${entry.name}_fill`,
+        format: 'fill_conversation',
+        scenarioSource: entry.name.toLowerCase(),
+        xpValue: 10,
+        dialogue,
+        options: makeOptions(blankTurn, scenarioUserTurns, userTurns),
+      });
+    }
+
+    const listeningCandidates = meaningfulTurns(scenarioUserTurns);
+    const listeningTurn = listeningCandidates[scenarioIndex % Math.max(1, listeningCandidates.length)];
+    if (listeningTurn) {
+      questions.push({
+        id: `${dialect}_${entry.name}_listen`,
+        format: 'listening',
+        scenarioSource: entry.name.toLowerCase(),
+        xpValue: 10,
+        audioFile: listeningTurn.audio ?? null,
+        audioText: turnAudioText(listeningTurn),
+        options: makeOptions(listeningTurn, scenarioQuestionTurns, [...userTurns, ...npcTurns]),
+      });
+    }
+  });
+
+  const representativeUserTurns = uniqueTurns([
+    ...scenarioEntries
+      .map(entry => meaningfulTurns(entry.turns.filter(turn => turn.type === 'user'))[0])
+      .filter((turn): turn is DialogueTurn => Boolean(turn)),
+    ...meaningfulTurns(userTurns),
+    ...userTurns,
+  ]);
+  const pairs = representativeUserTurns.slice(0, 4).map((turn, index) => ({
+    arabic: displayTurnArabic(turn),
+    transliteration: turn.transliteration,
+    emoji: EMOJI_POOL[index] ?? '💬',
+  }));
+  if (pairs.length === 4) {
+    questions.push({
+      id: `${dialect}_${scenarioNames.join('_')}_emoji`,
+      format: 'emoji_match',
+      scenarioSource: scenarioNames.join(',').toLowerCase(),
+      xpValue: 10,
+      pairs,
+    });
+  }
+
+  return questions;
+}
+
+// ── Shuffle: no two same formats adjacent ────────────────────────────────────
+function shuffleNoAdjacentFormats(questions: QuizQuestion[]): QuizQuestion[] {
+  const arr = [...questions];
   for (let i = 0; i < arr.length - 1; i++) {
     if (arr[i].format === arr[i + 1].format) {
       for (let j = i + 2; j < arr.length; j++) {
@@ -49,6 +249,8 @@ function shuffleNoAdjacentFormats(questions: QuizQuestion[]): QuizQuestion[] {
 export default function QuizUnit2Screen() {
   const router = useRouter();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
+  const { dialect, content } = useDialect();
+  const routeContentId = getQuizContentId(unit);
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -58,6 +260,7 @@ export default function QuizUnit2Screen() {
   const [xpEarned, setXpEarned] = useState(0);
   const [xpFloatKey, setXpFloatKey] = useState(0);
   const [showXpFloat, setShowXpFloat] = useState(false);
+  const [srsSummary, setSrsSummary] = useState<QuizSrsSummary | null>(null);
 
   // Refs to avoid stale closures when reading final state in timeouts
   const xpRef = useRef(0);
@@ -85,14 +288,24 @@ export default function QuizUnit2Screen() {
     'Unit 2 Quiz';
 
   // ── Start ────────────────────────────────────────────────────────────────
-  const startQuiz = () => {
+  const startQuiz = async () => {
+    const scenarioNames = unit === '2p2' ? UNIT2_PART2_SCENARIOS : UNIT2_PART1_SCENARIOS;
+    const dialectQuestions = buildDialectUnit2Quiz(scenarioNames, content, dialect);
     const base =
-      unit === '2p2' && QUIZ_PART2_QUESTIONS.length > 0 ? QUIZ_PART2_QUESTIONS :
-      unit === '6'   && QUIZ_UNIT6_QUESTIONS.length > 0  ? QUIZ_UNIT6_QUESTIONS :
-      QUIZ_PART1_QUESTIONS;
-    const shuffled = shuffleNoAdjacentFormats(base);
+      unit === '6' && dialect === 'gulf' ? QUIZ_UNIT6_QUESTIONS :
+      unit === '6' ? [] :
+      dialect === 'gulf' && unit === '2p1' && QUIZ_PART1_QUESTIONS.length > 0 ? QUIZ_PART1_QUESTIONS :
+      dialect === 'gulf' && unit === '2p2' && QUIZ_PART2_QUESTIONS.length > 0 ? QUIZ_PART2_QUESTIONS :
+      dialectQuestions;
+    if (base.length === 0) {
+      Alert.alert('Quiz unavailable', 'This dialect does not have quiz content available yet.');
+      return;
+    }
+    const prioritized = await prioritizeQuizItems(base, question => question.id);
+    const shuffled = shuffleNoAdjacentFormats(prioritized);
     setAllQuestions(base);
     setQuestions(shuffled);
+    setSrsSummary(await getQuizSrsSummary(shuffled.map(question => question.id)));
     xpRef.current = 0;
     correctIdsRef.current.clear();
     wrongIdsRef.current.clear();
@@ -108,6 +321,7 @@ export default function QuizUnit2Screen() {
 
     const q = questions[currentIndex];
     const isLastQuestion = currentIndex === questions.length - 1;
+    recordQuizSrsResult(q.id, correct).catch(console.warn);
 
     if (correct) {
       xpRef.current += q.xpValue;
@@ -115,10 +329,10 @@ export default function QuizUnit2Screen() {
       setXpEarned(xpRef.current);
       setShowXpFloat(true);
       setXpFloatKey(k => k + 1);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      feedbackCorrect();
     } else {
       wrongIdsRef.current.add(q.id);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      feedbackWrong();
     }
 
     setAnswerResult(correct ? 'correct' : 'wrong');
@@ -165,7 +379,7 @@ export default function QuizUnit2Screen() {
           await supabase.from('scenario_progress').insert({
             user_id: userId,
             scenario: scenarioKey,
-            dialect: 'gulf',
+            dialect,
             completed: true,
             best_score: Math.round((correctIdsRef.current.size / allQuestions.length) * 100),
             attempts: 1,
@@ -207,34 +421,41 @@ export default function QuizUnit2Screen() {
   // ── Render ───────────────────────────────────────────────────────────────
   if (phase === 'intro') {
     return (
-      <>
+      <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizIntro title={quizTitle} onStart={startQuiz} />
-      </>
+      </PremiumRouteGate>
     );
   }
 
   if (phase === 'results') {
     return (
-      <>
+      <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizResults
           correct={correctIdsRef.current.size}
           total={allQuestions.length}
           xpEarned={xpRef.current}
           hasMissed={wrongIdsRef.current.size > 0}
+          srsSummary={srsSummary}
           onRetry={handleRetry}
           onHome={() => router.replace('/(tabs)')}
         />
-      </>
+      </PremiumRouteGate>
     );
   }
 
   const currentQuestion = questions[currentIndex];
-  if (!currentQuestion) return null;
+  if (!currentQuestion) {
+    return (
+      <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
+        <Stack.Screen options={{ headerShown: false }} />
+      </PremiumRouteGate>
+    );
+  }
 
   return (
-    <>
+    <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container}>
 
@@ -328,7 +549,7 @@ export default function QuizUnit2Screen() {
         {showXpFloat && <XPFloat key={xpFloatKey} amount={10} />}
 
       </SafeAreaView>
-    </>
+    </PremiumRouteGate>
   );
 }
 

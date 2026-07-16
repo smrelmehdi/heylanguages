@@ -1,36 +1,69 @@
-import { View, Text, Pressable, StyleSheet, Modal, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../utils/supabase';
-import { getLevelFromXP } from '../constants/levels';
-import * as Haptics from 'expo-haptics';
-import { playLocalAudio, stopAudio, speakArabic } from '../utils/tts';
-import { stripTashkeel } from '../utils/arabic';
-import {
-  NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS, NUMBERS_11_20_WORDS, NUMBERS_TENS_WORDS,
-  NUMBERS_AGE_WORDS, NUMBERS_PRICES_WORDS, NUMBERS_PHONE_WORDS, NUMBERS_HOURS_WORDS,
-  NUMBERS_MINUTES_WORDS, NUMBERS_DAYS_WORDS, NUMBERS_MONTHS_WORDS, NUMBERS_DATES_WORDS,
-  NUMBERS_ORDERING_WORDS, NUMBERS_TOGETHER_WORDS,
-  GRAMMAR_PRONOUNS_WORDS, GRAMMAR_THIS_THAT_WORDS, GRAMMAR_POSSESSIVES_WORDS,
-  GRAMMAR_PRESENT_VERBS_WORDS, GRAMMAR_PAST_VERBS_WORDS, GRAMMAR_WANT_NEED_WORDS,
-  GRAMMAR_QUESTIONS_WORDS, GRAMMAR_NEGATION_WORDS, GRAMMAR_ADJECTIVES_WORDS,
-  GRAMMAR_SENTENCES_WORDS,
-  WORK_OFFICE_WORDS, WORK_GREETINGS_WORDS, WORK_MEETING_WORDS, WORK_PHONE_WORDS,
-  WORK_EMAIL_WORDS, WORK_SCHEDULE_WORDS, WORK_PROBLEMS_WORDS, WORK_SMALLTALK_WORDS,
-  WORK_SALARY_WORDS, WORK_LEAVING_WORDS,
-  SOCIAL_GREETINGS_WORDS, SOCIAL_FAMILY_WORDS, SOCIAL_INVITATIONS_WORDS, SOCIAL_RAMADAN_WORDS,
-  SOCIAL_COMPLIMENTS_WORDS, SOCIAL_EMOTIONS_WORDS, SOCIAL_WEDDINGS_WORDS, SOCIAL_CONDOLENCES_WORDS,
-  SOCIAL_RELIGION_WORDS, SOCIAL_MANNERS_WORDS,
-} from '../constants/words';
-import type { Word } from '../constants/words';
-import { ArrowLeft, Volume2, ChevronRight } from 'lucide-react-native';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, ChevronRight, Volume2 } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
+import type { Word } from '../constants/words';
+import {
+    GRAMMAR_ADJECTIVES_WORDS,
+    GRAMMAR_NEGATION_WORDS,
+    GRAMMAR_PAST_VERBS_WORDS,
+    GRAMMAR_POSSESSIVES_WORDS,
+    GRAMMAR_PRESENT_VERBS_WORDS,
+    GRAMMAR_PRONOUNS_WORDS,
+    GRAMMAR_QUESTIONS_WORDS,
+    GRAMMAR_SENTENCES_WORDS,
+    GRAMMAR_THIS_THAT_WORDS,
+    GRAMMAR_WANT_NEED_WORDS,
+    NUMBERS_11_20_WORDS,
+    NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS,
+    NUMBERS_AGE_WORDS,
+    NUMBERS_DATES_WORDS,
+    NUMBERS_DAYS_WORDS,
+    NUMBERS_HOURS_WORDS,
+    NUMBERS_MINUTES_WORDS,
+    NUMBERS_MONTHS_WORDS,
+    NUMBERS_ORDERING_WORDS,
+    NUMBERS_PHONE_WORDS,
+    NUMBERS_PRICES_WORDS,
+    NUMBERS_TENS_WORDS,
+    NUMBERS_TOGETHER_WORDS,
+    SOCIAL_COMPLIMENTS_WORDS,
+    SOCIAL_CONDOLENCES_WORDS,
+    SOCIAL_EMOTIONS_WORDS,
+    SOCIAL_FAMILY_WORDS,
+    SOCIAL_GREETINGS_WORDS,
+    SOCIAL_INVITATIONS_WORDS,
+    SOCIAL_MANNERS_WORDS,
+    SOCIAL_RAMADAN_WORDS,
+    SOCIAL_RELIGION_WORDS,
+    SOCIAL_WEDDINGS_WORDS,
+    WORK_EMAIL_WORDS,
+    WORK_GREETINGS_WORDS,
+    WORK_LEAVING_WORDS,
+    WORK_MEETING_WORDS,
+    WORK_OFFICE_WORDS,
+    WORK_PHONE_WORDS,
+    WORK_PROBLEMS_WORDS,
+    WORK_SALARY_WORDS,
+    WORK_SCHEDULE_WORDS,
+    WORK_SMALLTALK_WORDS,
+} from '../constants/words';
 import { useDialect } from '../contexts/DialectContext';
-import { recordActivity } from '../utils/streak';
+import { useXP } from '../contexts/XPContext';
 import { getUnit4Audio, isUnit4AudioLesson } from '../data/unit4-audio';
+import { stripTashkeel } from '../utils/arabic';
+import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
+import { getLessonContentId } from '../utils/access';
+import { recordActivity } from '../utils/streak';
+import { supabase } from '../utils/supabase';
+import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, speakArabic, stopAudio } from '../utils/tts';
 
 export default function LessonScreen() {
   const router = useRouter();
@@ -39,14 +72,19 @@ export default function LessonScreen() {
   const [completed, setCompleted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [evalResult, setEvalResult] = useState<PronunciationResult | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const { content, dialect, speakInDialect } = useDialect();
+  const { addXP } = useXP();
 
   // All hooks above — derived values below
   const type = params.type;
   const typeStr = Array.isArray(type) ? type[0] : (type ?? '');
+  const routeContentId = getLessonContentId(typeStr);
 
   const LESSON_WORDS_MAP: Record<string, Word[]> = {
     // Unit 4 — Numbers & Counting
@@ -254,11 +292,16 @@ export default function LessonScreen() {
   };
 
   useEffect(() => {
-    requestRecordingPermissionsAsync();
-    return () => { stopAudio(); };
+    requestRecordingPermissionsAsync().then(({ granted }) => {
+      if (!granted) setMicPermissionDenied(true);
+    });
+    return () => {
+      stopAudio();
+      restorePlaybackAudioMode('lesson-unmount').catch(() => {});
+    };
   }, []);
 
-  const playWordAudio = () => {
+  const playWordAudio = async () => {
     const unit4Audio = getUnit4Audio(typeStr, currentIndex);
     const source = unit4Audio ? 'unit-4-local' : currentWord.audio ? 'existing-local' : 'fallback';
     const localAudioPath = unit4Audio?.path;
@@ -276,39 +319,92 @@ export default function LessonScreen() {
     }
 
     if (unit4Audio) {
-      playLocalAudio(unit4Audio.audio);
+      await playLocalAudio(unit4Audio.audio);
       return;
     }
 
     if (currentWord.audio) {
-      playLocalAudio(currentWord.audio);
+      await playLocalAudio(currentWord.audio);
     } else {
-      speakArabic(isUnit4AudioLesson(typeStr) ? currentAudioText : currentWord.arabic, content.voiceId);
+      // Use audioText (tashkeel-stripped) for TTS when available; fall back to raw arabic
+      const ttsText = (isUnit4AudioLesson(typeStr) || currentWord.audioText) ? currentAudioText : currentWord.arabic;
+      await speakArabic(ttsText, content.voiceId);
     }
   };
 
   useEffect(() => {
+    setEvalResult(null);
     if (isComingSoon) return;
-    const timer = setTimeout(playWordAudio, 300);
+    const timer = setTimeout(() => { playWordAudio().catch(console.warn); }, 300);
     return () => clearTimeout(timer);
   }, [currentIndex]);
 
   const handleSpeak = () => {
-    playWordAudio();
+    playWordAudio().catch(console.warn);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleMicPress = async () => {
+    setEvalResult(null);
     setIsRecording(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try { audioRecorder.record(); } catch (e) {}
+    try {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
+        setIsRecording(false);
+        setMicPermissionDenied(true);
+        return;
+      }
+      await prepareRecordingAudioMode('lesson');
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    } catch (e) {
+      console.warn('Lesson recording start error:', e);
+      await restorePlaybackAudioMode('lesson-record-start-error');
+      setIsRecording(false);
+    }
   };
 
   const handleMicRelease = async () => {
+    if (!isRecording) return;
     setIsRecording(false);
     setHasAttempted(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    try { await audioRecorder.stop(); } catch (e) {}
+    setIsEvaluating(true);
+	    let stableUri: string | null = null;
+	    try {
+	      await audioRecorder.stop();
+	      await restorePlaybackAudioMode('lesson-stop');
+	      // Poll until the recording file is ready
+      const startedAt = Date.now();
+      let uri: string | null = null;
+      while (Date.now() - startedAt < 3000) {
+        const candidate = audioRecorder.uri;
+        if (candidate) {
+          const info = await FileSystem.getInfoAsync(candidate);
+          if (info.exists) { uri = candidate; break; }
+        }
+        await new Promise(r => setTimeout(r, 150));
+      }
+      if (!uri) { setIsEvaluating(false); return; }
+      stableUri = `${FileSystem.cacheDirectory}lesson-eval-${Date.now()}.m4a`;
+      await FileSystem.copyAsync({ from: uri, to: stableUri });
+      const evalTarget = currentWord.evalTarget ?? currentWord.audioText ?? currentWord.arabic;
+      const result = await evaluatePronunciation(stableUri, evalTarget, dialect, 'lesson');
+      setEvalResult(result);
+      if (result.result === 'pass') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else if (result.result === 'close') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } else if (result.result === 'fail') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+	    } catch (err) {
+	      console.warn('Lesson eval error:', err);
+	    } finally {
+      await restorePlaybackAudioMode('lesson-finally');
+      setIsEvaluating(false);
+      if (stableUri) FileSystem.deleteAsync(stableUri, { idempotent: true }).catch(() => {});
+    }
   };
 
   const saveCompletion = async () => {
@@ -325,19 +421,6 @@ export default function LessonScreen() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
-      const { data: xpData } = await supabase
-        .from('users')
-        .select('xp')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      const previousXP = xpData?.xp ?? 0;
-      const oldLevel = getLevelFromXP(previousXP);
-      const newLevel = getLevelFromXP(previousXP + xpEarned);
-      if (oldLevel.name !== newLevel.name) {
-        setLevelUpData({ newLevel: newLevel.name, icon: newLevel.icon, color: newLevel.color });
-        setShowLevelUp(true);
-      }
-
       const { data: existing } = await supabase
         .from('scenario_progress')
         .select('id, attempts')
@@ -361,14 +444,11 @@ export default function LessonScreen() {
           attempts: 1,
         });
         // Only award XP the first time a lesson is completed
-        const { data: userData } = await supabase
-          .from('users')
-          .select('xp')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        await supabase.from('users').update({
-          xp: (userData?.xp ?? 0) + xpEarned,
-        }).eq('id', session.user.id);
+        const levelUp = await addXP(xpEarned);
+        if (levelUp) {
+          setLevelUpData(levelUp);
+          setShowLevelUp(true);
+        }
       }
 
       if (__DEV__) {
@@ -390,6 +470,11 @@ export default function LessonScreen() {
       const progress = guestProgress ? JSON.parse(guestProgress) : {};
       progress[scenarioKey] = true;
       await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+      const levelUp = await addXP(xpEarned);
+      if (levelUp) {
+        setLevelUpData(levelUp);
+        setShowLevelUp(true);
+      }
       if (__DEV__) {
         console.log('[completion write:done]', {
           completionType: 'lesson',
@@ -409,6 +494,7 @@ export default function LessonScreen() {
     if (currentIndex < WORDS.length - 1) {
       setCurrentIndex(i => i + 1);
       setHasAttempted(false);
+      setEvalResult(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       saveCompletion();
@@ -418,25 +504,28 @@ export default function LessonScreen() {
 
   if (isComingSoon) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
-          <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
-          <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
-            This lesson is not available for your selected dialect yet. We're working on it!
-          </Text>
-          <Pressable style={[styles.doneButton]} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
-            <Text style={styles.doneButtonText}>Go Back</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+      <PremiumRouteGate contentId={routeContentId} contentLabel={lessonTitle}>
+        <SafeAreaView style={styles.container}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
+            <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
+            <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
+              This lesson is not available for your selected dialect yet. We're working on it!
+            </Text>
+            <Pressable style={[styles.doneButton]} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}>
+              <Text style={styles.doneButtonText}>Go Back</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </PremiumRouteGate>
     );
   }
 
   if (completed) {
     return (
-      <SafeAreaView style={styles.container}>
+      <PremiumRouteGate contentId={routeContentId} contentLabel={lessonTitle}>
+        <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.completionContainer}>
           <Text style={styles.completionEmoji}>🎉</Text>
@@ -471,12 +560,14 @@ export default function LessonScreen() {
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
+        </SafeAreaView>
+      </PremiumRouteGate>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <PremiumRouteGate contentId={routeContentId} contentLabel={lessonTitle}>
+      <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -540,7 +631,7 @@ export default function LessonScreen() {
         </View>
 
         <Text style={styles.hint}>
-          {isRecording ? 'Recording...' : 'Listen first, then hold to repeat'}
+          {isEvaluating ? 'Checking...' : isRecording ? 'Recording...' : micPermissionDenied ? 'Microphone access needed' : 'Listen first, then hold to repeat'}
         </Text>
 
         {/* Controls */}
@@ -553,14 +644,31 @@ export default function LessonScreen() {
           </View>
 
           <View style={styles.primaryActionItem}>
-            <Pressable
-              style={[styles.micBtn, isRecording && styles.micBtnRecording]}
-              onPressIn={handleMicPress}
-              onPressOut={handleMicRelease}
-            >
-              <Text style={styles.micIcon}>🎙</Text>
-            </Pressable>
-            <Text style={styles.primaryActionLabel}>Hold to speak</Text>
+            {micPermissionDenied ? (
+              <Pressable
+                style={[styles.micBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderDefault }]}
+                onPress={() => Alert.alert(
+                  'Microphone Access Required',
+                  'To practice speaking, please enable microphone access for HeyYusuf in your device Settings.',
+                  [{ text: 'OK' }]
+                )}
+              >
+                <Text style={{ fontSize: 22 }}>🎙</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={[styles.micBtn, isRecording && styles.micBtnRecording, isEvaluating && styles.micBtnEvaluating]}
+                onPressIn={isEvaluating ? undefined : handleMicPress}
+                onPressOut={isEvaluating ? undefined : handleMicRelease}
+                disabled={isEvaluating}
+              >
+                {isEvaluating
+                  ? <ActivityIndicator color={theme.colors.bgBase} />
+                  : <Text style={styles.micIcon}>🎙</Text>
+                }
+              </Pressable>
+            )}
+            <Text style={styles.primaryActionLabel}>{micPermissionDenied ? 'Tap for info' : 'Hold to speak'}</Text>
           </View>
 
           <View style={styles.actionItem}>
@@ -573,9 +681,35 @@ export default function LessonScreen() {
             <Text style={[styles.actionLabel, hasAttempted && styles.actionLabelActive]}>Next</Text>
           </View>
         </View>
+
+        {evalResult && !isEvaluating && (
+          <View style={[
+            styles.evalStrip,
+            evalResult.result === 'pass' && styles.evalStripPass,
+            evalResult.result === 'close' && styles.evalStripClose,
+            evalResult.result === 'fail' && styles.evalStripFail,
+          ]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.evalStripTitle}>
+                {evalResult.result === 'pass' ? '✓ Great!' :
+                 evalResult.result === 'close' ? '≈ Almost there' :
+                 evalResult.result === 'fail' ? 'Try again' : 'Not checked'}
+              </Text>
+              {evalResult.transcript ? (
+                <Text style={styles.evalStripHeard} numberOfLines={1}>
+                  {`Heard: "${evalResult.transcript}"`}
+                </Text>
+              ) : null}
+            </View>
+            {typeof evalResult.score === 'number' && (
+              <Text style={styles.evalStripScore}>{evalResult.score}%</Text>
+            )}
+          </View>
+        )}
       </View>
 
-    </SafeAreaView>
+      </SafeAreaView>
+    </PremiumRouteGate>
   );
 }
 
@@ -611,7 +745,15 @@ const styles = StyleSheet.create({
   nextBtnActive: { borderColor: theme.colors.borderAccent, backgroundColor: 'rgba(61, 212, 192, 0.1)' },
   micBtn: { width: 78, height: 78, borderRadius: 39, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center', shadowColor: theme.colors.accentPrimary, shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
   micBtnRecording: { backgroundColor: theme.colors.accentDanger },
+  micBtnEvaluating: { backgroundColor: theme.colors.bgElevated },
   micIcon: { fontSize: 30 },
+  evalStrip: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.borderDefault, backgroundColor: theme.colors.bgSurface },
+  evalStripPass: { borderColor: theme.colors.accentSuccess, backgroundColor: 'rgba(127, 217, 154, 0.1)' },
+  evalStripClose: { borderColor: theme.colors.accentWarm, backgroundColor: 'rgba(245, 165, 36, 0.1)' },
+  evalStripFail: { borderColor: theme.colors.accentDanger, backgroundColor: 'rgba(229, 107, 111, 0.1)' },
+  evalStripTitle: { fontSize: 14, fontWeight: theme.fontWeight.medium as any, color: theme.colors.textPrimary, marginBottom: 2 },
+  evalStripHeard: { fontSize: 12, color: theme.colors.textTertiary, fontStyle: 'italic' },
+  evalStripScore: { fontSize: 20, fontWeight: theme.fontWeight.medium as any, color: theme.colors.textPrimary, marginLeft: 12 },
   hint: { textAlign: 'center', fontSize: theme.fontSize.body, color: theme.colors.textSecondary, marginBottom: 14 },
   actionLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium },
   actionLabelActive: { color: theme.colors.textAccent },

@@ -1,24 +1,25 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { useDialect } from '../contexts/DialectContext';
-import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
-import { playLocalAudio, stopAudio } from '../utils/tts';
-import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { ArrowLeft, Mic } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, PanResponder, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
-  FadeIn, FadeInRight, FadeOut, FadeOutLeft,
-  interpolateColor, LinearTransition,
-  useAnimatedStyle, useSharedValue,
-  withDelay, withRepeat, withSequence, withTiming,
+    FadeIn, FadeInRight,
+    FadeOutLeft,
+    interpolateColor, LinearTransition,
+    useAnimatedStyle, useSharedValue,
+    withDelay, withRepeat, withSequence, withTiming
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Yusuf, { type Mood } from '../components/Yusuf';
 import { theme } from '../constants/theme';
+import { useDialect } from '../contexts/DialectContext';
+import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
+import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 function useTypewriter(text: string, speed = 30) {
   const [displayedText, setDisplayedText] = useState('');
@@ -81,7 +82,6 @@ const DIALECTS = [
   { label: 'Gulf Arabic', sublabel: 'UAE · Saudi · Kuwait', value: 'gulf', flag: '🇦🇪' },
   { label: 'Egyptian Arabic', sublabel: 'Most widely understood', value: 'egyptian', flag: '🇪🇬' },
   { label: 'Modern Standard', sublabel: 'Formal · News · Books', value: 'msa', flag: '🌍' },
-  { label: 'Levantine', sublabel: '🔜 Coming Soon', value: 'levantine', flag: '🇱🇧', disabled: true },
   { label: 'Maghrebi', sublabel: '🔜 Coming Soon', value: 'maghrebi', flag: '🇲🇦', disabled: true },
 ];
 
@@ -120,9 +120,12 @@ export default function OnboardingWizard() {
   useEffect(() => {
     (async () => {
       await requestRecordingPermissionsAsync();
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await restorePlaybackAudioMode('onboarding-init');
     })();
-    return () => { stopAudio(); };
+    return () => {
+      stopAudio();
+      restorePlaybackAudioMode('onboarding-unmount').catch(() => {});
+    };
   }, []);
 
   useEffect(() => {
@@ -218,7 +221,7 @@ export default function OnboardingWizard() {
     if (!recordingUri || isPlaying) return;
     setIsPlaying(true);
     try {
-      playLocalAudio({ uri: recordingUri }, {
+      await playLocalAudio({ uri: recordingUri }, {
         onComplete: () => setIsPlaying(false),
       });
     } catch (e) {
@@ -239,12 +242,13 @@ export default function OnboardingWizard() {
           setIsListening(false);
           return false;
         }
-        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        await prepareRecordingAudioMode('onboarding');
         await audioRecorder.prepareToRecordAsync();
         audioRecorder.record();
         return true;
       } catch (err) {
         console.error('Failed to start recording', err);
+        await restorePlaybackAudioMode('onboarding-record-start-error');
         setIsListening(false);
         return false;
       }
@@ -283,9 +287,13 @@ export default function OnboardingWizard() {
         return;
       }
       await audioRecorder.stop();
+      await restorePlaybackAudioMode('onboarding-stop');
       uri = await waitForRecordingUri();
       if (uri) setRecordingUri(uri);
-    } catch (e) { console.warn('Stop error:', e); }
+    } catch (e) {
+      console.warn('Stop error:', e);
+      await restorePlaybackAudioMode('onboarding-stop-error');
+    }
     setShowSelfAssess(true);
 
     if (!uri) {
@@ -309,6 +317,7 @@ export default function OnboardingWizard() {
       setPronScore(45);
       setFeedback("Nice first try - welcome to HeyYusuf.");
     } finally {
+      await restorePlaybackAudioMode('onboarding-finally');
       setIsEvaluatingSpeech(false);
     }
   };

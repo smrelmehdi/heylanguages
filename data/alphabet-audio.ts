@@ -7,7 +7,7 @@ export type AlphabetAudioItem = {
   transliteration: string;
   english: string;
   audioPath: string;
-  audio: any;
+  audio?: any;
 };
 
 export const ALPHABET_AUDIO: AlphabetAudioItem[] = [
@@ -16,7 +16,7 @@ export const ALPHABET_AUDIO: AlphabetAudioItem[] = [
   { id: 'ta', index: 3, displayArabic: 'تاء', audioText: 'تَاءْ', evalTarget: 'تاء', transliteration: 'Ta', english: 'Ta', audioPath: 'assets/audio/alphabet-v2/3.mp3', audio: require('../assets/audio/alphabet-v2/3.mp3') },
   { id: 'tha', index: 4, displayArabic: 'ثاء', audioText: 'ثَاءْ', evalTarget: 'ثاء', transliteration: 'Tha', english: 'Tha', audioPath: 'assets/audio/alphabet-v2/4.mp3', audio: require('../assets/audio/alphabet-v2/4.mp3') },
   { id: 'jim', index: 5, displayArabic: 'جيم', audioText: 'جِيمْ', evalTarget: 'جيم', transliteration: 'Jim', english: 'Jim', audioPath: 'assets/audio/alphabet-v2/5.mp3', audio: require('../assets/audio/alphabet-v2/5.mp3') },
-  { id: 'ha', index: 6, displayArabic: 'حاء', audioText: 'حَاءْ', evalTarget: 'حاء', transliteration: 'Ha', english: 'Ha', audioPath: 'assets/audio/alphabet-v2/6.mp3', audio: require('../assets/audio/alphabet-v2/6.mp3') },
+  { id: 'ha', index: 6, displayArabic: 'حاء', audioText: 'حَاء', evalTarget: 'حاء', transliteration: 'Haa', english: 'Haa', audioPath: 'assets/audio/alphabet-v2/6.mp3', audio: require('../assets/audio/alphabet-v2/6.mp3') },
   { id: 'kha', index: 7, displayArabic: 'خاء', audioText: 'خَاءْ', evalTarget: 'خاء', transliteration: 'Kha', english: 'Kha', audioPath: 'assets/audio/alphabet-v2/7.mp3', audio: require('../assets/audio/alphabet-v2/7.mp3') },
   { id: 'dal', index: 8, displayArabic: 'دال', audioText: 'دَالْ', evalTarget: 'دال', transliteration: 'Dal', english: 'Dal', audioPath: 'assets/audio/alphabet-v2/8.mp3', audio: require('../assets/audio/alphabet-v2/8.mp3') },
   { id: 'dhal', index: 9, displayArabic: 'ذال', audioText: 'ذَالْ', evalTarget: 'ذال', transliteration: 'Dhal', english: 'Dhal', audioPath: 'assets/audio/alphabet-v2/9.mp3', audio: require('../assets/audio/alphabet-v2/9.mp3') },
@@ -38,5 +38,8 @@ export const ALPHABET_AUDIO: AlphabetAudioItem[] = [
   { id: 'nun', index: 25, displayArabic: 'نون', audioText: 'نُونْ', evalTarget: 'نون', transliteration: 'Nun', english: 'Nun', audioPath: 'assets/audio/alphabet-v2/25.mp3', audio: require('../assets/audio/alphabet-v2/25.mp3') },
   { id: 'ha2', index: 26, displayArabic: 'هاء', audioText: 'هَاءْ', evalTarget: 'هاء', transliteration: 'Ha', english: 'Ha', audioPath: 'assets/audio/alphabet-v2/26.mp3', audio: require('../assets/audio/alphabet-v2/26.mp3') },
   { id: 'waw', index: 27, displayArabic: 'واو', audioText: 'وَاوْ', evalTarget: 'واو', transliteration: 'Waw', english: 'Waw', audioPath: 'assets/audio/alphabet-v2/27.mp3', audio: require('../assets/audio/alphabet-v2/27.mp3') },
-  { id: 'ya', index: 28, displayArabic: 'ياء', audioText: 'يَاءْ', evalTarget: 'ياء', transliteration: 'Ya', english: 'Ya', audioPath: 'assets/audio/alphabet-v2/28.mp3', audio: require('../assets/audio/alphabet-v2/28.mp3') },
+  { id: 'ya', index: 28, displayArabic: 'ياء', audioText: 'يا.', evalTarget: 'ياء', transliteration: 'Ya', english: 'Ya', audioPath: 'assets/audio/alphabet-v2/28.mp3', audio: require('../assets/audio/alphabet-v2/28.mp3') },
+  { id: 'ta_marbuta', index: 29, displayArabic: 'تاء مربوطة', audioText: 'تاء مربوطة', evalTarget: 'تاء مربوطة', transliteration: 'Ta Marbuta', english: 'Ta Marbuta', audioPath: 'assets/audio/alphabet-v2/29.mp3', audio: require('../assets/audio/alphabet-v2/29.mp3') },
+  { id: 'hamza', index: 30, displayArabic: 'همزة', audioText: 'هَمْزَه', evalTarget: 'همزة', transliteration: 'Hamza', english: 'Hamza', audioPath: 'assets/audio/alphabet-v2/30.mp3', audio: require('../assets/audio/alphabet-v2/30.mp3') },
+  { id: 'alif_maqsura', index: 31, displayArabic: 'ألف مقصورة', audioText: 'أَلِف مَقْصُورَه', evalTarget: 'ألف مقصورة', transliteration: 'Alif Maqsura', english: 'Alif Maqsura', audioPath: 'assets/audio/alphabet-v2/31.mp3', audio: require('../assets/audio/alphabet-v2/31.mp3') },
 ];

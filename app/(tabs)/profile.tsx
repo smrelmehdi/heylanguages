@@ -1,15 +1,19 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert, DevSettings } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../utils/supabase';
-import { Globe, BarChart2, LogOut, ChevronRight } from 'lucide-react-native';
-import { useDialect } from '../../contexts/DialectContext';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { BarChart2, ChevronRight, Crown, Download, Globe, LogOut, RefreshCw, Trash2 } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
+import { Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getLevelFromXP, getXPProgress, getXPToNextLevel, LEVELS } from '../../constants/levels';
-import { version } from '../../package.json';
+import { LEGAL_URLS } from '../../constants/legal';
 import { theme } from '../../constants/theme';
+import { useConnectivity } from '../../contexts/ConnectivityContext';
+import { useDialect } from '../../contexts/DialectContext';
+import { usePremium } from '../../contexts/PremiumContext';
+import { useXP } from '../../contexts/XPContext';
+import { version } from '../../package.json';
+import type { OfflineDialect } from '../../utils/offline-pack';
+import { supabase } from '../../utils/supabase';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -17,7 +21,9 @@ export default function ProfileScreen() {
   const [level, setLevel] = useState('Beginner');
   const [streakCount, setStreakCount] = useState(0);
   const { dialect: contextDialect, setDialect: setContextDialect } = useDialect();
-  const [xpTotal, setXpTotal] = useState(0);
+  const { xp: xpTotal, isPremium } = useXP();
+  const { restorePurchases, isRestoring, error: premiumError, managementURL } = usePremium();
+  const { offlinePacks, downloadStates, downloadPack, removePack, getPackAssetCount } = useConnectivity();
   const [scenariosCompleted, setScenariosCompleted] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
 
@@ -47,16 +53,7 @@ export default function ProfileScreen() {
         setStreakCount(user.streak_count ?? 0);
       }
 
-      const { data: convos } = await supabase
-        .from('conversations')
-        .select('xp_earned')
-        .eq('user_id', session.user.id)
-        .eq('status', 'completed');
-
-      if (convos) {
-        setXpTotal(convos.reduce((sum, c) => sum + (c.xp_earned ?? 0), 0));
-      }
-
+      // XP comes from XPContext (reads users.xp, includes both lessons and scenarios)
       const { data: progress } = await supabase
         .from('scenario_progress')
         .select('id, completed')
@@ -90,6 +87,7 @@ export default function ProfileScreen() {
   };
 
   const updateDialect = async (newDialect: string) => {
+    if (newDialect === contextDialect) return;
     await setContextDialect(newDialect);
   };
 
@@ -157,8 +155,7 @@ export default function ProfileScreen() {
       gulf: 'Gulf Arabic',
       egyptian: 'Egyptian',
       msa: 'Modern Standard',
-      levantine: 'Levantine',
-      maghrebi: 'Maghrebi',
+      maghrebi: 'Maghrebi (Coming Soon)',
     };
     return labels[contextDialect] ?? contextDialect;
   };
@@ -168,6 +165,62 @@ export default function ProfileScreen() {
   const currentLevel = getLevelFromXP(xpTotal);
   const xpProgress = getXPProgress(xpTotal);
   const xpToNext = getXPToNextLevel(xpTotal);
+
+  const DIALECTS: Array<{ id: OfflineDialect; label: string }> = [
+    { id: 'gulf', label: 'Gulf Arabic' },
+    { id: 'egyptian', label: 'Egyptian Arabic' },
+    { id: 'msa', label: 'Modern Standard' },
+  ];
+
+  const handleDownloadPack = async (dialect: OfflineDialect) => {
+    try {
+      await downloadPack(dialect);
+      Alert.alert('Offline pack ready', `${DIALECTS.find(item => item.id === dialect)?.label ?? 'Dialect'} can now be used offline on premium.`);
+    } catch (error) {
+      Alert.alert('Download failed', error instanceof Error ? error.message : 'Could not prepare the offline pack.');
+    }
+  };
+
+  const handleRemovePack = (dialect: OfflineDialect) => {
+    Alert.alert(
+      'Remove offline pack?',
+      'You can download it again later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await removePack(dialect);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRestorePurchases = async () => {
+    const restored = await restorePurchases();
+    Alert.alert(
+      restored ? 'Premium restored' : 'No premium found',
+      restored
+        ? 'Your premium access is active on this device.'
+        : 'No active premium subscription was found for this store account.'
+    );
+  };
+
+  const handleManageSubscription = async () => {
+    if (!managementURL) return;
+    const canOpen = await Linking.canOpenURL(managementURL);
+    if (canOpen) {
+      await Linking.openURL(managementURL);
+    }
+  };
+
+  const openExternalLink = (url: string) => {
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Could not open link', 'Please try again later.');
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -258,9 +311,147 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
+        <Text style={styles.sectionTitle}>Premium</Text>
+        <View style={styles.settingsCard}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Crown color="#F59E0B" size={16} />
+              </View>
+              <View>
+                <Text style={styles.settingLabel}>Membership</Text>
+                <Text style={styles.offlineMeta}>
+                  {isPremium
+                    ? 'Premium unlocks all lessons, offline packs, and premium practice.'
+                    : 'Free plan includes Units 1-3 and previews in Units 4-5.'}
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.premiumStatus, isPremium && styles.premiumStatusActive]}>
+              {isPremium ? 'Active' : 'Free'}
+            </Text>
+          </View>
+
+          <Pressable
+            style={[styles.settingRow, !managementURL && styles.settingRowLast]}
+            onPress={handleRestorePurchases}
+            disabled={isRestoring}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <RefreshCw color={theme.colors.accentPrimary} size={16} />
+              </View>
+              <Text style={styles.settingLabel}>{isRestoring ? 'Restoring...' : 'Restore Purchases'}</Text>
+            </View>
+            <ChevronRight color={theme.colors.textTertiary} size={16} />
+          </Pressable>
+
+          {managementURL && (
+            <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleManageSubscription}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Crown color={theme.colors.accentPrimary} size={16} />
+                </View>
+                <Text style={styles.settingLabel}>Manage Subscription</Text>
+              </View>
+              <ChevronRight color={theme.colors.textTertiary} size={16} />
+            </Pressable>
+          )}
+
+          {premiumError && <Text style={styles.premiumError}>{premiumError}</Text>}
+        </View>
+
+        <Text style={styles.sectionTitle}>Offline audio</Text>
+        {isPremium ? (
+          <View style={styles.settingsCard}>
+            {DIALECTS.map((dialect, index) => {
+              const pack = offlinePacks[dialect.id];
+              const downloadState = downloadStates[dialect.id];
+              const isCurrentDialect = contextDialect === dialect.id;
+              const isDownloading = downloadState.status === 'downloading';
+              const progressPct = Math.round(downloadState.progress * 100);
+
+              return (
+                <View
+                  key={dialect.id}
+                  style={[styles.settingRow, index === DIALECTS.length - 1 && styles.settingRowLast]}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Download color={theme.colors.accentPrimary} size={16} />
+                    </View>
+                    <View>
+                      <Text style={styles.settingLabel}>{dialect.label}</Text>
+                      <Text style={styles.offlineMeta}>
+                        {isDownloading
+                          ? `Preparing pack… ${progressPct}%`
+                          : pack.downloaded
+                            ? `${pack.assetCount} audio files ready offline`
+                            : `${getPackAssetCount(dialect.id)} audio files available`}
+                      </Text>
+                      {isCurrentDialect && <Text style={styles.currentDialectTag}>Current dialect</Text>}
+                    </View>
+                  </View>
+
+                  {pack.downloaded ? (
+                    <Pressable style={styles.offlineActionGhost} onPress={() => handleRemovePack(dialect.id)}>
+                      <Trash2 color={theme.colors.accentDanger} size={15} />
+                      <Text style={styles.offlineActionGhostText}>Remove</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      style={[styles.offlineActionPrimary, isDownloading && styles.offlineActionDisabled]}
+                      disabled={isDownloading}
+                      onPress={() => handleDownloadPack(dialect.id)}
+                    >
+                      <Text style={styles.offlineActionPrimaryText}>{isDownloading ? 'Preparing…' : 'Download'}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.offlineTeaserCard}>
+            <Text style={styles.offlineTeaserTitle}>Offline packs are premium only</Text>
+            <Text style={styles.offlineTeaserText}>Members can prepare Gulf, Egyptian, and MSA audio packs for offline use. Free users need an internet connection.</Text>
+            <Pressable style={styles.offlineTeaserButton} onPress={() => Alert.alert('Premium feature', 'Offline dialect packs unlock with an active premium membership.')}>
+              <Text style={styles.offlineTeaserButtonText}>Explore Premium</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Account */}
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.settingsCard}>
+          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.privacy)}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingLabel}>Privacy Policy</Text>
+            </View>
+            <ChevronRight color={theme.colors.textTertiary} size={16} />
+          </Pressable>
+
+          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.terms)}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingLabel}>Terms of Use</Text>
+            </View>
+            <ChevronRight color={theme.colors.textTertiary} size={16} />
+          </Pressable>
+
+          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.support)}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingLabel}>Support</Text>
+            </View>
+            <ChevronRight color={theme.colors.textTertiary} size={16} />
+          </Pressable>
+
+          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.deleteAccount)}>
+            <View style={styles.settingLeft}>
+              <Text style={styles.settingLabel}>Delete Account</Text>
+            </View>
+            <ChevronRight color={theme.colors.textTertiary} size={16} />
+          </Pressable>
+
           <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleLogout}>
             <View style={styles.settingLeft}>
               <View style={styles.settingIcon}>
@@ -312,11 +503,26 @@ const styles = StyleSheet.create({
   settingsCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 14 },
   settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: theme.colors.borderDefault },
   settingRowLast: { borderBottomWidth: 0 },
-  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   settingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   settingIcon: { width: 32, height: 32, borderRadius: theme.radii.xs, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.bgElevated },
   settingLabel: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular },
   settingValue: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary },
+  premiumStatus: { fontSize: 13, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary },
+  premiumStatusActive: { color: '#F59E0B' },
+  premiumError: { color: theme.colors.accentDanger, fontSize: 13, lineHeight: 18, paddingHorizontal: 14, paddingBottom: 14 },
+  offlineMeta: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 3 },
+  currentDialectTag: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, marginTop: 4 },
+  offlineActionPrimary: { minWidth: 96, height: 38, borderRadius: theme.radii.md, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  offlineActionPrimaryText: { color: theme.colors.bgBase, fontSize: 13, fontWeight: theme.fontWeight.medium },
+  offlineActionGhost: { minWidth: 96, height: 38, borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.accentDanger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, flexDirection: 'row', gap: 6 },
+  offlineActionGhostText: { color: theme.colors.accentDanger, fontSize: 13, fontWeight: theme.fontWeight.medium },
+  offlineActionDisabled: { opacity: 0.6 },
+  offlineTeaserCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 18, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 14 },
+  offlineTeaserTitle: { fontSize: 16, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8 },
+  offlineTeaserText: { fontSize: 14, lineHeight: 20, color: theme.colors.textSecondary, marginBottom: 14 },
+  offlineTeaserButton: { height: 46, borderRadius: theme.radii.md, backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderAccent, alignItems: 'center', justifyContent: 'center' },
+  offlineTeaserButtonText: { color: theme.colors.textAccent, fontSize: 14, fontWeight: theme.fontWeight.medium },
   version: { textAlign: 'center', fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, marginTop: 8 },
   xpProgressCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: theme.colors.borderDefault },
   xpProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
