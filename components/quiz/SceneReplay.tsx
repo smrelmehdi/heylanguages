@@ -4,50 +4,78 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSequence,
 } from 'react-native-reanimated';
 import type { SceneReplayQuestion } from '../../data/quiz-types';
-import { speakArabic, playLocalAudio } from '../../utils/tts';
+import type { QuizAnswerResult } from '../../utils/quiz-scoring';
+import { speakArabic, playLocalAudio, stopAudio } from '../../utils/tts';
 import { theme } from '../../constants/theme';
 
 interface Props {
   question: SceneReplayQuestion;
   answerResult: 'none' | 'correct' | 'wrong';
-  onAnswer: (correct: boolean) => void;
+  onAnswer: (result: QuizAnswerResult) => void;
+  showTranslit?: boolean;
 }
 
-export default function SceneReplay({ question, answerResult, onAnswer }: Props) {
+export default function SceneReplay({ question, answerResult, onAnswer, showTranslit = true }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
+  const [translitRevealed, setTranslitRevealed] = useState(false);
+  const [isStartingAudio, setIsStartingAudio] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  const playQuestionAudio = async () => {
+    if (isStartingAudio) return;
+    setIsStartingAudio(true);
+    setAudioError(null);
+    try {
+      if (question.audioFile) await playLocalAudio(question.audioFile);
+      else await speakArabic(question.audioText);
+    } catch {
+      setAudioError('Audio did not start. Tap to retry.');
+    } finally {
+      setTimeout(() => setIsStartingAudio(false), 250);
+    }
+  };
 
   // Auto-play audio on mount
   useEffect(() => {
     const t = setTimeout(() => {
-      if (question.audioFile) playLocalAudio(question.audioFile);
-      else speakArabic(question.audioText);
+      playQuestionAudio();
     }, 400);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      stopAudio();
+    };
   }, []);
 
   const handleSelect = (index: number) => {
     if (selected !== null || answerResult !== 'none') return;
     setSelected(index);
-    onAnswer(question.options[index].isCorrect);
+    onAnswer({ correct: question.options[index].isCorrect, usedHint: translitRevealed });
   };
 
   const handleReplay = () => {
-    if (question.audioFile) playLocalAudio(question.audioFile);
-    else speakArabic(question.audioText);
+    playQuestionAudio();
   };
 
   return (
     <View style={styles.container}>
       {/* Scene image */}
-      <Pressable onPress={handleReplay}>
+      <Pressable onPress={handleReplay} disabled={isStartingAudio}>
         <Image source={question.sceneImage} style={styles.image} resizeMode="cover" />
         <View style={styles.replayBadge}>
-          <Text style={styles.replayText}>🔊 Tap to replay</Text>
+          <Text style={styles.replayText}>{isStartingAudio ? 'Starting…' : '🔊 Tap to replay'}</Text>
         </View>
       </Pressable>
+      {audioError && <Text style={styles.audioError}>{audioError}</Text>}
 
       {/* Prompt */}
       <Text style={styles.prompt}>{question.prompt}</Text>
+
+      {/* Transliteration reveal button for Tier 3+ */}
+      {!showTranslit && !translitRevealed && answerResult === 'none' && (
+        <Pressable style={styles.revealBtn} onPress={() => setTranslitRevealed(true)}>
+          <Text style={styles.revealBtnText}>👁 Reveal transliteration</Text>
+        </Pressable>
+      )}
 
       {/* Options */}
       {question.options.map((opt, i) => {
@@ -71,6 +99,7 @@ export default function SceneReplay({ question, answerResult, onAnswer }: Props)
             key={i}
             arabic={opt.arabic}
             transliteration={opt.transliteration}
+            showTranslit={showTranslit || translitRevealed || answerResult !== 'none'}
             bg={bg}
             border={border}
             textColor={textColor}
@@ -86,7 +115,7 @@ export default function SceneReplay({ question, answerResult, onAnswer }: Props)
   );
 }
 
-function OptionCard({ arabic, transliteration, bg, border, textColor, romanColor, onPress, disabled, pulse, shake }: any) {
+function OptionCard({ arabic, transliteration, showTranslit, bg, border, textColor, romanColor, onPress, disabled, pulse, shake }: any) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
 
@@ -119,7 +148,7 @@ function OptionCard({ arabic, transliteration, bg, border, textColor, romanColor
     <Pressable onPress={onPress} disabled={disabled}>
       <Animated.View style={[styles.option, { backgroundColor: bg, borderColor: border }, animStyle]}>
         <Text style={[styles.optionArabic, { color: textColor }]}>{arabic}</Text>
-        <Text style={[styles.optionRoman, { color: romanColor }]}>{transliteration}</Text>
+        {showTranslit && <Text style={[styles.optionRoman, { color: romanColor }]}>{transliteration}</Text>}
       </Animated.View>
     </Pressable>
   );
@@ -130,7 +159,10 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: 180, borderRadius: theme.radii.lg, marginBottom: 4 },
   replayBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: theme.radii.sm, paddingHorizontal: 10, paddingVertical: 4 },
   replayText: { color: theme.colors.textPrimary, fontSize: theme.fontSize.label },
+  audioError: { fontSize: 13, color: theme.colors.accentWarm, textAlign: 'center' },
   prompt: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center', marginBottom: 4 },
+  revealBtn: { alignSelf: 'center', backgroundColor: 'rgba(255, 170, 0, 0.08)', borderRadius: theme.radii.pill, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(255, 170, 0, 0.25)' },
+  revealBtnText: { fontSize: 13, color: theme.colors.accentWarm },
   option: { minHeight: 56, borderRadius: theme.radii.sm, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
   optionArabic: { fontSize: 17, fontWeight: theme.fontWeight.medium, textAlign: 'center' },
   optionRoman: { fontSize: theme.fontSize.caption, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },

@@ -5,20 +5,23 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { FillConversationQuestion } from '../../data/quiz-types';
 import { theme } from '../../constants/theme';
+import type { QuizAnswerResult } from '../../utils/quiz-scoring';
 
 interface Props {
   question: FillConversationQuestion;
   answerResult: 'none' | 'correct' | 'wrong';
-  onAnswer: (correct: boolean) => void;
+  onAnswer: (result: QuizAnswerResult) => void;
+  showTranslit?: boolean;
 }
 
-export default function FillConversation({ question, answerResult, onAnswer }: Props) {
+export default function FillConversation({ question, answerResult, onAnswer, showTranslit = true }: Props) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [translitRevealed, setTranslitRevealed] = useState(false);
 
   const handleSelect = (index: number) => {
     if (selectedIndex !== null || answerResult !== 'none') return;
     setSelectedIndex(index);
-    onAnswer(question.options[index].isCorrect);
+    onAnswer({ correct: question.options[index].isCorrect, usedHint: translitRevealed });
   };
 
   const filledOption = selectedIndex !== null ? question.options[selectedIndex] : null;
@@ -55,6 +58,13 @@ export default function FillConversation({ question, answerResult, onAnswer }: P
         })}
       </View>
 
+      {/* Transliteration reveal for Tier 3+ */}
+      {!showTranslit && !translitRevealed && answerResult === 'none' && (
+        <Pressable style={styles.revealBtn} onPress={() => setTranslitRevealed(true)}>
+          <Text style={styles.revealBtnText}>👁 Reveal transliteration</Text>
+        </Pressable>
+      )}
+
       {/* Options */}
       <View style={styles.options}>
         {question.options.map((opt, i) => {
@@ -73,6 +83,7 @@ export default function FillConversation({ question, answerResult, onAnswer }: P
             border = theme.colors.borderAccent;
           }
 
+          const showRoman = showTranslit || translitRevealed || answerResult !== 'none';
           return (
             <Pressable
               key={i}
@@ -81,7 +92,7 @@ export default function FillConversation({ question, answerResult, onAnswer }: P
               disabled={selectedIndex !== null}
             >
               <Text style={[styles.optionArabic, { color: textColor }]}>{opt.arabic}</Text>
-              <Text style={[styles.optionRoman, { color: romanColor }]}>{opt.transliteration}</Text>
+              {showRoman && <Text style={[styles.optionRoman, { color: romanColor }]}>{opt.transliteration}</Text>}
             </Pressable>
           );
         })}
@@ -161,6 +172,8 @@ const styles = StyleSheet.create({
   npcRoman: { color: theme.colors.textSecondary },
   blankPlaceholder: { fontSize: 20, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 4, paddingVertical: 4 },
 
+  revealBtn: { alignSelf: 'center', backgroundColor: 'rgba(255, 170, 0, 0.08)', borderRadius: theme.radii.pill, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(255, 170, 0, 0.25)', marginBottom: 4 },
+  revealBtnText: { fontSize: 13, color: theme.colors.accentWarm },
   options: { gap: 10 },
   option: { minHeight: 56, borderRadius: theme.radii.sm, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
   optionArabic: { fontSize: 16, fontWeight: theme.fontWeight.medium, textAlign: 'center' },

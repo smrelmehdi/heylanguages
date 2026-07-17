@@ -3,21 +3,40 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import type { QuizSrsSummary } from '../../utils/srs';
 
-const PASSING_SCORE = 14;
-
 interface Props {
   correct: number;
   total: number;
+  passingScore: number;
+  passed: boolean;
   xpEarned: number;
+  maxXp: number;
+  persistedXpAdded: number;
   hasMissed: boolean;
+  correctedCount?: number;
+  missedCount?: number;
   srsSummary?: QuizSrsSummary | null;
-  onRetry: () => void;
+  onPracticeMistakes: () => void;
+  onRetryFull: () => void;
   onHome: () => void;
 }
 
-export default function QuizResults({ correct, total, xpEarned, hasMissed, srsSummary, onRetry, onHome }: Props) {
+export default function QuizResults({
+  correct,
+  total,
+  passingScore,
+  passed,
+  xpEarned,
+  maxXp,
+  persistedXpAdded,
+  hasMissed,
+  correctedCount = 0,
+  missedCount = 0,
+  srsSummary,
+  onPracticeMistakes,
+  onRetryFull,
+  onHome,
+}: Props) {
   const pct = Math.round((correct / total) * 100);
-  const passed = correct >= PASSING_SCORE;
   const stars = pct === 100 ? 3 : pct >= 78 ? 2 : 1;
 
   const grade =
@@ -52,7 +71,7 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, srsSu
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statVal}>+{xpEarned}</Text>
-            <Text style={styles.statLabel}>XP Earned</Text>
+            <Text style={styles.statLabel}>Attempt XP</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -69,7 +88,19 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, srsSu
         {passed ? (
           <Text style={styles.passMsg}>✓ Quiz passed! Next lesson unlocked.</Text>
         ) : (
-          <Text style={styles.failMsg}>Need {PASSING_SCORE}/{total} to pass. You can do it!</Text>
+          <Text style={styles.failMsg}>Need {passingScore}/{total} to pass. You can do it!</Text>
+        )}
+
+        <Text style={styles.initialScoreNote}>Initial score: {correct} / {total}</Text>
+
+        <Text style={styles.xpNote}>
+          Max possible: +{maxXp} XP · Saved this time: +{persistedXpAdded} XP
+        </Text>
+
+        {missedCount > 0 && (
+          <Text style={styles.practiceNote}>
+            Corrected after practice: {correctedCount} / {missedCount} missed
+          </Text>
         )}
 
         {srsSummary && (
@@ -98,11 +129,15 @@ export default function QuizResults({ correct, total, xpEarned, hasMissed, srsSu
           <Text style={styles.homeBtnText}>Back to Home</Text>
         </Pressable>
 
-        {hasMissed && !passed && (
-          <Pressable style={styles.retryBtn} onPress={onRetry}>
-            <Text style={styles.retryBtnText}>Retry Missed Questions</Text>
+        {hasMissed && (
+          <Pressable style={styles.retryBtn} onPress={onPracticeMistakes}>
+            <Text style={styles.retryBtnText}>Practice Mistakes</Text>
           </Pressable>
         )}
+
+        <Pressable style={styles.secondaryBtn} onPress={onRetryFull}>
+          <Text style={styles.secondaryBtnText}>Retry Full Quiz</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -127,6 +162,9 @@ const styles = StyleSheet.create({
   statDivider: { width: 0.5, backgroundColor: theme.colors.borderDefault },
   passMsg: { fontSize: theme.fontSize.body, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, marginBottom: 20, textAlign: 'center' },
   failMsg: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary, marginBottom: 20, textAlign: 'center' },
+  initialScoreNote: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 6, textAlign: 'center' },
+  xpNote: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 16, textAlign: 'center' },
+  practiceNote: { fontSize: 13, color: theme.colors.textTertiary, marginBottom: 16, textAlign: 'center' },
   srsCard: { width: '100%', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, padding: theme.spacing.lg, marginBottom: 20 },
   srsTitle: { fontSize: 16, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 12, textAlign: 'center' },
   srsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
@@ -138,4 +176,6 @@ const styles = StyleSheet.create({
   homeBtnText: { color: theme.colors.bgBase, fontSize: 17, fontWeight: theme.fontWeight.medium },
   retryBtn: { width: '100%', height: 50, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.borderDefault, alignItems: 'center', justifyContent: 'center' },
   retryBtnText: { color: theme.colors.textAccent, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium },
+  secondaryBtn: { width: '100%', height: 50, alignItems: 'center', justifyContent: 'center' },
+  secondaryBtnText: { color: theme.colors.textTertiary, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium },
 });

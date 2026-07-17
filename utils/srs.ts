@@ -218,3 +218,19 @@ function prioritizeByRecency<T>(
     return leftEntry.updatedAt - rightEntry.updatedAt;
   });
 }
+
+export async function getTotalDueCount(): Promise<number> {
+  const map = await loadQuizSrsMap();
+  const now = Date.now();
+  return Object.values(map).filter(e => e.dueAt <= now).length;
+}
+
+export async function getDueItemIds(): Promise<Set<string>> {
+  const map = await loadQuizSrsMap();
+  const now = Date.now();
+  const ids = new Set<string>();
+  for (const [id, entry] of Object.entries(map)) {
+    if (entry.dueAt <= now) ids.add(id);
+  }
+  return ids;
+}
