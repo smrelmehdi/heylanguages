@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Asset } from 'expo-asset';
+import { ALPHABET_AUDIO } from '../data/alphabet-audio';
 import { getDialectContent } from '../data/content-registry';
+import { getDialectProgressionItems } from './content-resolver';
 
 export type OfflineDialect = 'gulf' | 'egyptian' | 'msa';
 
@@ -24,18 +26,25 @@ const EMPTY_PACKS: OfflinePackMap = {
 
 function uniqueAudioModules(dialect: OfflineDialect): number[] {
   const content = getDialectContent(dialect);
+  const curriculumItems = getDialectProgressionItems(dialect);
   const ids = new Set<number>();
 
   const maybeAdd = (value: unknown) => {
     if (typeof value === 'number') ids.add(value);
   };
 
-  Object.values(content.lessons).forEach(words => {
-    words.forEach(word => maybeAdd(word.audio));
-  });
-
-  Object.values(content.scenarios).forEach(turns => {
-    turns.forEach(turn => maybeAdd(turn.audio));
+  curriculumItems.forEach(item => {
+    if (item.contentType === 'lesson') {
+      const words = item.lessonWords ?? (item.lessonKey ? content.lessons[item.lessonKey] : undefined) ?? [];
+      words.forEach(word => maybeAdd(word.audio));
+    }
+    if (item.contentType === 'scenario' && item.scenarioName) {
+      const turns = content.scenarios[item.scenarioName] ?? [];
+      turns.forEach(turn => maybeAdd(turn.audio));
+    }
+    if (item.contentType === 'writing') {
+      ALPHABET_AUDIO.forEach(letter => maybeAdd(letter.audio));
+    }
   });
 
   return [...ids];

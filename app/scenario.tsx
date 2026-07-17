@@ -33,8 +33,10 @@ import { useXP } from '../contexts/XPContext';
 import { DIALECT_LABELS } from '../data/content-registry';
 import { stripTashkeel } from '../utils/arabic';
 import { getScenarioContentId } from '../utils/access';
+import { resolveContent } from '../utils/content-resolver';
 import { feedbackLevelUp } from '../utils/feedback';
 import { evaluatePronunciation } from '../utils/pronunciation';
+import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
 import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
@@ -370,7 +372,8 @@ function getEvalSubtitle(result: ScenarioEvalResult): string {
   return result.feedback;
 }
 
-const SCENARIO_ACCEPTED_ALTERNATIVES = [
+const SCENARIO_ACCEPTED_ALTERNATIVES_BY_DIALECT: Record<string, Array<{ target: string; accepts: string[] }>> = {
+  gulf: [
   // Greetings
   { target: 'السلام عليكم', accepts: ['السلام عليكم', 'سلام عليكم', 'السلام', 'سلام'] },
   { target: 'وعليكم السلام', accepts: ['وعليكم السلام', 'وعليكم', 'السلام', 'سلام'] },
@@ -400,7 +403,25 @@ const SCENARIO_ACCEPTED_ALTERNATIVES = [
   { target: 'إن شاء الله', accepts: ['إن شاء الله', 'ان شاء الله', 'انشالله', 'إنشالله'] },
   { target: 'الحمد لله', accepts: ['الحمد لله', 'الحمدلله', 'بخير'] },
   { target: 'آمين', accepts: ['آمين', 'امين'] },
-];
+  ],
+  egyptian: [
+    { target: 'أيوه', accepts: ['ايوه', 'اه', 'نعم'] },
+    { target: 'لا', accepts: ['لا', 'لأ'] },
+    { target: 'شكراً', accepts: ['شكرا', 'متشكر', 'تسلم'] },
+    { target: 'لو سمحت', accepts: ['لو سمحت', 'من فضلك'] },
+    { target: 'مع السلامة', accepts: ['مع السلامة', 'سلام', 'باي'] },
+    { target: 'تمام', accepts: ['تمام', 'ماشي', 'اوكي'] },
+    { target: 'ماشي', accepts: ['ماشي', 'تمام', 'اوكي'] },
+  ],
+  msa: [
+    { target: 'نعم', accepts: ['نعم'] },
+    { target: 'لا', accepts: ['لا'] },
+    { target: 'شكراً', accepts: ['شكرا', 'شكراً'] },
+    { target: 'من فضلك', accepts: ['من فضلك', 'لو سمحت'] },
+    { target: 'مع السلامة', accepts: ['مع السلامة'] },
+    { target: 'حسناً', accepts: ['حسنا', 'حسناً'] },
+  ],
+};
 
 function normalizeScenarioArabic(value: string): string {
   return stripTashkeel(value)
@@ -413,14 +434,15 @@ function normalizeScenarioArabic(value: string): string {
     .trim();
 }
 
-function isAcceptedScenarioAlternative(targetText: string, transcript?: string): boolean {
+function isAcceptedScenarioAlternative(targetText: string, transcript: string | undefined, dialect: string): boolean {
   if (!transcript) return false;
 
   const normalizedTarget = normalizeScenarioArabic(targetText);
   const normalizedTranscript = normalizeScenarioArabic(transcript);
   if (!normalizedTarget || !normalizedTranscript) return false;
 
-  return SCENARIO_ACCEPTED_ALTERNATIVES.some(({ target, accepts }) => {
+  const alternatives = SCENARIO_ACCEPTED_ALTERNATIVES_BY_DIALECT[dialect] ?? [];
+  return alternatives.some(({ target, accepts }) => {
     const normalizedAcceptedTarget = normalizeScenarioArabic(target);
     if (normalizedAcceptedTarget !== normalizedTarget) return false;
 
@@ -442,9 +464,13 @@ export default function ScenarioScreen() {
 
   console.log('scenario type:', typeStr);
 
-  const DIALOGUE = content.scenarios[typeStr ?? 'Cafe'] ?? [];
-
-  const sceneImage = content.sceneImages[typeStr ?? 'Cafe'] ?? content.sceneImages['Cafe'];
+  const resolvedContent = resolveContent({
+    dialect,
+    contentId: routeContentId,
+    contentType: 'scenario',
+  });
+  const DIALOGUE = resolvedContent?.dialogue ?? [];
+  const sceneImage = resolvedContent?.sceneImage ?? null;
 
   const getSceneBadge = () => {
     const dialectLabel = DIALECT_LABELS[dialect] ?? 'Arabic';
@@ -491,6 +517,7 @@ export default function ScenarioScreen() {
   const [scenarioEvalResult, setScenarioEvalResult] = useState<ScenarioEvalResult | null>(null);
   const [scenarioScores, setScenarioScores] = useState<Record<number, number>>({});
   const [completed, setCompleted] = useState(false);
+  const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
 
@@ -513,14 +540,10 @@ export default function ScenarioScreen() {
       ? Math.round(evaluatedScores.reduce((sum, score) => sum + score, 0) / evaluatedScores.length)
       : 0;
   const progressWidth = `${((currentIndex + 1) / total) * 100}%` as any;
-  const scenarioKey = typeStr?.toLowerCase() || 'cafe';
-  const scenarioProgressStorageKey = `scenario_progress_local:${dialect}:${scenarioKey}`;
-  const unitId =
-    ['cafe', 'taxi', 'hotel', 'restaurant', 'supermarket', 'pharmacy', 'barbershop', 'airport'].includes(scenarioKey) ? 'unit-2' :
-    ['morningroutine', 'atgym', 'cookinghome', 'weatherchat', 'doctorvisit', 'atbank', 'fridaygathering', 'neighborvisit'].includes(scenarioKey) ? 'unit-6' :
-    ['lostincity', 'carbreakdown', 'policestation', 'hospitalemergency', 'lostwallet', 'flightproblem', 'askingforhelp'].includes(scenarioKey) ? 'unit-8' :
-    ['friendsnewneighbor', 'friendsfootball', 'friendsgaming', 'friendsweekend', 'friendssocialmedia', 'friendsroadtrip', 'friendsbirthday', 'friendsfarewell'].includes(scenarioKey) ? 'unit-10' :
-    'scenario';
+  const publicScenarioId = resolvedContent?.item.contentId ?? typeStr?.toLowerCase() ?? 'cafe';
+  const unitId = resolvedContent?.item.unitId ?? 'scenario';
+  const scenarioKey = buildCompletionKey(dialect, unitId, publicScenarioId);
+  const scenarioProgressStorageKey = `scenario_progress_local:${scenarioKey}`;
 
   const goHomeAfterCompletion = () => {
     const navigationAction = router.canDismiss() || router.canGoBack() ? 'back' : 'replace';
@@ -872,7 +895,7 @@ export default function ScenarioScreen() {
         }
 
         const evaluation = await evaluatePronunciation(stableUri, scenarioEvalTarget, dialect, 'scenario', currentTurn.english);
-        const acceptedAlternative = isAcceptedScenarioAlternative(scenarioEvalTarget, evaluation.transcript);
+        const acceptedAlternative = isAcceptedScenarioAlternative(scenarioEvalTarget, evaluation.transcript, dialect);
         const adjustedScore =
           acceptedAlternative && (evaluation.score ?? 0) < 60
             ? 70
@@ -989,14 +1012,18 @@ export default function ScenarioScreen() {
       }
 
       if (!session) {
-        const raw = await AsyncStorage.getItem('guest_progress');
-        const progress = raw ? JSON.parse(raw) : {};
-        progress[scenarioKey] = true;
+      const legacyCandidates = getCompletionKeyCandidates(dialect, publicScenarioId);
+      const raw = await AsyncStorage.getItem('guest_progress');
+      const progress = raw ? JSON.parse(raw) : {};
+      const alreadyCompleted = legacyCandidates.some(key => progress[key] === true);
+      progress[scenarioKey] = true;
         await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-        const levelUp = await addXP(xpEarned);
-        if (levelUp) {
-          setLevelUpData(levelUp);
-          setShowLevelUp(true);
+        if (!alreadyCompleted) {
+          const levelUp = await addXP(xpEarned);
+          if (levelUp) {
+            setLevelUpData(levelUp);
+            setShowLevelUp(true);
+          }
         }
         if (__DEV__) {
           console.log('[completion write:done]', {
@@ -1030,7 +1057,7 @@ export default function ScenarioScreen() {
         .from('scenario_progress')
         .select('id, attempts, best_score')
         .eq('user_id', userId)
-        .eq('scenario', scenarioKey)
+        .in('scenario', getCompletionKeyCandidates(dialect, publicScenarioId))
         .maybeSingle();
 
       if (existing) {
@@ -1080,10 +1107,16 @@ export default function ScenarioScreen() {
     }
   };
 
-  const handleAdvance = () => {
+  const handleAdvance = async () => {
     if (currentIndex === total - 1) {
-      setCompleted(true);
-      saveCompletion();
+      if (isSavingCompletion) return;
+      setIsSavingCompletion(true);
+      try {
+        await saveCompletion();
+        setCompleted(true);
+      } finally {
+        setIsSavingCompletion(false);
+      }
     } else {
       setCurrentIndex(i => i + 1);
     }
@@ -1091,7 +1124,7 @@ export default function ScenarioScreen() {
 
   if (isComingSoon) {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={getSceneBadge()}>
+      <PremiumRouteGate contentId={routeContentId} contentType="scenario" contentLabel={getSceneBadge()}>
         <SafeAreaView style={styles.container}>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
             <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
@@ -1109,7 +1142,7 @@ export default function ScenarioScreen() {
   }
 
   return (
-    <PremiumRouteGate contentId={routeContentId} contentLabel={getSceneBadge()}>
+    <PremiumRouteGate contentId={routeContentId} contentType="scenario" contentLabel={getSceneBadge()}>
       <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>

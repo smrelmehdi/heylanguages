@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
@@ -20,6 +21,7 @@ import { useDialect } from '../contexts/DialectContext';
 import type { DialectContent, DialogueTurn } from '../data/content-registry';
 import { getQuizContentId } from '../utils/access';
 import { recordActivity } from '../utils/streak';
+import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { supabase } from '../utils/supabase';
 
 import EmojiMatch from '../components/quiz/EmojiMatch';
@@ -359,46 +361,55 @@ export default function QuizUnit2Screen() {
   const saveQuizCompletion = async (finalXp: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const userId = session.user.id;
+      if (!routeContentId) return;
 
-      const scenarioKey =
-        unit === '2p1' ? 'quiz_u2_p1' :
-        unit === '2p2' ? 'quiz_u2_p2' :
-        unit === '6'   ? 'quiz_u6'    : null;
+      const unitId = unit === '2p1' || unit === '2p2' ? 'unit-2' : `unit-${unit ?? '2'}`;
+      const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);
+      const legacyCandidates = getCompletionKeyCandidates(dialect, routeContentId);
 
-      if (scenarioKey) {
-        const { data: existing } = await supabase
-          .from('scenario_progress')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('scenario', scenarioKey)
-          .maybeSingle();
-
-        if (!existing) {
-          await supabase.from('scenario_progress').insert({
-            user_id: userId,
-            scenario: scenarioKey,
-            dialect,
-            completed: true,
-            best_score: Math.round((correctIdsRef.current.size / allQuestions.length) * 100),
-            attempts: 1,
-          });
-        } else {
-          await supabase.from('scenario_progress').update({
-            completed: true,
-            best_score: Math.max(
-              Math.round((correctIdsRef.current.size / allQuestions.length) * 100),
-              0
-            ),
-          }).eq('id', existing.id);
-        }
+      if (!session) {
+        const raw = await AsyncStorage.getItem('guest_progress');
+        const progress = raw ? JSON.parse(raw) : {};
+        const alreadyCompleted = legacyCandidates.some(key => progress[key] === true);
+        progress[scenarioKey] = true;
+        await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+        if (!alreadyCompleted) await recordActivity();
+        return;
       }
 
-      const { data: userData } = await supabase
-        .from('users').select('xp').eq('id', userId).maybeSingle();
-      await supabase
-        .from('users').update({ xp: (userData?.xp ?? 0) + finalXp }).eq('id', userId);
+      const userId = session.user.id;
+      const { data: existing } = await supabase
+        .from('scenario_progress')
+        .select('id')
+        .eq('user_id', userId)
+        .in('scenario', legacyCandidates.length > 0 ? legacyCandidates : [scenarioKey])
+        .maybeSingle();
+
+      if (!existing) {
+        await supabase.from('scenario_progress').insert({
+          user_id: userId,
+          scenario: scenarioKey,
+          dialect,
+          completed: true,
+          best_score: Math.round((correctIdsRef.current.size / allQuestions.length) * 100),
+          attempts: 1,
+        });
+      } else {
+        await supabase.from('scenario_progress').update({
+          completed: true,
+          best_score: Math.max(
+            Math.round((correctIdsRef.current.size / allQuestions.length) * 100),
+            0
+          ),
+        }).eq('id', existing.id);
+      }
+
+      if (!existing && finalXp > 0) {
+        const { data: userData } = await supabase
+          .from('users').select('xp').eq('id', userId).maybeSingle();
+        await supabase
+          .from('users').update({ xp: (userData?.xp ?? 0) + finalXp }).eq('id', userId);
+      }
 
       await recordActivity();
     } catch (err) {
@@ -421,7 +432,7 @@ export default function QuizUnit2Screen() {
   // ── Render ───────────────────────────────────────────────────────────────
   if (phase === 'intro') {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
+      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizIntro title={quizTitle} onStart={startQuiz} />
       </PremiumRouteGate>
@@ -430,7 +441,7 @@ export default function QuizUnit2Screen() {
 
   if (phase === 'results') {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
+      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizResults
           correct={correctIdsRef.current.size}
@@ -448,14 +459,14 @@ export default function QuizUnit2Screen() {
   const currentQuestion = questions[currentIndex];
   if (!currentQuestion) {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
+      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
       </PremiumRouteGate>
     );
   }
 
   return (
-    <PremiumRouteGate contentId={routeContentId} contentLabel={quizTitle}>
+    <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container}>
 

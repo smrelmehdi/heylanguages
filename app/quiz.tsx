@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ArrowLeft } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -7,43 +8,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
-import {
-    BASIC_WORDS,
-    GRAMMAR_ADJECTIVES_WORDS,
-    GRAMMAR_NEGATION_WORDS,
-    GRAMMAR_PAST_VERBS_WORDS,
-    GRAMMAR_POSSESSIVES_WORDS,
-    GRAMMAR_PRESENT_VERBS_WORDS,
-    GRAMMAR_PRONOUNS_WORDS,
-    GRAMMAR_QUESTIONS_WORDS,
-    GRAMMAR_SENTENCES_WORDS,
-    GRAMMAR_THIS_THAT_WORDS,
-    GRAMMAR_WANT_NEED_WORDS,
-    GREETINGS_WORDS, INTRO_WORDS,
-    NUMBERS_11_20_WORDS,
-    NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS,
-    NUMBERS_AGE_WORDS,
-    NUMBERS_DATES_WORDS,
-    NUMBERS_DAYS_WORDS,
-    NUMBERS_HOURS_WORDS,
-    NUMBERS_MINUTES_WORDS,
-    NUMBERS_MONTHS_WORDS,
-    NUMBERS_ORDERING_WORDS,
-    NUMBERS_PHONE_WORDS,
-    NUMBERS_PRICES_WORDS,
-    NUMBERS_TENS_WORDS,
-    NUMBERS_TOGETHER_WORDS,
-} from '../constants/words';
 import { useDialect } from '../contexts/DialectContext';
 import { stripTashkeel } from '../utils/arabic';
 import { getQuizContentId } from '../utils/access';
+import { getDialectCurriculumItems } from '../utils/content-resolver';
 import { feedbackCorrect, feedbackStreak, feedbackWrong } from '../utils/feedback';
+import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { getQuizSrsSummary, recordQuizSrsResult, selectQuizItems, type QuizSrsSummary } from '../utils/srs';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
 import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
 
 type QuestionType = 'mc_ar_to_en' | 'mc_en_to_ar' | 'audio';
+const SUPPORTED_WORD_QUIZ_UNITS = new Set(['1', '4', '5']);
 
 interface Question {
   id: string;
@@ -147,12 +124,19 @@ function generateUnit1Quiz(lessonWords: { basic: Word[]; greetings: Word[]; intr
   ];
 }
 
+function getDialectUnitWords(dialect: string, unitId: string) {
+  return getDialectCurriculumItems(dialect)
+    .filter(item => item.unitId === unitId && item.contentType === 'lesson')
+    .flatMap(item => item.lessonWords ?? []);
+}
+
 export default function QuizScreen() {
   const router = useRouter();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
   const { dialect, content } = useDialect();
   const routeContentId = getQuizContentId(unit);
   const routeLabel = unit ? `Unit ${unit} Quiz` : 'Unit 1 Quiz';
+  const isSupportedQuizUnit = SUPPORTED_WORD_QUIZ_UNITS.has(unit ?? '1');
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(true);
@@ -182,13 +166,17 @@ export default function QuizScreen() {
     const loadQuestions = async () => {
       setIsLoadingQuiz(true);
 
+      if (!isSupportedQuizUnit || !routeContentId) {
+        if (!cancelled) {
+          setQuestions([]);
+          setSrsSummary(null);
+          setIsLoadingQuiz(false);
+        }
+        return;
+      }
+
       if (dialect === 'gulf' && unit === '4') {
-        const allUnit4Words = [
-          ...NUMBERS_1_5_WORDS, ...NUMBERS_6_10_WORDS, ...NUMBERS_11_20_WORDS, ...NUMBERS_TENS_WORDS,
-          ...NUMBERS_AGE_WORDS, ...NUMBERS_PRICES_WORDS, ...NUMBERS_PHONE_WORDS, ...NUMBERS_HOURS_WORDS,
-          ...NUMBERS_MINUTES_WORDS, ...NUMBERS_DAYS_WORDS, ...NUMBERS_MONTHS_WORDS, ...NUMBERS_DATES_WORDS,
-          ...NUMBERS_ORDERING_WORDS, ...NUMBERS_TOGETHER_WORDS,
-        ];
+        const allUnit4Words = getDialectUnitWords(dialect, 'unit-4');
         const selected = await selectQuizItems(allUnit4Words, word => buildWordSrsId('unit4', word), 15);
         if (!cancelled) {
           const builtQuestions = generateQuiz(selected, allUnit4Words, 15, 'unit4');
@@ -196,17 +184,17 @@ export default function QuizScreen() {
           setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
         }
       } else if (dialect === 'gulf' && unit === '5') {
-        const allUnit5Words = [
-          ...GRAMMAR_PRONOUNS_WORDS, ...GRAMMAR_THIS_THAT_WORDS, ...GRAMMAR_POSSESSIVES_WORDS,
-          ...GRAMMAR_PRESENT_VERBS_WORDS, ...GRAMMAR_PAST_VERBS_WORDS, ...GRAMMAR_WANT_NEED_WORDS,
-          ...GRAMMAR_QUESTIONS_WORDS, ...GRAMMAR_NEGATION_WORDS, ...GRAMMAR_ADJECTIVES_WORDS,
-          ...GRAMMAR_SENTENCES_WORDS,
-        ];
+        const allUnit5Words = getDialectUnitWords(dialect, 'unit-5');
         const selected = await selectQuizItems(allUnit5Words, word => buildWordSrsId('unit5', word), 18);
         if (!cancelled) {
           const builtQuestions = generateQuiz(selected, allUnit5Words, 18, 'unit5');
           setQuestions(builtQuestions);
           setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
+        }
+      } else if (unit === '4' || unit === '5') {
+        if (!cancelled) {
+          setQuestions([]);
+          setSrsSummary(null);
         }
       } else {
         if (!cancelled) {
@@ -222,8 +210,7 @@ export default function QuizScreen() {
     loadQuestions().catch(error => {
       console.warn('Quiz load error:', error);
       if (!cancelled) {
-        const builtQuestions = generateUnit1Quiz(content.lessons, `${dialect}_unit1`);
-        setQuestions(builtQuestions);
+        setQuestions([]);
         setSrsSummary(null);
         setIsLoadingQuiz(false);
       }
@@ -232,7 +219,7 @@ export default function QuizScreen() {
     return () => {
       cancelled = true;
     };
-  }, [unit, dialect, content]);
+  }, [unit, dialect, content, isSupportedQuizUnit, routeContentId]);
 
   useEffect(() => {
     if (currentQuestion?.type === 'audio') {
@@ -255,20 +242,35 @@ export default function QuizScreen() {
   }, [completed]);
 
   useEffect(() => {
-    if (!completed || !unit) return;
+    if (!completed || !routeContentId) return;
     const saveQuizCompletion = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        const scenarioKey = unit === '2p1' ? 'quiz_u2_p1' : unit === '2p2' ? 'quiz_u2_p2' : unit === '4' ? 'quiz_u4' : unit === '5' ? 'quiz_u5' : null;
-        if (!scenarioKey) return;
+        const scenarioKey = buildCompletionKey(dialect, `unit-${unit ?? '1'}`, routeContentId);
+        const legacyCandidates = getCompletionKeyCandidates(dialect, routeContentId);
+
+        if (!session) {
+          const raw = await AsyncStorage.getItem('guest_progress');
+          const progress = raw ? JSON.parse(raw) : {};
+          progress[scenarioKey] = true;
+          await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+          return;
+        }
+
         const { data: existing } = await supabase
           .from('scenario_progress')
-          .select('id')
+          .select('id, attempts')
           .eq('user_id', session.user.id)
-          .eq('scenario', scenarioKey)
+          .in('scenario', legacyCandidates.length > 0 ? legacyCandidates : [scenarioKey])
           .maybeSingle();
-        if (!existing) {
+
+        if (existing) {
+          await supabase.from('scenario_progress').update({
+            completed: true,
+            best_score: Math.round((correctCount / questions.length) * 100),
+            attempts: (existing.attempts ?? 0) + 1,
+          }).eq('id', existing.id);
+        } else {
           await supabase.from('scenario_progress').insert({
             user_id: session.user.id,
             scenario: scenarioKey,
@@ -278,8 +280,8 @@ export default function QuizScreen() {
             attempts: 1,
           });
         }
-        // Save XP (always, since quiz can be retaken for practice)
-        if (xpEarned > 0) {
+
+        if (!existing && xpEarned > 0) {
           const { data: userData } = await supabase.from('users').select('xp').eq('id', session.user.id).single();
           await supabase.from('users').update({ xp: (userData?.xp ?? 0) + xpEarned }).eq('id', session.user.id);
         }
@@ -288,7 +290,7 @@ export default function QuizScreen() {
       }
     };
     saveQuizCompletion();
-  }, [completed]);
+  }, [completed, routeContentId]);
 
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;
@@ -346,9 +348,24 @@ export default function QuizScreen() {
     setCorrectCount(0);
   };
 
+  if (!isSupportedQuizUnit || !routeContentId) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.loadingWrap}>
+          <Text style={styles.loadingTitle}>Quiz unavailable</Text>
+          <Text style={styles.loadingSub}>This quiz is not available yet.</Text>
+          <Pressable style={styles.doneButton} onPress={() => router.replace('/(tabs)')}>
+            <Text style={styles.doneButtonText}>Back to Home</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (isLoadingQuiz || !currentQuestion) {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={routeLabel}>
+      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={routeLabel}>
         <SafeAreaView style={styles.container}>
           <Stack.Screen options={{ headerShown: false }} />
           <View style={styles.loadingWrap}>
@@ -369,7 +386,7 @@ export default function QuizScreen() {
       '💪 Keep practicing!';
 
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={routeLabel}>
+      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={routeLabel}>
         <SafeAreaView style={styles.container}>
           <Stack.Screen options={{ headerShown: false }} />
           <View style={styles.completionContainer}>
@@ -418,7 +435,7 @@ export default function QuizScreen() {
 
   // ─── Quiz screen ───
   return (
-    <PremiumRouteGate contentId={routeContentId} contentLabel={routeLabel}>
+    <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={routeLabel}>
       <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 

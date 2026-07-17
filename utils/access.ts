@@ -1,66 +1,109 @@
-export type AccessResult = 'free' | 'premium' | 'locked';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDialectContentMeta, getDialectProgressionItems, isContentAvailableForDialect, normalizePublicContentId } from './content-resolver';
+import { getPreviousProgressionContentId, hasCompletedContent } from './progression';
 
-export const TESTING_UNLOCK_ALL =
-  __DEV__ && process.env.EXPO_PUBLIC_TESTING_UNLOCK_ALL === 'true';
+export type ContentType = 'lesson' | 'scenario' | 'writing' | 'quiz';
+export type ContentAccessReason =
+  | 'free'
+  | 'premium'
+  | 'testing'
+  | 'previous_incomplete'
+  | 'unavailable'
+  | 'premium_required';
 
-export const FREE_CONTENT = new Set([
-  // Unit 1
-  'basic-words', 'basic_words', 'greetings', 'intro', 'quiz_u1',
+export type ContentAccessResult = {
+  allowed: boolean;
+  reason: ContentAccessReason;
+  requiredPreviousContentId?: string;
+};
 
-  // Unit 2
-  'cafe', 'taxi', 'hotel', 'quiz_u2_p1',
-  'restaurant', 'supermarket', 'pharmacy', 'quiz_u2_p2',
-  'barbershop', 'airport',
+export type ContentAccessInput = {
+  contentId: string | null | undefined;
+  unitId?: string;
+  contentType?: ContentType;
+  dialect?: string;
+  isPremium: boolean;
+  isTestingUnlocked?: boolean;
+  completedContentIds: Iterable<string>;
+};
 
-  // Unit 3
-  'writing',
-  'alif_family', 'ba_family', 'jeem_family', 'dal_family', 'ra_family',
-  'seen_family', 'sad_family', 'taa_family', 'ayn_family', 'fa_family',
-  'kaf_family', 'meem_family', 'ha_family', 'ya_family', 'quiz_u3',
+export type PublicAppEnv = 'development' | 'preview' | 'production';
 
-  // Unit 4 preview
-  'numbers-1-5', 'numbers-6-10', 'numbers-11-20',
+const TESTING_UNLOCK_OVERRIDE_KEY = 'internal_testing_unlock_all_override';
+const VALID_APP_ENVS = new Set<PublicAppEnv>(['development', 'preview', 'production']);
+const RAW_APP_ENV = process.env.EXPO_PUBLIC_APP_ENV;
+const RAW_TESTING_UNLOCK = process.env.EXPO_PUBLIC_TESTING_UNLOCK_ALL;
+const IS_LOCAL_DEV = typeof __DEV__ !== 'undefined' && __DEV__;
 
-  // Unit 5 preview
-  'grammar-pronouns', 'grammar-this-that', 'grammar-possessives',
-]);
+export const APP_ENV: PublicAppEnv =
+  VALID_APP_ENVS.has(RAW_APP_ENV as PublicAppEnv)
+    ? (RAW_APP_ENV as PublicAppEnv)
+    : IS_LOCAL_DEV
+      ? 'development'
+      : 'production';
 
-export const PREMIUM_CONTENT = new Set([
-  // Unit 4
-  'numbers-tens', 'numbers-age', 'numbers-prices', 'numbers-phone',
-  'numbers-hours', 'numbers-minutes', 'numbers-days', 'numbers-months',
-  'numbers-dates', 'numbers-ordering', 'numbers-together', 'quiz_u4',
+const ENV_TESTING_UNLOCK_ALL =
+  RAW_TESTING_UNLOCK === 'true' && APP_ENV !== 'production';
 
-  // Unit 5
-  'grammar-present-verbs', 'grammar-past-verbs', 'grammar-want-need',
-  'grammar-questions', 'grammar-negation', 'grammar-adjectives',
-  'grammar-sentences', 'quiz_u5',
+let runtimeTestingUnlockOverride: boolean | null = null;
 
-  // Unit 6
-  'morningroutine', 'atgym', 'cookinghome', 'weatherchat', 'doctorvisit',
-  'atbank', 'fridaygathering', 'neighborvisit', 'quiz_u6',
+export const CAN_USE_INTERNAL_TESTING_ACCESS = APP_ENV !== 'production';
 
-  // Unit 7
-  'work-office', 'work-greetings', 'work-meeting', 'work-phone', 'work-email',
-  'work-schedule', 'work-problems', 'work-smalltalk', 'work-salary',
-  'work-leaving', 'quiz_u7',
+export let TESTING_UNLOCK_ALL = ENV_TESTING_UNLOCK_ALL;
 
-  // Unit 8
-  'lostincity', 'carbreakdown', 'policestation', 'hospitalemergency',
-  'lostwallet', 'flightproblem', 'askingforhelp', 'quiz_u8',
+function resolveTestingUnlockAll() {
+  if (!CAN_USE_INTERNAL_TESTING_ACCESS) return false;
+  return runtimeTestingUnlockOverride ?? ENV_TESTING_UNLOCK_ALL;
+}
 
-  // Unit 9
-  'social-greetings', 'social-family', 'social-invitations', 'social-ramadan',
-  'social-compliments', 'social-emotions', 'social-weddings',
-  'social-condolences', 'social-religion', 'social-manners', 'quiz_u9',
+function applyTestingUnlockValue() {
+  TESTING_UNLOCK_ALL = resolveTestingUnlockAll();
+  if (TESTING_UNLOCK_ALL) {
+    console.warn('[access] Internal testing access is active. Do not use this build for production.');
+  }
+  return TESTING_UNLOCK_ALL;
+}
 
-  // Unit 10
-  'friendsnewneighbor', 'friendsfootball', 'friendsgaming', 'friendsweekend',
-  'friendssocialmedia', 'friendsroadtrip', 'friendsbirthday',
-  'friendsfarewell', 'quiz_u10',
-]);
+export async function hydrateTestingUnlockAllOverride() {
+  if (!CAN_USE_INTERNAL_TESTING_ACCESS) {
+    runtimeTestingUnlockOverride = null;
+    TESTING_UNLOCK_ALL = false;
+    return false;
+  }
 
-export const KNOWN_CONTENT = new Set([...FREE_CONTENT, ...PREMIUM_CONTENT]);
+  try {
+    const stored = await AsyncStorage.getItem(TESTING_UNLOCK_OVERRIDE_KEY);
+    runtimeTestingUnlockOverride =
+      stored === 'true' ? true :
+      stored === 'false' ? false :
+      null;
+  } catch {
+    runtimeTestingUnlockOverride = null;
+  }
+
+  return applyTestingUnlockValue();
+}
+
+export async function setTestingUnlockAllOverride(enabled: boolean) {
+  if (!CAN_USE_INTERNAL_TESTING_ACCESS) {
+    runtimeTestingUnlockOverride = null;
+    TESTING_UNLOCK_ALL = false;
+    return false;
+  }
+
+  runtimeTestingUnlockOverride = enabled;
+  await AsyncStorage.setItem(TESTING_UNLOCK_OVERRIDE_KEY, enabled ? 'true' : 'false');
+  return applyTestingUnlockValue();
+}
+
+export function getTestingUnlockAllState() {
+  return TESTING_UNLOCK_ALL;
+}
+
+const CONTENT_ID_ALIASES: Record<string, string> = {
+  'basic-words': 'basic_words',
+  basic: 'basic_words',
+};
 
 export const SCENARIO_TYPE_TO_CONTENT_ID: Record<string, string> = {
   Cafe: 'cafe',
@@ -113,23 +156,47 @@ export const WRITING_FAMILY_TO_CONTENT_ID: Record<string, string> = {
   ya: 'ya_family',
 };
 
-export function isKnownContent(contentId: string | null | undefined) {
-  return Boolean(contentId && KNOWN_CONTENT.has(contentId));
+export function normalizeContentId(contentId: string | null | undefined) {
+  return normalizePublicContentId(contentId ? CONTENT_ID_ALIASES[contentId] ?? contentId : contentId);
 }
 
-export function isContentFree(contentId: string | null | undefined) {
-  return Boolean(contentId && FREE_CONTENT.has(contentId));
-}
+export function getContentAccess({
+  contentId,
+  unitId,
+  contentType,
+  dialect = 'gulf',
+  isPremium,
+  isTestingUnlocked = TESTING_UNLOCK_ALL,
+  completedContentIds,
+}: ContentAccessInput): ContentAccessResult {
+  const normalized = normalizeContentId(contentId);
+  const meta = getDialectContentMeta(dialect, normalized, contentType);
+  if (!normalized || !meta || meta.availability === 'unavailable' || (unitId && meta.unitId !== unitId)) {
+    return { allowed: false, reason: 'unavailable' };
+  }
 
-export function canAccessContent(contentId: string | null | undefined, isPremium: boolean) {
-  if (!contentId || !isKnownContent(contentId)) return false;
-  if (TESTING_UNLOCK_ALL) return true;
-  return isPremium || isContentFree(contentId);
+  if (isTestingUnlocked && isContentAvailableForDialect(dialect, normalized, contentType)) {
+    return { allowed: true, reason: 'testing' };
+  }
+
+  const previousContentId = getPreviousProgressionContentId(dialect, normalized);
+  if (previousContentId && !hasCompletedContent(dialect, previousContentId, completedContentIds)) {
+    return {
+      allowed: false,
+      reason: 'previous_incomplete',
+      requiredPreviousContentId: previousContentId,
+    };
+  }
+
+  if (meta.commercialAccess === 'free') return { allowed: true, reason: 'free' };
+  if (isPremium) return { allowed: true, reason: 'premium' };
+  return { allowed: false, reason: 'premium_required' };
 }
 
 export function getLessonContentId(type: string | undefined) {
   if (!type) return null;
-  return isKnownContent(type) ? type : null;
+  const normalized = normalizeContentId(type);
+  return normalized;
 }
 
 export function getScenarioContentId(type: string | undefined) {
@@ -142,16 +209,14 @@ export function getWritingContentId(family: string | undefined) {
   return WRITING_FAMILY_TO_CONTENT_ID[normalizedFamily] ?? null;
 }
 
+export function getDialectKnownContentIds(dialect: string) {
+  return new Set(getDialectProgressionItems(dialect).map(item => item.contentId));
+}
+
 export function getQuizContentId(unit: string | undefined) {
   if (!unit) return 'quiz_u1';
   if (unit === '2p1') return 'quiz_u2_p1';
   if (unit === '2p2') return 'quiz_u2_p2';
   if (/^\d+$/.test(unit)) return `quiz_u${unit}`;
   return null;
-}
-
-export async function checkAccess(contentId: string, isPremium: boolean): Promise<AccessResult> {
-  if (!isKnownContent(contentId)) return 'locked';
-  if (isContentFree(contentId)) return 'free';
-  return isPremium ? 'premium' : 'locked';
 }

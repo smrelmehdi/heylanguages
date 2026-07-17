@@ -10,57 +10,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
-import {
-    GRAMMAR_ADJECTIVES_WORDS,
-    GRAMMAR_NEGATION_WORDS,
-    GRAMMAR_PAST_VERBS_WORDS,
-    GRAMMAR_POSSESSIVES_WORDS,
-    GRAMMAR_PRESENT_VERBS_WORDS,
-    GRAMMAR_PRONOUNS_WORDS,
-    GRAMMAR_QUESTIONS_WORDS,
-    GRAMMAR_SENTENCES_WORDS,
-    GRAMMAR_THIS_THAT_WORDS,
-    GRAMMAR_WANT_NEED_WORDS,
-    NUMBERS_11_20_WORDS,
-    NUMBERS_1_5_WORDS, NUMBERS_6_10_WORDS,
-    NUMBERS_AGE_WORDS,
-    NUMBERS_DATES_WORDS,
-    NUMBERS_DAYS_WORDS,
-    NUMBERS_HOURS_WORDS,
-    NUMBERS_MINUTES_WORDS,
-    NUMBERS_MONTHS_WORDS,
-    NUMBERS_ORDERING_WORDS,
-    NUMBERS_PHONE_WORDS,
-    NUMBERS_PRICES_WORDS,
-    NUMBERS_TENS_WORDS,
-    NUMBERS_TOGETHER_WORDS,
-    SOCIAL_COMPLIMENTS_WORDS,
-    SOCIAL_CONDOLENCES_WORDS,
-    SOCIAL_EMOTIONS_WORDS,
-    SOCIAL_FAMILY_WORDS,
-    SOCIAL_GREETINGS_WORDS,
-    SOCIAL_INVITATIONS_WORDS,
-    SOCIAL_MANNERS_WORDS,
-    SOCIAL_RAMADAN_WORDS,
-    SOCIAL_RELIGION_WORDS,
-    SOCIAL_WEDDINGS_WORDS,
-    WORK_EMAIL_WORDS,
-    WORK_GREETINGS_WORDS,
-    WORK_LEAVING_WORDS,
-    WORK_MEETING_WORDS,
-    WORK_OFFICE_WORDS,
-    WORK_PHONE_WORDS,
-    WORK_PROBLEMS_WORDS,
-    WORK_SALARY_WORDS,
-    WORK_SCHEDULE_WORDS,
-    WORK_SMALLTALK_WORDS,
-} from '../constants/words';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { getUnit4Audio, isUnit4AudioLesson } from '../data/unit4-audio';
 import { stripTashkeel } from '../utils/arabic';
 import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
 import { getLessonContentId } from '../utils/access';
+import { resolveContent } from '../utils/content-resolver';
+import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
 import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, speakArabic, stopAudio } from '../utils/tts';
@@ -70,6 +27,7 @@ export default function LessonScreen() {
   const params = useLocalSearchParams();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
   const [evalResult, setEvalResult] = useState<PronunciationResult | null>(null);
@@ -85,57 +43,6 @@ export default function LessonScreen() {
   const type = params.type;
   const typeStr = Array.isArray(type) ? type[0] : (type ?? '');
   const routeContentId = getLessonContentId(typeStr);
-
-  const LESSON_WORDS_MAP: Record<string, Word[]> = {
-    // Unit 4 — Numbers & Counting
-    'numbers-1-5':       NUMBERS_1_5_WORDS,
-    'numbers-6-10':      NUMBERS_6_10_WORDS,
-    'numbers-11-20':     NUMBERS_11_20_WORDS,
-    'numbers-tens':      NUMBERS_TENS_WORDS,
-    'numbers-age':       NUMBERS_AGE_WORDS,
-    'numbers-prices':    NUMBERS_PRICES_WORDS,
-    'numbers-phone':     NUMBERS_PHONE_WORDS,
-    'numbers-hours':     NUMBERS_HOURS_WORDS,
-    'numbers-minutes':   NUMBERS_MINUTES_WORDS,
-    'numbers-days':      NUMBERS_DAYS_WORDS,
-    'numbers-months':    NUMBERS_MONTHS_WORDS,
-    'numbers-dates':     NUMBERS_DATES_WORDS,
-    'numbers-ordering':  NUMBERS_ORDERING_WORDS,
-    'numbers-together':  NUMBERS_TOGETHER_WORDS,
-    // Unit 5 — Grammar Basics
-    'grammar-pronouns':      GRAMMAR_PRONOUNS_WORDS,
-    'grammar-this-that':     GRAMMAR_THIS_THAT_WORDS,
-    'grammar-possessives':   GRAMMAR_POSSESSIVES_WORDS,
-    'grammar-present-verbs': GRAMMAR_PRESENT_VERBS_WORDS,
-    'grammar-past-verbs':    GRAMMAR_PAST_VERBS_WORDS,
-    'grammar-want-need':     GRAMMAR_WANT_NEED_WORDS,
-    'grammar-questions':     GRAMMAR_QUESTIONS_WORDS,
-    'grammar-negation':      GRAMMAR_NEGATION_WORDS,
-    'grammar-adjectives':    GRAMMAR_ADJECTIVES_WORDS,
-    'grammar-sentences':     GRAMMAR_SENTENCES_WORDS,
-    // Unit 7 — Work & Business
-    'work-office':     WORK_OFFICE_WORDS,
-    'work-greetings':  WORK_GREETINGS_WORDS,
-    'work-meeting':    WORK_MEETING_WORDS,
-    'work-phone':      WORK_PHONE_WORDS,
-    'work-email':      WORK_EMAIL_WORDS,
-    'work-schedule':   WORK_SCHEDULE_WORDS,
-    'work-problems':   WORK_PROBLEMS_WORDS,
-    'work-smalltalk':  WORK_SMALLTALK_WORDS,
-    'work-salary':     WORK_SALARY_WORDS,
-    'work-leaving':    WORK_LEAVING_WORDS,
-    // Unit 9 — Social & Culture
-    'social-greetings':   SOCIAL_GREETINGS_WORDS,
-    'social-family':      SOCIAL_FAMILY_WORDS,
-    'social-invitations': SOCIAL_INVITATIONS_WORDS,
-    'social-ramadan':     SOCIAL_RAMADAN_WORDS,
-    'social-compliments': SOCIAL_COMPLIMENTS_WORDS,
-    'social-emotions':    SOCIAL_EMOTIONS_WORDS,
-    'social-weddings':    SOCIAL_WEDDINGS_WORDS,
-    'social-condolences': SOCIAL_CONDOLENCES_WORDS,
-    'social-religion':    SOCIAL_RELIGION_WORDS,
-    'social-manners':     SOCIAL_MANNERS_WORDS,
-  };
 
   const LESSON_TITLES: Record<string, string> = {
     // Unit 4
@@ -239,20 +146,24 @@ export default function LessonScreen() {
     'social-manners':     'Tafaddal, Afwan...',
   };
 
-  const isCustomLesson = typeStr in LESSON_WORDS_MAP;
-  const lessonKey = typeStr === 'intro' ? 'intro' : typeStr === 'greetings' ? 'greetings' : 'basic';
-  const WORDS: Word[] = isCustomLesson ? (LESSON_WORDS_MAP[typeStr] ?? []) : (content.lessons[lessonKey] ?? []);
+  const resolvedContent = resolveContent({
+    dialect,
+    contentId: routeContentId,
+    contentType: 'lesson',
+  });
+  const WORDS: Word[] = resolvedContent?.lessonWords ?? [];
   const isComingSoon = WORDS.length === 0;
 
-  const lessonTitle = isCustomLesson ? (LESSON_TITLES[typeStr] ?? 'Lesson') :
+  const lessonTitle = resolvedContent?.item.title ?? (
     typeStr === 'intro'     ? 'Introduce Yourself'      :
     typeStr === 'greetings' ? 'Common Greetings'        :
-    'Basic Words';
+    LESSON_TITLES[typeStr] ?? 'Basic Words'
+  );
 
-  const lessonSubtitle = isCustomLesson ? (LESSON_SUBTITLES[typeStr] ?? 'Gulf Arabic') :
+  const lessonSubtitle =
     typeStr === 'intro'     ? 'Talk About Yourself'     :
     typeStr === 'greetings' ? 'Meeting People in Dubai' :
-    'A Day in Dubai';
+    LESSON_SUBTITLES[typeStr] ?? 'A Day in Dubai';
 
   const currentWord = WORDS[currentIndex] ?? { arabic: '', transliteration: '', english: '', context: '', audio: undefined };
   const displayedArabic = currentWord.displayArabic ?? currentWord.arabic;
@@ -264,13 +175,9 @@ export default function LessonScreen() {
     'long';
   const targetLineLimit = targetSize === 'short' ? 1 : targetSize === 'medium' ? 2 : 3;
   const progress = WORDS.length > 0 ? currentIndex / WORDS.length : 0;
-  const completionKey = typeStr && typeStr !== 'basic' ? typeStr : 'basic_words';
-  const unitId =
-    typeStr.startsWith('numbers-') ? 'unit-4' :
-    typeStr.startsWith('grammar-') ? 'unit-5' :
-    typeStr.startsWith('work-') ? 'unit-7' :
-    typeStr.startsWith('social-') ? 'unit-9' :
-    'unit-1';
+  const publicCompletionId = resolvedContent?.item.contentId ?? (typeStr && typeStr !== 'basic' ? typeStr : 'basic_words');
+  const unitId = resolvedContent?.item.unitId ?? 'unit-1';
+  const completionKey = buildCompletionKey(dialect, unitId, publicCompletionId);
 
   const goHomeAfterCompletion = () => {
     const canGoBack = router.canGoBack();
@@ -278,7 +185,7 @@ export default function LessonScreen() {
       console.log('[completion navigation]', {
         completionType: 'lesson',
         unitId,
-        lessonKey: typeStr,
+        lessonKey: publicCompletionId,
         completionKey,
         navigationAction: canGoBack ? 'back' : 'replace',
       });
@@ -409,6 +316,7 @@ export default function LessonScreen() {
 
   const saveCompletion = async () => {
     const scenarioKey = completionKey;
+    const legacyCandidates = getCompletionKeyCandidates(dialect, publicCompletionId);
     if (__DEV__) {
       console.log('[completion write:start]', {
         completionType: 'lesson',
@@ -425,7 +333,7 @@ export default function LessonScreen() {
         .from('scenario_progress')
         .select('id, attempts')
         .eq('user_id', session.user.id)
-        .eq('scenario', scenarioKey)
+        .in('scenario', legacyCandidates.length > 0 ? legacyCandidates : [scenarioKey])
         .maybeSingle();
 
       if (existing) {
@@ -460,7 +368,7 @@ export default function LessonScreen() {
         console.log('[completion write:done]', {
           completionType: 'lesson',
           unitId,
-          lessonKey: typeStr,
+          lessonKey: publicCompletionId,
           completionKey: scenarioKey,
           totalCompleted: count ?? undefined,
         });
@@ -468,18 +376,21 @@ export default function LessonScreen() {
     } else {
       const guestProgress = await AsyncStorage.getItem('guest_progress');
       const progress = guestProgress ? JSON.parse(guestProgress) : {};
+      const alreadyCompleted = legacyCandidates.some(key => progress[key] === true);
       progress[scenarioKey] = true;
       await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-      const levelUp = await addXP(xpEarned);
-      if (levelUp) {
-        setLevelUpData(levelUp);
-        setShowLevelUp(true);
+      if (!alreadyCompleted) {
+        const levelUp = await addXP(xpEarned);
+        if (levelUp) {
+          setLevelUpData(levelUp);
+          setShowLevelUp(true);
+        }
       }
       if (__DEV__) {
         console.log('[completion write:done]', {
           completionType: 'lesson',
           unitId,
-          lessonKey: typeStr,
+          lessonKey: publicCompletionId,
           completionKey: scenarioKey,
           totalCompleted: Object.values(progress).filter(Boolean).length,
         });
@@ -490,21 +401,27 @@ export default function LessonScreen() {
     await recordActivity();
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < WORDS.length - 1) {
       setCurrentIndex(i => i + 1);
       setHasAttempted(false);
       setEvalResult(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
-      saveCompletion();
-      setCompleted(true);
+      if (isSavingCompletion) return;
+      setIsSavingCompletion(true);
+      try {
+        await saveCompletion();
+        setCompleted(true);
+      } finally {
+        setIsSavingCompletion(false);
+      }
     }
   };
 
   if (isComingSoon) {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={lessonTitle}>
+      <PremiumRouteGate contentId={routeContentId} contentType="lesson" contentLabel={lessonTitle}>
         <SafeAreaView style={styles.container}>
           <Stack.Screen options={{ headerShown: false }} />
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -524,7 +441,7 @@ export default function LessonScreen() {
 
   if (completed) {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentLabel={lessonTitle}>
+      <PremiumRouteGate contentId={routeContentId} contentType="lesson" contentLabel={lessonTitle}>
         <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.completionContainer}>
@@ -566,7 +483,7 @@ export default function LessonScreen() {
   }
 
   return (
-    <PremiumRouteGate contentId={routeContentId} contentLabel={lessonTitle}>
+    <PremiumRouteGate contentId={routeContentId} contentType="lesson" contentLabel={lessonTitle}>
       <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 

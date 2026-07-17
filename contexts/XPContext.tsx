@@ -4,14 +4,14 @@
  * - Loads from AsyncStorage instantly on mount (optimistic, no flicker)
  * - Syncs from Supabase once user session is available
  * - addXP(): updates state + AsyncStorage immediately, Supabase in background
- * - canAccess(): synchronous check — no async needed in components
+ * - getAccess(): synchronous access result — callers provide dialect/progress state
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { getLevelFromXP } from '../constants/levels';
 import { usePremium } from './PremiumContext';
-import { canAccessContent } from '../utils/access';
+import { getContentAccess, TESTING_UNLOCK_ALL, type ContentAccessInput, type ContentAccessResult } from '../utils/access';
 import { supabase } from '../utils/supabase';
 
 export interface LevelUpInfo {
@@ -27,8 +27,8 @@ interface XPContextValue {
   /** Immediately adds XP to local state and syncs to Supabase in background.
    *  Returns LevelUpInfo if the user crossed a level boundary, null otherwise. */
   addXP: (amount: number) => Promise<LevelUpInfo | null>;
-  /** Synchronous access check — no await needed in render or event handlers. */
-  canAccess: (contentId: string) => boolean;
+  /** Synchronous dialect-aware access check — no await needed in render or event handlers. */
+  getAccess: (input: Omit<ContentAccessInput, 'isPremium' | 'isTestingUnlocked'>) => ContentAccessResult;
   /** Re-fetch XP from Supabase and premium entitlement from RevenueCat. */
   refreshFromServer: () => Promise<void>;
 }
@@ -38,7 +38,7 @@ const XPContext = createContext<XPContextValue>({
   isPremium: false,
   isLoaded: false,
   addXP: async () => null,
-  canAccess: () => true,   // default open during loading
+  getAccess: () => ({ allowed: false, reason: 'unavailable' }),
   refreshFromServer: async () => {},
 });
 
@@ -126,9 +126,13 @@ export function XPProvider({ children }: { children: React.ReactNode }) {
     return levelUpInfo;
   }, []);
 
-  // ── canAccess ──────────────────────────────────────────────────────────────
-  const canAccess = useCallback((contentId: string): boolean => {
-    return canAccessContent(contentId, isPremium);
+  // ── access ────────────────────────────────────────────────────────────────
+  const getAccess = useCallback((input: Omit<ContentAccessInput, 'isPremium' | 'isTestingUnlocked'>): ContentAccessResult => {
+    return getContentAccess({
+      ...input,
+      isPremium,
+      isTestingUnlocked: TESTING_UNLOCK_ALL,
+    });
   }, [isPremium]);
 
   const refreshFromServer = useCallback(async () => {
@@ -136,7 +140,7 @@ export function XPProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCustomerInfo]);
 
   return (
-    <XPContext.Provider value={{ xp, isPremium, isLoaded, addXP, canAccess, refreshFromServer }}>
+    <XPContext.Provider value={{ xp, isPremium, isLoaded, addXP, getAccess, refreshFromServer }}>
       {children}
     </XPContext.Provider>
   );

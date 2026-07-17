@@ -23,8 +23,8 @@ import {
     Utensils,
     WifiOff,
 } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MilestoneModal from '../../components/MilestoneModal';
 import PaywallModal from '../../components/PaywallModal';
@@ -37,10 +37,13 @@ import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { useDialect } from '../../contexts/DialectContext';
 import { usePremium } from '../../contexts/PremiumContext';
 import { useXP } from '../../contexts/XPContext';
+import { TESTING_UNLOCK_ALL } from '../../utils/access';
+import { getDialectCurriculum, isSupportedCurriculumDialect, type CurriculumItem } from '../../data/curriculum';
+import { hasCompletedContent } from '../../utils/progression';
+import { getTotalDueCount } from '../../utils/srs';
 import type { StreakData } from '../../utils/streak';
 import { clearPendingMilestone, getLocalStreakData, getPendingMilestone } from '../../utils/streak';
 import { supabase } from '../../utils/supabase';
-import { TESTING_UNLOCK_ALL } from '../../utils/access';
 
 let lastHomeScrollY = 0;
 
@@ -65,6 +68,59 @@ const DIALECT_FLAGS: Record<string, string> = {
   maghrebi: '🇲🇦',
 };
 
+function getCurriculumIcon(item: CurriculumItem) {
+  if (item.contentType === 'writing') return <Pencil color={theme.colors.accentPrimary} size={20} />;
+  if (item.contentType === 'quiz') return null;
+  if (item.contentType === 'lesson') {
+    if (item.contentId.startsWith('numbers-') || item.contentId.startsWith('grammar-')) {
+      return <Hash color={theme.colors.accentPrimary} size={20} />;
+    }
+    if (item.contentId.startsWith('work-') || item.contentId.startsWith('social-')) {
+      return <Hash color={theme.colors.accentPrimary} size={20} />;
+    }
+    if (item.contentId === 'greetings') return <Mic color={theme.colors.accentPrimary} size={20} />;
+    if (item.contentId === 'intro') return <User color={theme.colors.accentPrimary} size={20} />;
+    return <BookOpen color={theme.colors.accentPrimary} size={20} />;
+  }
+
+  switch (item.contentId) {
+    case 'cafe':
+      return <Coffee color={theme.colors.accentPrimary} size={20} />;
+    case 'taxi':
+      return <Car color={theme.colors.accentPrimary} size={20} />;
+    case 'hotel':
+      return <ShoppingBag color={theme.colors.accentPrimary} size={20} />;
+    case 'restaurant':
+      return <Utensils color={theme.colors.accentPrimary} size={20} />;
+    case 'supermarket':
+      return <ShoppingCart color={theme.colors.accentPrimary} size={20} />;
+    case 'pharmacy':
+    case 'doctorvisit':
+    case 'hospitalemergency':
+      return <Heart color={theme.colors.accentPrimary} size={20} />;
+    case 'barbershop':
+      return <Scissors color={theme.colors.accentPrimary} size={20} />;
+    case 'airport':
+      return <Plane color={theme.colors.accentPrimary} size={20} />;
+    case 'morningroutine':
+    case 'fridaygathering':
+    case 'neighborvisit':
+      return <Coffee color={theme.colors.accentPrimary} size={20} />;
+    case 'atgym':
+      return <Activity color={theme.colors.accentPrimary} size={20} />;
+    case 'cookinghome':
+      return <Utensils color={theme.colors.accentPrimary} size={20} />;
+    default:
+      return <MapPin color={theme.colors.accentPrimary} size={20} />;
+  }
+}
+
+function getCurriculumItemMeta(item: CurriculumItem, itemIndex: number, itemCount: number) {
+  if (item.contentType === 'quiz') return item.subtitle ?? 'Test what you learned';
+  const prefix = item.contentType === 'writing' ? 'Lesson' : 'Lesson';
+  return `${prefix} ${itemIndex + 1} of ${itemCount}${item.subtitle ? ` · ${item.subtitle}` : ''}`;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -75,7 +131,7 @@ export default function HomeScreen() {
   const [isGuest, setIsGuest] = useState(false);
   const [lessonsToday, setLessonsToday] = useState(0);
   const [level, setLevel] = useState('beginner');
-  const { dialect: contextDialect, content, setDialect: setContextDialect } = useDialect();
+  const { dialect: contextDialect, setDialect: setContextDialect } = useDialect();
   const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
   const [promptReason, setPromptReason] = useState('');
   const [showExpiryWarning, setShowExpiryWarning] = useState(false);
@@ -85,10 +141,11 @@ export default function HomeScreen() {
   const [streakData, setStreakData] = useState<StreakData>({
     currentStreak: 0, longestStreak: 0, lastActiveDate: null, activeDates: [],
   });
+  const [dueReviewCount, setDueReviewCount] = useState(0);
   const { isOnline, offlinePacks, currentDialectOfflineReady } = useConnectivity();
 
   // Freemium state — XP and premium come from XPContext (shared, no extra fetch)
-  const { xp: xpFromContext, isPremium: isPremiumFromContext, canAccess } = useXP();
+  const { xp: xpFromContext, isPremium: isPremiumFromContext, getAccess } = useXP();
   const {
     premiumPackage,
     premiumPrice,
@@ -232,6 +289,10 @@ export default function HomeScreen() {
           setPendingMilestone(milestone);
           setShowMilestoneModal(true);
         }
+
+        // SRS due count for Daily Review card
+        const due = await getTotalDueCount();
+        setDueReviewCount(due);
       };
 
       loadData();
@@ -249,26 +310,53 @@ export default function HomeScreen() {
   // When TESTING_UNLOCK_ALL is true, treat every user as logged-in with no prerequisites
   const effectiveIsGuest = TESTING_UNLOCK_ALL ? false : isGuest;
 
-  const getStatus = (scenario: string, prerequisite?: string): 'completed' | 'current' | 'locked' => {
-    if (scenarioProgress[scenario]) return 'completed';
-    if (TESTING_UNLOCK_ALL) return 'current';
-    if (!prerequisite || scenarioProgress[prerequisite]) return 'current';
-    return 'locked';
+  const completedContentIds = () => Object.keys(scenarioProgress).filter(id => scenarioProgress[id]);
+  const isDone = (id: string) => hasCompletedContent(contextDialect, id, completedContentIds());
+  const activeUnits = useMemo(() => {
+    if (!isSupportedCurriculumDialect(contextDialect)) return [];
+    return getDialectCurriculum(contextDialect).units
+      .map(unit => ({
+        ...unit,
+        items: unit.items.filter(item => item.availability !== 'unavailable'),
+      }))
+      .filter(unit => unit.items.length > 0);
+  }, [contextDialect]);
+  const activeCurriculumItems = useMemo(
+    () => activeUnits.flatMap(unit => unit.items),
+    [activeUnits]
+  );
+  const firstCurriculumContentId = activeCurriculumItems[0]?.contentId ?? null;
+  const getAccessForItem = (item: CurriculumItem) => getAccess({
+    contentId: item.contentId,
+    unitId: item.unitId,
+    contentType: item.contentType,
+    dialect: contextDialect,
+    completedContentIds: completedContentIds(),
+  });
+
+  const showProgressionLock = (item: CurriculumItem) => {
+    const requiredPrevious = getAccessForItem(item).requiredPreviousContentId;
+    Alert.alert(
+      'Complete previous lesson',
+      requiredPrevious
+        ? `${item.title} unlocks after you complete the previous activity.`
+        : `${item.title} is not available yet.`
+    );
+    return true;
   };
 
   /** Returns the freemium tier for a content item (used for lock overlay badges). */
   type FreemiumTier = 'accessible' | 'premium_only';
-  const getFreemiumTier = (contentId: string): FreemiumTier => {
+  const getFreemiumTier = (item: CurriculumItem): FreemiumTier => {
     if (TESTING_UNLOCK_ALL || isPremium) return 'accessible';
-    if (canAccess(contentId)) return 'accessible';
-    return 'premium_only';
+    return getAccessForItem(item).reason === 'premium_required' ? 'premium_only' : 'accessible';
   };
 
   /** Show the paywall modal for a piece of freemium-gated content. */
-  const showPaywall = (contentId: string, label: string) => {
-    const tier = getFreemiumTier(contentId);
+  const showPaywall = (item: CurriculumItem) => {
+    const tier = getFreemiumTier(item);
     if (tier === 'accessible') return false; // caller should proceed
-    setPaywallContent({ id: contentId, label, premiumOnly: tier === 'premium_only' });
+    setPaywallContent({ id: item.contentId, label: item.title, premiumOnly: tier === 'premium_only' });
     setPaywallVisible(true);
     return true; // caller should stop
   };
@@ -302,38 +390,81 @@ export default function HomeScreen() {
   const offlineBadgeLabel = isOnline ? 'Online' : 'Offline';
   const offlineBadgeIcon = isOnline ? <Download color={theme.colors.textAccent} size={13} /> : <WifiOff color={theme.colors.accentWarm} size={13} />;
 
-  // V1 access: free users get Units 1-3, first three Unit 4 lessons, and first three Unit 5 lessons.
-  // Everything after that points to Premium. Rewarded ads remain hidden for V1.
-  const getContentLock = (id: string): 'premium' | undefined =>
-    getFreemiumTier(id) === 'accessible' ? undefined : 'premium';
-  const getLessonPremiumLock = (id: string): 'premium' | undefined =>
-    !effectiveIsGuest && !scenarioProgress[id] ? getContentLock(id) : undefined;
+  const getContentLock = (item: CurriculumItem): 'premium' | undefined =>
+    getAccessForItem(item).reason === 'premium_required' ? 'premium' : undefined;
   // Convenience: show paywall for a content item (returns true = blocked)
-  const paywallGuard = (id: string, label: string) => {
-    if (TESTING_UNLOCK_ALL) return false;
-    return showPaywall(id, label);
-  };
-  const guardPremiumQuiz = (id: string, label: string) => {
-    if (TESTING_UNLOCK_ALL || isPremium) return false;
-    return showPaywall(id, label);
+  const paywallGuard = (item: CurriculumItem) => {
+    const access = getAccessForItem(item);
+    if (access.allowed) return false;
+    if (access.reason === 'previous_incomplete' || access.reason === 'unavailable') return showProgressionLock(item);
+    return showPaywall(item);
   };
 
   // Continue card — points to first incomplete lesson in the curriculum.
-  // Minimal priority list covering the start of the path; progress is measured against it.
-  const CONTINUE_PATH: Array<{ id: string; title: string; unit: string; href: string }> = [
-    { id: 'basic_words',  title: 'Basic Words',       unit: 'Unit 1 · First Words',          href: '/lesson?type=basic_words' },
-    { id: 'greetings',    title: 'Common Greetings',  unit: 'Unit 1 · First Words',          href: '/lesson?type=greetings' },
-    { id: 'intro',        title: 'Introduce Yourself',unit: 'Unit 1 · First Words',          href: '/lesson?type=intro' },
-    { id: 'cafe',         title: 'Café Ordering',     unit: 'Unit 2 · Real Life Situations', href: '/scenario-intro?type=Cafe' },
-    { id: 'taxi',         title: 'Taxi Ride',         unit: 'Unit 2 · Real Life Situations', href: '/scenario-intro-taxi' },
-    { id: 'hotel',        title: 'Hotel Check-in',    unit: 'Unit 2 · Real Life Situations', href: '/scenario-intro-hotel' },
-  ];
-  const completedInPath = CONTINUE_PATH.filter(p => scenarioProgress[p.id]).length;
-  const nextInPath = CONTINUE_PATH.find(p => !scenarioProgress[p.id]) ?? CONTINUE_PATH[0];
-  const continuePercent = Math.round((completedInPath / CONTINUE_PATH.length) * 100);
-  const continueTitle = completedInPath === CONTINUE_PATH.length ? 'Keep practising' : nextInPath.title;
-  const continueMeta = nextInPath.unit;
-  const continueHref = nextInPath.href;
+  const completedInPath = activeCurriculumItems.filter(item => isDone(item.contentId)).length;
+  const nextInPath = activeCurriculumItems.find(item => !isDone(item.contentId)) ?? activeCurriculumItems[0];
+  const continuePercent = activeCurriculumItems.length > 0
+    ? Math.round((completedInPath / activeCurriculumItems.length) * 100)
+    : 0;
+  const continueTitle = completedInPath === activeCurriculumItems.length ? 'Keep practising' : nextInPath?.title ?? 'Start learning';
+  const continueMeta = activeUnits.find(unit => unit.unitId === nextInPath?.unitId)?.title ?? dialectLabel;
+  const continueHref = nextInPath?.homeHref ?? '/(tabs)';
+
+  const handleCurriculumItemPress = (item: CurriculumItem) => {
+    if (effectiveIsGuest && item.contentId !== firstCurriculumContentId) {
+      setPromptReason('unlock all lessons');
+      setShowSignUpPrompt(true);
+      return;
+    }
+    if (paywallGuard(item)) return;
+    router.push(item.homeHref as any);
+  };
+
+  const renderCurriculumItem = (item: CurriculumItem, itemIndex: number, itemCount: number) => {
+    const access = getAccessForItem(item);
+    const done = isDone(item.contentId);
+    const status = done ? 'completed' : access.allowed ? 'current' : 'locked';
+    const isPremiumLocked = access.reason === 'premium_required';
+    const meta = getCurriculumItemMeta(item, itemIndex, itemCount);
+
+    if (item.contentType === 'quiz') {
+      const unlocked = access.allowed;
+      return (
+        <Pressable
+          key={item.contentId}
+          style={[styles.quizButton, !unlocked && styles.quizButtonLocked, done && styles.quizButtonDone]}
+          onPress={() => handleCurriculumItemPress(item)}
+        >
+          <Text style={styles.quizButtonIcon}>{done ? '✅' : '🎯'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>{item.title}</Text>
+            <Text style={[styles.quizButtonSub, !unlocked && { color: theme.colors.textTertiary }]}>
+              {effectiveIsGuest && item.contentId !== firstCurriculumContentId ? 'Create account to unlock' : meta}
+            </Text>
+          </View>
+          {done
+            ? <Check color={theme.colors.accentSuccess} size={20} />
+            : unlocked
+              ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
+              : <Lock color={theme.colors.textTertiary} size={18} />}
+        </Pressable>
+      );
+    }
+
+    return (
+      <LessonRow
+        key={item.contentId}
+        label={item.title}
+        meta={meta}
+        icon={getCurriculumIcon(item)}
+        status={status}
+        guestLocked={effectiveIsGuest && item.contentId !== firstCurriculumContentId}
+        freemiumLock={isPremiumLocked && !effectiveIsGuest ? getContentLock(item) : undefined}
+        onPress={() => handleCurriculumItemPress(item)}
+        onLockedPress={() => handleCurriculumItemPress(item)}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -478,1630 +609,45 @@ export default function HomeScreen() {
 
         <Text style={styles.pathLabel}>YOUR PATH</Text>
 
-        {/* Unit 1 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 1: First Words</Text>
-        </View>
+        {/* Daily Review card — only shown when SRS items are due */}
+        {dueReviewCount > 0 && !effectiveIsGuest && (
+          <Pressable
+            style={styles.reviewCard}
+            onPress={() => router.push('/quiz-unit2?unit=review' as any)}
+          >
+            <View style={styles.reviewIconWell}>
+              <Text style={{ fontSize: 18 }}>🔁</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reviewLabel}>DAILY REVIEW</Text>
+              <Text style={styles.reviewTitle}>
+                {dueReviewCount} item{dueReviewCount !== 1 ? 's' : ''} due for practice
+              </Text>
+            </View>
+            <View style={styles.reviewBadge}>
+              <Text style={styles.reviewBadgeText}>{dueReviewCount}</Text>
+            </View>
+          </Pressable>
+        )}
 
-        <LessonRow
-          label="Basic Words"
-          meta="Lesson 1 of 3 · 3 mins"
-          icon={<BookOpen color={theme.colors.accentPrimary} size={20} />}
-          status={getStatus('basic_words')}
-          onPress={() => router.push('/lesson?type=basic_words' as any)}
-          comingSoon={!content.availableLessons.includes('basic')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['basic_words'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Common Greetings"
-          meta="Lesson 2 of 3 · 3 mins"
-          icon={<Mic color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('greetings', 'basic_words')}
-          guestLocked={effectiveIsGuest}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=greetings' as any);
-          }}
-          comingSoon={!content.availableLessons.includes('greetings')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['greetings'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Introduce Yourself"
-          meta="Lesson 3 of 3 · 4 mins"
-          icon={<User color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('intro', 'greetings')}
-          guestLocked={effectiveIsGuest}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=intro' as any);
-          }}
-          comingSoon={!content.availableLessons.includes('intro')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['intro'] && styles.lessonConnectorDone]} />
-
-        {/* Unit 1 Quiz */}
-        {(() => {
-          const quizUnlocked = TESTING_UNLOCK_ALL || (!isGuest && !!scenarioProgress['intro']);
+        {activeUnits.map(unit => {
+          const itemCount = unit.items.length;
           return (
-            <Pressable
-              style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked]}
-              onPress={() => {
-                if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                if (quizUnlocked) router.push('/quiz' as any);
-              }}
-            >
-              <Text style={styles.quizButtonIcon}>🎯</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 1 Quiz</Text>
-                <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                  {effectiveIsGuest ? 'Create account to unlock' : 'Test what you learned · +150 XP'}
-                </Text>
+            <View key={unit.unitId}>
+              <View style={styles.unitRow}>
+                <Text style={styles.unitTitle}>{unit.title}</Text>
               </View>
-              {quizUnlocked
-                ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                : <Lock color={theme.colors.textTertiary} size={18} />}
-            </Pressable>
-          );
-        })()}
-
-        {/* Unit 2 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 2: Real Life Situations</Text>
-        </View>
-
-        <LessonRow
-          label="Café Ordering"
-          meta="Lesson 1 of 8 · 4 mins"
-          icon={<Coffee color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('cafe', 'intro')}
-          guestLocked={effectiveIsGuest}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro?type=Cafe' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Cafe')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['cafe'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Taxi Ride"
-          meta="Lesson 2 of 8 · 4 mins"
-          icon={<Car color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('taxi', 'cafe')}
-          guestLocked={effectiveIsGuest}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-taxi' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Taxi')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['taxi'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Hotel Check-in"
-          meta="Lesson 3 of 8 · 3 mins"
-          icon={<ShoppingBag color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('hotel', 'taxi')}
-          guestLocked={effectiveIsGuest}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-hotel' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Hotel')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['hotel'] && styles.lessonConnectorDone]} />
-
-        {/* Unit 2 Quiz · Part 1 — unlocks after Hotel */}
-        {(() => {
-          const unlocked = TESTING_UNLOCK_ALL || (!isGuest && !!scenarioProgress['hotel']);
-          const done = !!scenarioProgress['quiz_u2_p1'];
-          return (
-            <Pressable
-              style={[styles.quizButton, !unlocked && styles.quizButtonLocked, done && styles.quizButtonDone]}
-              onPress={() => {
-                if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                if (unlocked) router.push('/quiz-unit2?unit=2p1' as any);
-              }}
-            >
-              <Text style={styles.quizButtonIcon}>{done ? '✅' : '🎯'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>Unit 2 Quiz · Part 1</Text>
-                <Text style={[styles.quizButtonSub, !unlocked && { color: theme.colors.textTertiary }]}>
-                  {effectiveIsGuest ? 'Create account to unlock' : 'Café, Taxi, Hotel · +150 XP'}
-                </Text>
-              </View>
-              {done
-                ? <Check color={theme.colors.accentSuccess} size={20} />
-                : unlocked
-                  ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                  : <Lock color={theme.colors.textTertiary} size={18} />}
-            </Pressable>
-          );
-        })()}
-
-        <View style={[styles.lessonConnector, scenarioProgress['quiz_u2_p1'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Restaurant"
-          meta="Lesson 4 of 8 · 3 mins"
-          icon={<Utensils color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('restaurant', 'quiz_u2_p1')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['restaurant'] ? getContentLock('restaurant') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            if (!scenarioProgress['restaurant'] && showPaywall('restaurant', 'Restaurant')) return;
-            router.push('/scenario-intro-restaurant' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Restaurant')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['restaurant'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Supermarket"
-          meta="Lesson 5 of 8 · 3 mins"
-          icon={<ShoppingCart color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('supermarket', 'restaurant')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['supermarket'] ? getContentLock('supermarket') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            if (!scenarioProgress['supermarket'] && showPaywall('supermarket', 'Supermarket')) return;
-            router.push('/scenario-intro-supermarket' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Supermarket')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['supermarket'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Pharmacy"
-          meta="Lesson 6 of 8 · 3 mins"
-          icon={<Heart color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('pharmacy', 'supermarket')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['pharmacy'] ? getContentLock('pharmacy') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            if (!scenarioProgress['pharmacy'] && showPaywall('pharmacy', 'Pharmacy')) return;
-            router.push('/scenario-intro-pharmacy' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Pharmacy')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['pharmacy'] && styles.lessonConnectorDone]} />
-
-        {/* Unit 2 Quiz · Part 2 — unlocks after Pharmacy */}
-        {(() => {
-          const unlocked = TESTING_UNLOCK_ALL || (!isGuest && !!scenarioProgress['pharmacy']);
-          const done = !!scenarioProgress['quiz_u2_p2'];
-          return (
-            <Pressable
-              style={[styles.quizButton, !unlocked && styles.quizButtonLocked, done && styles.quizButtonDone]}
-              onPress={() => {
-                if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                if (unlocked) router.push('/quiz-unit2?unit=2p2' as any);
-              }}
-            >
-              <Text style={styles.quizButtonIcon}>{done ? '✅' : '🎯'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>Unit 2 Quiz · Part 2</Text>
-                <Text style={[styles.quizButtonSub, !unlocked && { color: theme.colors.textTertiary }]}>
-                  {effectiveIsGuest ? 'Create account to unlock' : 'Restaurant, Supermarket, Pharmacy · +150 XP'}
-                </Text>
-              </View>
-              {done
-                ? <Check color={theme.colors.accentSuccess} size={20} />
-                : unlocked
-                  ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                  : <Lock color={theme.colors.textTertiary} size={18} />}
-            </Pressable>
-          );
-        })()}
-
-        <View style={[styles.lessonConnector, scenarioProgress['quiz_u2_p2'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Barbershop"
-          meta="Lesson 7 of 8 · 3 mins"
-          icon={<Scissors color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('barbershop', 'quiz_u2_p2')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['barbershop'] ? getContentLock('barbershop') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            if (!scenarioProgress['barbershop'] && showPaywall('barbershop', 'Barbershop')) return;
-            router.push('/scenario-intro-barbershop' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Barbershop')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['barbershop'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Airport"
-          meta="Lesson 8 of 8 · 3 mins"
-          icon={<Plane color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('airport', 'barbershop')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['airport'] ? getContentLock('airport') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            if (!scenarioProgress['airport'] && showPaywall('airport', 'Airport')) return;
-            router.push('/scenario-intro-airport' as any);
-          }}
-          comingSoon={!content.availableScenarios.includes('Airport')}
-        />
-
-        {/* Unit 3 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 3: Writing Arabic</Text>
-        </View>
-
-        <LessonRow
-          label="The ا Family"
-          meta="Lesson 1 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={getStatus('alif_family')}
-          freemiumLock={!scenarioProgress['alif_family'] ? getContentLock('writing') : undefined}
-          onPress={() => router.push('/writing?family=alif' as any)}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['alif_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ب Family"
-          meta="Lesson 2 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('ba_family', 'alif_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['ba_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['ba_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ج Family"
-          meta="Lesson 3 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('jeem_family', 'ba_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['jeem_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=jeem' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['jeem_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The د Family"
-          meta="Lesson 4 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('dal_family', 'jeem_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['dal_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=dal' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['dal_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ر Family"
-          meta="Lesson 5 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('ra_family', 'dal_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['ra_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=ra' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['ra_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The س Family"
-          meta="Lesson 6 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('seen_family', 'ra_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['seen_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=seen' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['seen_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ص Family"
-          meta="Lesson 7 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('sad_family', 'seen_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['sad_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=sad' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['sad_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ط Family"
-          meta="Lesson 8 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('taa_family', 'sad_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['taa_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=taa' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['taa_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ع Family"
-          meta="Lesson 9 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('ayn_family', 'taa_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['ayn_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=ayn' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['ayn_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ف Family"
-          meta="Lesson 10 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('fa_family', 'ayn_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['fa_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=fa' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['fa_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ك Family"
-          meta="Lesson 11 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('kaf_family', 'fa_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['kaf_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=kaf' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['kaf_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The م Family"
-          meta="Lesson 12 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('meem_family', 'kaf_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['meem_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=meem' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['meem_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ه Family"
-          meta="Lesson 13 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('ha_family', 'meem_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['ha_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=ha' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['ha_family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="The ي Family"
-          meta="Lesson 14 of 14 · 3 mins"
-          icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('ya_family', 'ha_family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['ya_family'] ? getContentLock('writing') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/writing?family=ya' as any); }}
-          onLockedPress={() => paywallGuard('writing', 'Arabic Writing')}
-        />
-
-        {/* Connector from lesson 14 → Unit 3 Quiz */}
-        {(() => {
-          const ALL_WRITING_FAMILIES = [
-            'alif_family', 'ba_family', 'jeem_family', 'dal_family', 'ra_family',
-            'seen_family', 'sad_family', 'taa_family', 'ayn_family', 'fa_family',
-            'kaf_family', 'meem_family', 'ha_family', 'ya_family',
-          ];
-          const allFamiliesDone = ALL_WRITING_FAMILIES.every(f => !!scenarioProgress[f]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (!isGuest && allFamiliesDone);
-          const quizDone = !!scenarioProgress['quiz_u3'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['ya_family'] && styles.lessonConnectorDone]} />
-              <LessonRow
-                label="Unit 3 Quiz"
-                meta="Test what you learned · +150 XP"
-                icon={<Pencil color={theme.colors.accentPrimary} size={20} />}
-                status={quizDone ? 'completed' : (effectiveIsGuest ? 'locked' : (quizUnlocked ? 'current' : 'locked'))}
-                guestLocked={effectiveIsGuest}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (quizUnlocked) router.push('/quiz?unit=3' as any);
-                }}
-              />
-            </>
-          );
-        })()}
-
-        {/* Unit 4 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 4: Numbers & Counting</Text>
-        </View>
-
-        <LessonRow
-          label="Numbers 1–5"
-          meta="Lesson 1 of 14 · 2 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-1-5')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-1-5'] ? getContentLock('numbers-1-5') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-1-5' as any); }}
-          onLockedPress={() => paywallGuard('numbers-1-5', 'Numbers 1–5')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-1-5'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Numbers 6–10"
-          meta="Lesson 2 of 14 · 2 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-6-10', 'numbers-1-5')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-6-10'] ? getContentLock('numbers-6-10') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-6-10' as any); }}
-          onLockedPress={() => paywallGuard('numbers-6-10', 'Numbers 6–10')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-6-10'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Numbers 11–20"
-          meta="Lesson 3 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-11-20', 'numbers-6-10')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-11-20'] ? getContentLock('numbers-11-20') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-11-20' as any); }}
-          onLockedPress={() => paywallGuard('numbers-11-20', 'Numbers 11–20')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-11-20'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Tens & Hundreds"
-          meta="Lesson 4 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-tens', 'numbers-11-20')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-tens'] ? getContentLock('numbers-tens') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-tens' as any); }}
-          onLockedPress={() => paywallGuard('numbers-tens', 'Tens & Hundreds')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-tens'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Talking About Age"
-          meta="Lesson 5 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-age', 'numbers-tens')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-age'] ? getContentLock('numbers-age') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-age' as any); }}
-          onLockedPress={() => paywallGuard('numbers-age', 'Talking About Age')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-age'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Prices & Money"
-          meta="Lesson 6 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-prices', 'numbers-age')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-prices'] ? getContentLock('numbers-prices') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-prices' as any); }}
-          onLockedPress={() => paywallGuard('numbers-prices', 'Prices & Money')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-prices'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Phone Numbers"
-          meta="Lesson 7 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-phone', 'numbers-prices')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-phone'] ? getContentLock('numbers-phone') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-phone' as any); }}
-          onLockedPress={() => paywallGuard('numbers-phone', 'Phone Numbers')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-phone'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Telling the Time"
-          meta="Lesson 8 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-hours', 'numbers-phone')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-hours'] ? getContentLock('numbers-hours') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-hours' as any); }}
-          onLockedPress={() => paywallGuard('numbers-hours', 'Telling the Time')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-hours'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Minutes & Fractions"
-          meta="Lesson 9 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-minutes', 'numbers-hours')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-minutes'] ? getContentLock('numbers-minutes') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-minutes' as any); }}
-          onLockedPress={() => paywallGuard('numbers-minutes', 'Minutes & Fractions')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-minutes'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Days of the Week"
-          meta="Lesson 10 of 14 · 2 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-days', 'numbers-minutes')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-days'] ? getContentLock('numbers-days') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-days' as any); }}
-          onLockedPress={() => paywallGuard('numbers-days', 'Days of the Week')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-days'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Months of the Year"
-          meta="Lesson 11 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-months', 'numbers-days')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-months'] ? getContentLock('numbers-months') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-months' as any); }}
-          onLockedPress={() => paywallGuard('numbers-months', 'Months of the Year')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-months'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Dates & Calendar"
-          meta="Lesson 12 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-dates', 'numbers-months')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-dates'] ? getContentLock('numbers-dates') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-dates' as any); }}
-          onLockedPress={() => paywallGuard('numbers-dates', 'Dates & Calendar')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-dates'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Ordinal Numbers"
-          meta="Lesson 13 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-ordering', 'numbers-dates')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-ordering'] ? getContentLock('numbers-ordering') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-ordering' as any); }}
-          onLockedPress={() => paywallGuard('numbers-ordering', 'Ordinal Numbers')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['numbers-ordering'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Big Numbers"
-          meta="Lesson 14 of 14 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('numbers-together', 'numbers-ordering')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['numbers-together'] ? getContentLock('numbers-together') : undefined}
-          onPress={() => { if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; } router.push('/lesson?type=numbers-together' as any); }}
-          onLockedPress={() => paywallGuard('numbers-together', 'Big Numbers')}
-        />
-
-        {/* Unit 4 Quiz */}
-        {(() => {
-          const ALL_U4_LESSONS = [
-            'numbers-1-5', 'numbers-6-10', 'numbers-11-20', 'numbers-tens',
-            'numbers-age', 'numbers-prices', 'numbers-phone', 'numbers-hours',
-            'numbers-minutes', 'numbers-days', 'numbers-months', 'numbers-dates',
-            'numbers-ordering', 'numbers-together',
-          ];
-          const allDone = ALL_U4_LESSONS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u4'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['numbers-together'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u4', 'Unit 4 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz?unit=4' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 4 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Numbers & Counting · +150 XP'}
-                  </Text>
+              {unit.items.map((item, index) => (
+                <View key={item.contentId}>
+                  {renderCurriculumItem(item, index, itemCount)}
+                  {index < itemCount - 1 && (
+                    <View style={[styles.lessonConnector, isDone(item.contentId) && styles.lessonConnectorDone]} />
+                  )}
                 </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
+              ))}
+            </View>
           );
-        })()}
-
-        {/* Unit 5 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 5: Grammar Basics</Text>
-        </View>
-
-        <LessonRow
-          label="Pronouns"
-          meta="Lesson 1 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-pronouns')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-pronouns'] ? getContentLock('grammar-pronouns') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-pronouns' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-pronouns', 'Pronouns')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-pronouns'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="This & That"
-          meta="Lesson 2 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-this-that', 'grammar-pronouns')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-this-that'] ? getContentLock('grammar-this-that') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-this-that' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-this-that', 'This & That')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-this-that'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="My, Your, His, Her"
-          meta="Lesson 3 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-possessives', 'grammar-this-that')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-possessives'] ? getContentLock('grammar-possessives') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-possessives' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-possessives', 'My, Your, His, Her')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-possessives'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Common Verbs (Present)"
-          meta="Lesson 4 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-present-verbs', 'grammar-possessives')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-present-verbs'] ? getContentLock('grammar-present-verbs') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-present-verbs' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-present-verbs', 'Common Verbs (Present)')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-present-verbs'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Common Verbs (Past)"
-          meta="Lesson 5 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-past-verbs', 'grammar-present-verbs')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-past-verbs'] ? getContentLock('grammar-past-verbs') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-past-verbs' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-past-verbs', 'Common Verbs (Past)')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-past-verbs'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Wanting & Needing"
-          meta="Lesson 6 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-want-need', 'grammar-past-verbs')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-want-need'] ? getContentLock('grammar-want-need') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-want-need' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-want-need', 'Wanting & Needing')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-want-need'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Asking Questions"
-          meta="Lesson 7 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-questions', 'grammar-want-need')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-questions'] ? getContentLock('grammar-questions') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-questions' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-questions', 'Asking Questions')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-questions'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Saying No & Not"
-          meta="Lesson 8 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-negation', 'grammar-questions')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-negation'] ? getContentLock('grammar-negation') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-negation' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-negation', 'Saying No & Not')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-negation'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Describing Things"
-          meta="Lesson 9 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-adjectives', 'grammar-negation')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-adjectives'] ? getContentLock('grammar-adjectives') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-adjectives' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-adjectives', 'Describing Things')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['grammar-adjectives'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Building Sentences"
-          meta="Lesson 10 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('grammar-sentences', 'grammar-adjectives')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={!effectiveIsGuest && !scenarioProgress['grammar-sentences'] ? getContentLock('grammar-sentences') : undefined}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=grammar-sentences' as any);
-          }}
-          onLockedPress={() => paywallGuard('grammar-sentences', 'Building Sentences')}
-        />
-
-        {/* Unit 5 Quiz */}
-        {(() => {
-          const ALL_U5_LESSONS = [
-            'grammar-pronouns', 'grammar-this-that', 'grammar-possessives',
-            'grammar-present-verbs', 'grammar-past-verbs', 'grammar-want-need',
-            'grammar-questions', 'grammar-negation', 'grammar-adjectives', 'grammar-sentences',
-          ];
-          const allDone = ALL_U5_LESSONS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u5'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['grammar-sentences'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u5', 'Unit 5 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz?unit=5' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 5 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Grammar Basics · +150 XP'}
-                  </Text>
-                </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
-          );
-        })()}
-
-        {/* Unit 6 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 6: Daily Life Scenarios</Text>
-        </View>
-
-        <LessonRow
-          label="Morning Routine"
-          meta="Lesson 1 of 8 · 3 mins"
-          icon={<Coffee color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('morningroutine')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('morningroutine')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-morning-routine' as any);
-          }}
-          onLockedPress={() => paywallGuard('morningroutine', 'Morning Routine')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['morningroutine'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="At the Gym"
-          meta="Lesson 2 of 8 · 3 mins"
-          icon={<Activity color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('atgym', 'morningroutine')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('atgym')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-gym' as any);
-          }}
-          onLockedPress={() => paywallGuard('atgym', 'At the Gym')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['atgym'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Cooking at Home"
-          meta="Lesson 3 of 8 · 3 mins"
-          icon={<Utensils color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('cookinghome', 'atgym')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('cookinghome')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-cooking-home' as any);
-          }}
-          onLockedPress={() => paywallGuard('cookinghome', 'Cooking at Home')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['cookinghome'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Weather Chat"
-          meta="Lesson 4 of 8 · 3 mins"
-          icon={<Mic color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('weatherchat', 'cookinghome')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('weatherchat')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-weather-chat' as any);
-          }}
-          onLockedPress={() => paywallGuard('weatherchat', 'Weather Chat')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['weatherchat'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Doctor Visit"
-          meta="Lesson 5 of 8 · 3 mins"
-          icon={<Heart color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('doctorvisit', 'weatherchat')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('doctorvisit')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-doctor-visit' as any);
-          }}
-          onLockedPress={() => paywallGuard('doctorvisit', 'Doctor Visit')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['doctorvisit'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="At the Bank"
-          meta="Lesson 6 of 8 · 3 mins"
-          icon={<ShoppingBag color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('atbank', 'doctorvisit')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('atbank')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-bank' as any);
-          }}
-          onLockedPress={() => paywallGuard('atbank', 'At the Bank')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['atbank'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Friday Gathering"
-          meta="Lesson 7 of 8 · 3 mins"
-          icon={<User color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('fridaygathering', 'atbank')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('fridaygathering')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friday-gathering' as any);
-          }}
-          onLockedPress={() => paywallGuard('fridaygathering', 'Friday Gathering')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['fridaygathering'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Neighbour Visit"
-          meta="Lesson 8 of 8 · 3 mins"
-          icon={<Coffee color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('neighborvisit', 'fridaygathering')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('neighborvisit')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('access real life scenarios'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-neighbor-visit' as any);
-          }}
-          onLockedPress={() => paywallGuard('neighborvisit', 'Neighbour Visit')}
-        />
-
-        {/* Unit 6 Quiz */}
-        {(() => {
-          const ALL_U6_SCENARIOS = [
-            'morningroutine', 'atgym', 'cookinghome', 'weatherchat',
-            'doctorvisit', 'atbank', 'fridaygathering', 'neighborvisit',
-          ];
-          const allDone = ALL_U6_SCENARIOS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u6'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['neighborvisit'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u6', 'Unit 6 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz-unit2?unit=6' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 6 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Daily Life Scenarios · +150 XP'}
-                  </Text>
-                </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
-          );
-        })()}
-
-        {/* Unit 8 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 8: Emergencies & Help</Text>
-        </View>
-
-        <LessonRow
-          label="Lost in the City"
-          meta="Lesson 1 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('lostincity')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('lostincity')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-lost-in-city' as any);
-          }}
-          onLockedPress={() => paywallGuard('lostincity', 'Lost in the City')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['lostincity'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Car Breakdown"
-          meta="Lesson 2 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('carbreakdown', 'lostincity')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('carbreakdown')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-car-breakdown' as any);
-          }}
-          onLockedPress={() => paywallGuard('carbreakdown', 'Car Breakdown')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['carbreakdown'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="At the Police Station"
-          meta="Lesson 3 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('policestation', 'carbreakdown')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('policestation')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-police-station' as any);
-          }}
-          onLockedPress={() => paywallGuard('policestation', 'At the Police Station')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['policestation'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Hospital Emergency"
-          meta="Lesson 4 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('hospitalemergency', 'policestation')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('hospitalemergency')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-hospital-emergency' as any);
-          }}
-          onLockedPress={() => paywallGuard('hospitalemergency', 'Hospital Emergency')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['hospitalemergency'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Lost Wallet"
-          meta="Lesson 5 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('lostwallet', 'hospitalemergency')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('lostwallet')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-lost-wallet' as any);
-          }}
-          onLockedPress={() => paywallGuard('lostwallet', 'Lost Wallet')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['lostwallet'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Flight Problem"
-          meta="Lesson 6 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('flightproblem', 'lostwallet')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('flightproblem')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-flight-problem' as any);
-          }}
-          onLockedPress={() => paywallGuard('flightproblem', 'Flight Problem')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['flightproblem'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Asking Strangers for Help"
-          meta="Lesson 7 of 7 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('askingforhelp', 'flightproblem')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('askingforhelp')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-asking-for-help' as any);
-          }}
-          onLockedPress={() => paywallGuard('askingforhelp', 'Asking Strangers for Help')}
-        />
-
-        {/* Unit 8 Quiz */}
-        {(() => {
-          const ALL_U8_SCENARIOS = [
-            'lostincity', 'carbreakdown', 'policestation', 'hospitalemergency',
-            'lostwallet', 'flightproblem', 'askingforhelp',
-          ];
-          const allDone = ALL_U8_SCENARIOS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u8'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['askingforhelp'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u8', 'Unit 8 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz-unit2?unit=8' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 8 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Emergencies & Help · +150 XP'}
-                  </Text>
-                </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
-          );
-        })()}
-
-        {/* Unit 7 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 7: Work & Business</Text>
-        </View>
-
-        <LessonRow
-          label="At the Office"
-          meta="Lesson 1 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-office')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-office')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-office' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-office', 'At the Office')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-office'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Work Greetings"
-          meta="Lesson 2 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-greetings', 'work-office')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-greetings')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-greetings' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-greetings', 'Work Greetings')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-greetings'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="In a Meeting"
-          meta="Lesson 3 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-meeting', 'work-greetings')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-meeting')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-meeting' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-meeting', 'In a Meeting')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-meeting'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Phone Calls"
-          meta="Lesson 4 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-phone', 'work-meeting')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-phone')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-phone' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-phone', 'Phone Calls')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-phone'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Email & Messages"
-          meta="Lesson 5 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-email', 'work-phone')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-email')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-email' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-email', 'Email & Messages')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-email'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Schedule & Deadlines"
-          meta="Lesson 6 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-schedule', 'work-email')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-schedule')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-schedule' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-schedule', 'Schedule & Deadlines')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-schedule'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Reporting Problems"
-          meta="Lesson 7 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-problems', 'work-schedule')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-problems')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-problems' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-problems', 'Reporting Problems')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-problems'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Office Small Talk"
-          meta="Lesson 8 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-smalltalk', 'work-problems')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-smalltalk')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-smalltalk' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-smalltalk', 'Office Small Talk')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-smalltalk'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Salary & Benefits"
-          meta="Lesson 9 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-salary', 'work-smalltalk')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-salary')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-salary' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-salary', 'Salary & Benefits')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['work-salary'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="End of Day"
-          meta="Lesson 10 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('work-leaving', 'work-salary')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('work-leaving')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=work-leaving' as any);
-          }}
-          onLockedPress={() => paywallGuard('work-leaving', 'End of Day')}
-        />
-
-        {/* Unit 7 Quiz */}
-        {(() => {
-          const ALL_U7_LESSONS = [
-            'work-office', 'work-greetings', 'work-meeting', 'work-phone', 'work-email',
-            'work-schedule', 'work-problems', 'work-smalltalk', 'work-salary', 'work-leaving',
-          ];
-          const allDone = ALL_U7_LESSONS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u7'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['work-leaving'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u7', 'Unit 7 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz?unit=7' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 7 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Work & Business · +150 XP'}
-                  </Text>
-                </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
-          );
-        })()}
-
-        {/* Unit 9 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 9: Social & Culture</Text>
-        </View>
-
-        <LessonRow
-          label="Greetings & Farewells"
-          meta="Lesson 1 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-greetings')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-greetings')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-greetings' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-greetings', 'Greetings & Farewells')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-greetings'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Family & Relationships"
-          meta="Lesson 2 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-family', 'social-greetings')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-family')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-family' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-family', 'Family & Relationships')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-family'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Invitations & Plans"
-          meta="Lesson 3 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-invitations', 'social-family')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-invitations')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-invitations' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-invitations', 'Invitations & Plans')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-invitations'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Ramadan & Eid"
-          meta="Lesson 4 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-ramadan', 'social-invitations')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-ramadan')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-ramadan' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-ramadan', 'Ramadan & Eid')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-ramadan'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Compliments & Praise"
-          meta="Lesson 5 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-compliments', 'social-ramadan')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-compliments')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-compliments' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-compliments', 'Compliments & Praise')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-compliments'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Feelings & Emotions"
-          meta="Lesson 6 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-emotions', 'social-compliments')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-emotions')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-emotions' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-emotions', 'Feelings & Emotions')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-emotions'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Weddings & Celebrations"
-          meta="Lesson 7 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-weddings', 'social-emotions')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-weddings')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-weddings' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-weddings', 'Weddings & Celebrations')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-weddings'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Condolences & Sympathy"
-          meta="Lesson 8 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-condolences', 'social-weddings')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-condolences')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-condolences' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-condolences', 'Condolences & Sympathy')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-condolences'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Religion & Daily Phrases"
-          meta="Lesson 9 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-religion', 'social-condolences')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-religion')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-religion' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-religion', 'Religion & Daily Phrases')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['social-religion'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Manners & Etiquette"
-          meta="Lesson 10 of 10 · 3 mins"
-          icon={<Hash color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('social-manners', 'social-religion')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('social-manners')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/lesson?type=social-manners' as any);
-          }}
-          onLockedPress={() => paywallGuard('social-manners', 'Manners & Etiquette')}
-        />
-
-        {/* Unit 9 Quiz */}
-        {(() => {
-          const ALL_U9_LESSONS = [
-            'social-greetings', 'social-family', 'social-invitations', 'social-ramadan',
-            'social-compliments', 'social-emotions', 'social-weddings', 'social-condolences',
-            'social-religion', 'social-manners',
-          ];
-          const allDone = ALL_U9_LESSONS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u9'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['social-manners'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u9', 'Unit 9 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz?unit=9' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 9 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Social & Culture · +150 XP'}
-                  </Text>
-                </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
-          );
-        })()}
-
-        {/* Unit 10 */}
-        <View style={styles.unitRow}>
-          <Text style={styles.unitTitle}>Unit 10: Making Friends</Text>
-        </View>
-
-        <LessonRow
-          label="New Neighbor"
-          meta="Lesson 1 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsnewneighbor')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsnewneighbor')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-new-neighbor' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsnewneighbor', 'New Neighbor')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsnewneighbor'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Watching Football"
-          meta="Lesson 2 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsfootball', 'friendsnewneighbor')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsfootball')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-football' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsfootball', 'Watching Football')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsfootball'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Gaming Night"
-          meta="Lesson 3 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsgaming', 'friendsfootball')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsgaming')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-gaming' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsgaming', 'Gaming Night')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsgaming'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Weekend Plans"
-          meta="Lesson 4 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsweekend', 'friendsgaming')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsweekend')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-weekend' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsweekend', 'Weekend Plans')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsweekend'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Social Media"
-          meta="Lesson 5 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendssocialmedia', 'friendsweekend')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendssocialmedia')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-social-media' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendssocialmedia', 'Social Media')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendssocialmedia'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Road Trip"
-          meta="Lesson 6 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsroadtrip', 'friendssocialmedia')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsroadtrip')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-road-trip' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsroadtrip', 'Road Trip')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsroadtrip'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Birthday Party"
-          meta="Lesson 7 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsbirthday', 'friendsroadtrip')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsbirthday')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-birthday' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsbirthday', 'Birthday Party')}
-        />
-        <View style={[styles.lessonConnector, scenarioProgress['friendsbirthday'] && styles.lessonConnectorDone]} />
-        <LessonRow
-          label="Saying Goodbye"
-          meta="Lesson 8 of 8 · 5 mins"
-          icon={<MapPin color={theme.colors.accentPrimary} size={20} />}
-          status={effectiveIsGuest ? 'locked' : getStatus('friendsfarewell', 'friendsbirthday')}
-          guestLocked={effectiveIsGuest}
-          freemiumLock={getLessonPremiumLock('friendsfarewell')}
-          onPress={() => {
-            if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-            router.push('/scenario-intro-friends-farewell' as any);
-          }}
-          onLockedPress={() => paywallGuard('friendsfarewell', 'Saying Goodbye')}
-        />
-
-        {/* Unit 10 Quiz */}
-        {(() => {
-          const ALL_U10_SCENARIOS = [
-            'friendsnewneighbor', 'friendsfootball', 'friendsgaming', 'friendsweekend',
-            'friendssocialmedia', 'friendsroadtrip', 'friendsbirthday', 'friendsfarewell',
-          ];
-          const allDone = ALL_U10_SCENARIOS.every(k => !!scenarioProgress[k]);
-          const quizUnlocked = TESTING_UNLOCK_ALL || (isPremium && !isGuest && allDone);
-          const quizDone = !!scenarioProgress['quiz_u10'];
-          return (
-            <>
-              <View style={[styles.lessonConnector, scenarioProgress['friendsfarewell'] && styles.lessonConnectorDone]} />
-              <Pressable
-                style={[styles.quizButton, !quizUnlocked && styles.quizButtonLocked, quizDone && styles.quizButtonDone]}
-                onPress={() => {
-                  if (effectiveIsGuest) { setPromptReason('unlock all lessons'); setShowSignUpPrompt(true); return; }
-                  if (guardPremiumQuiz('quiz_u10', 'Unit 10 Quiz')) return;
-                  if (quizUnlocked) router.push('/quiz-unit2?unit=10' as any);
-                }}
-              >
-                <Text style={styles.quizButtonIcon}>{quizDone ? '✅' : '🎯'}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.quizButtonTitle, !quizUnlocked && { color: theme.colors.textTertiary }]}>Unit 10 Quiz</Text>
-                  <Text style={[styles.quizButtonSub, !quizUnlocked && { color: theme.colors.textTertiary }]}>
-                    {effectiveIsGuest ? 'Create account to unlock' : 'Making Friends · +150 XP'}
-                  </Text>
-                </View>
-                {quizDone
-                  ? <Check color={theme.colors.accentSuccess} size={20} />
-                  : quizUnlocked
-                    ? <ChevronRight color={theme.colors.accentPrimary} size={20} />
-                    : <Lock color={theme.colors.textTertiary} size={18} />}
-              </Pressable>
-            </>
-          );
-        })()}
+        })}
 
       </ScrollView>
 
@@ -2163,11 +709,14 @@ function LessonRow({ label, meta, icon, status, onPress, guestLocked, comingSoon
   if (comingSoon) effectiveMeta = 'Coming Soon';
   else if (freemiumLock === 'premium') effectiveMeta = '👑 Premium only';
   else if (isLocked && guestLocked) effectiveMeta = '🔒 Sign up to unlock';
+  else if (isLocked) effectiveMeta = '🔒 Complete previous lesson';
 
   const handlePress = comingSoon
     ? undefined
     : freemiumLock
       ? onLockedPress
+      : isLocked && !guestLocked
+        ? undefined
       : onPress;
 
   return (
@@ -2270,6 +819,14 @@ const styles = StyleSheet.create({
   questLabel: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textSecondary, letterSpacing: 1.5, marginBottom: 2 },
   questTitle: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
   questFraction: { fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium, color: theme.colors.textSecondary, minWidth: 32, textAlign: 'right' },
+
+  // Daily Review card
+  reviewCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, padding: theme.spacing.md, borderWidth: 1, borderColor: 'rgba(255, 170, 0, 0.35)', marginBottom: theme.spacing.md, gap: theme.spacing.sm },
+  reviewIconWell: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255, 170, 0, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  reviewLabel: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.accentWarm, letterSpacing: 1.2 },
+  reviewTitle: { fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginTop: 1 },
+  reviewBadge: { minWidth: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.accentWarm, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  reviewBadgeText: { fontSize: 13, fontWeight: theme.fontWeight.medium, color: '#000' },
 
   // Path label
   pathLabel: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, letterSpacing: 1.5, marginBottom: theme.spacing.md, marginTop: theme.spacing.sm },

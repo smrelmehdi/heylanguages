@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
+import { getCanonicalCompletionKey, parseCompletionKey } from '../utils/progression';
 import { supabase } from '../utils/supabase';
 
 async function mergeGuestProgress(userId: string) {
@@ -17,17 +18,21 @@ async function mergeGuestProgress(userId: string) {
 
   for (const [scenario, completed] of Object.entries(progressMap)) {
     if (!completed) continue;
+    const parsed = parseCompletionKey(scenario);
+    const canonicalScenario = parsed ? scenario : getCanonicalCompletionKey('gulf', scenario);
+    if (!canonicalScenario) continue;
+    const dialect = parsed?.dialect ?? 'gulf';
     const { data: existing } = await supabase
       .from('scenario_progress')
       .select('id')
       .eq('user_id', userId)
-      .eq('scenario', scenario)
+      .eq('scenario', canonicalScenario)
       .maybeSingle();
     if (!existing) {
       await supabase.from('scenario_progress').insert({
         user_id: userId,
-        scenario,
-        dialect: 'gulf',
+        scenario: canonicalScenario,
+        dialect,
         completed: true,
         best_score: 100,
         attempts: 1,

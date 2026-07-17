@@ -19,6 +19,7 @@ import { useDialect } from '../contexts/DialectContext';
 import { ALPHABET_AUDIO } from '../data/alphabet-audio';
 import { stripTashkeel } from '../utils/arabic';
 import { getWritingContentId } from '../utils/access';
+import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { feedbackCorrect, feedbackWrong } from '../utils/feedback';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
@@ -385,7 +386,7 @@ export default function WritingScreen() {
   const familyRef  = useRef(CURRENT_FAMILY);
   const dialectRef = useRef(dialect);
 
-  const scenarioKey =
+  const publicScenarioKey =
     familyStr === 'alif' ? 'alif_family' :
     familyStr === 'jeem' ? 'jeem_family' :
     familyStr === 'dal'  ? 'dal_family'  :
@@ -400,6 +401,7 @@ export default function WritingScreen() {
     familyStr === 'ha'   ? 'ha_family'   :
     familyStr === 'ya'   ? 'ya_family'   :
     'ba_family';
+  const scenarioKey = buildCompletionKey(dialect, 'unit-3', publicScenarioKey);
 
   const getFamilyTitle = () => {
     switch (familyStr) {
@@ -428,7 +430,7 @@ export default function WritingScreen() {
         .from('scenario_progress')
         .select('id, attempts')
         .eq('user_id', session.user.id)
-        .eq('scenario', scenarioKey)
+        .in('scenario', getCompletionKeyCandidates(dialectRef.current, publicScenarioKey))
         .maybeSingle();
       if (existing) {
         await supabase.from('scenario_progress').update({
@@ -449,8 +451,11 @@ export default function WritingScreen() {
     } else {
       const raw = await AsyncStorage.getItem('guest_progress');
       const progress = raw ? JSON.parse(raw) : {};
+      const alreadyCompleted = getCompletionKeyCandidates(dialectRef.current, publicScenarioKey)
+        .some(key => progress[key] === true);
       progress[scenarioKey] = true;
       await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
+      if (alreadyCompleted) return;
     }
     await recordActivity();
   };
@@ -622,8 +627,9 @@ export default function WritingScreen() {
       if (nextQIdx >= quizQsRef.current.length) {
         setQuizDone(true);
         if (quizScoreRef.current >= 6) {
-          saveCompletion();
-          setTimeout(() => router.replace('/(tabs)'), 3000);
+          saveCompletion()
+            .catch(console.warn)
+            .finally(() => setTimeout(() => router.replace('/(tabs)'), 3000));
         }
       } else {
         quizIdxRef.current = nextQIdx;
@@ -849,7 +855,7 @@ export default function WritingScreen() {
 
   // ── Main render ───────────────────────────────────────────────────────────
   return (
-    <PremiumRouteGate contentId={routeContentId} contentLabel={getFamilyTitle()}>
+    <PremiumRouteGate contentId={routeContentId} contentType="writing" contentLabel={getFamilyTitle()}>
       <SafeAreaView style={styles.container}>
 
       {/* Header */}
