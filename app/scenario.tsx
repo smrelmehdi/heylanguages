@@ -534,7 +534,7 @@ export default function ScenarioScreen() {
       case 'EgyptianEverydayHotel': return `🏨 Hotel · ${dialectLabel}`;
       case 'EgyptianEverydayAirport': return `✈️ Airport · ${dialectLabel}`;
       case 'EgyptianPhoneCall': return `📞 Phone Call · ${dialectLabel}`;
-      default:                   return `☕ Café · ${dialectLabel}`;
+      default:                   return `💬 ${resolvedContent?.item.title ?? 'Scenario'} · ${dialectLabel}`;
     }
   };
 

@@ -12,6 +12,9 @@ import {
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
 import { EGYPTIAN_UNIT6_SCENARIOS, EGYPTIAN_UNIT6_SCENARIOS_BY_NAME } from './egyptian-unit6';
 import { EGYPTIAN_UNIT7_LESSONS } from './egyptian-work';
+import { EGYPTIAN_UNIT8_SCENARIOS, EGYPTIAN_UNIT8_SCENARIOS_BY_NAME } from './egyptian-emergencies';
+import { EGYPTIAN_UNIT9_LESSONS } from './egyptian-social';
+import { EGYPTIAN_UNIT10_SCENARIOS, EGYPTIAN_UNIT10_SCENARIOS_BY_NAME } from './egyptian-friends';
 import type { DialogueTurn } from './gulf-dialogues';
 import {
     AIRPORT_DIALOGUE,
@@ -236,6 +239,8 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       Barbershop:  BARBERSHOP_DIALOGUE_EG,
       Airport:     AIRPORT_DIALOGUE_EG,
       ...EGYPTIAN_UNIT6_SCENARIOS_BY_NAME,
+      ...EGYPTIAN_UNIT8_SCENARIOS_BY_NAME,
+      ...EGYPTIAN_UNIT10_SCENARIOS_BY_NAME,
     },
     sceneImages: {
       // ── Cairo (real images) ───────────────────────────────────────────────
@@ -263,6 +268,10 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       EgyptianEverydaySupermarket: require('../assets/images/cairo-supermarket-interior.png'),
       EgyptianEverydayTaxi:       require('../assets/images/cairo-taxi-interior.png'),
       EgyptianEverydayHotel:      require('../assets/images/cairo-hotel-interior.png'),
+      // Explicit Egyptian reuse while dedicated Unit 8-10 Cairo scenes are pending.
+      EgyptianLostPhone:          require('../assets/images/cairo-cafe-interior.png'),
+      EgyptianBrunch:             require('../assets/images/cairo-cafe-interior.png'),
+      EgyptianRoadTrip:           require('../assets/images/cairo-taxi-interior.png'),
     },
     availableLessons: [
       'basic', 'greetings', 'intro',
@@ -272,10 +281,13 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       'grammar-negation', 'grammar-present', 'grammar-past', 'grammar-future',
       'grammar-adjectives', 'grammar-prepositions', 'grammar-sentences',
       ...EGYPTIAN_UNIT7_LESSONS.map(item => item.contentId),
+      ...EGYPTIAN_UNIT9_LESSONS.map(item => item.contentId),
     ],
     availableScenarios: [
       'Cafe', 'Taxi', 'Hotel', 'Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop', 'Airport',
       ...EGYPTIAN_UNIT6_SCENARIOS.map(item => item.scenarioName),
+      ...EGYPTIAN_UNIT8_SCENARIOS.map(item => item.scenarioName),
+      ...EGYPTIAN_UNIT10_SCENARIOS.map(item => item.scenarioName),
     ],
   },
 };

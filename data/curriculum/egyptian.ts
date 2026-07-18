@@ -27,6 +27,9 @@ import {
 } from '../egyptian-grammar';
 import { EGYPTIAN_UNIT6_SCENARIOS } from '../egyptian-unit6';
 import { EGYPTIAN_UNIT7_LESSONS } from '../egyptian-work';
+import { EGYPTIAN_UNIT8_SCENARIOS } from '../egyptian-emergencies';
+import { EGYPTIAN_UNIT9_LESSONS } from '../egyptian-social';
+import { EGYPTIAN_UNIT10_SCENARIOS } from '../egyptian-friends';
 
 const dialect = 'egyptian' as const;
 
@@ -237,8 +240,69 @@ export const EGYPTIAN_CURRICULUM: DialectCurriculum = {
         quiz('unit-7', 'quiz_u7', 'Unit 7 Quiz', '7', 'quiz-unit2', 'premium'),
       ],
     },
-    { dialect, unitId: 'unit-8', title: 'Unit 8: Emergencies & Help', availability: 'unavailable', items: [] },
-    { dialect, unitId: 'unit-9', title: 'Unit 9: Social & Culture', availability: 'unavailable', items: [] },
-    { dialect, unitId: 'unit-10', title: 'Unit 10: Making Friends', availability: 'unavailable', items: [] },
+    {
+      dialect,
+      unitId: 'unit-8',
+      title: 'Unit 8: Emergencies & Help',
+      availability: 'available',
+      items: [
+        ...EGYPTIAN_UNIT8_SCENARIOS.map(item => scenario(
+          item.contentId,
+          item.title,
+          item.scenarioName,
+          'premium',
+          'unit-8',
+          {
+            description: item.description,
+            setting: item.setting,
+            objective: item.objective,
+            sceneImageId: item.imageId,
+            sceneEntranceImageId: item.entranceImageId,
+          },
+        )),
+        quiz('unit-8', 'quiz_u8', 'Unit 8 Quiz', '8', 'quiz-unit2', 'premium'),
+      ],
+    },
+    {
+      dialect,
+      unitId: 'unit-9',
+      title: 'Unit 9: Social Life',
+      availability: 'available',
+      items: [
+        ...EGYPTIAN_UNIT9_LESSONS.map(item => lesson(
+          'unit-9',
+          item.contentId,
+          item.title,
+          undefined,
+          item.words,
+          'premium',
+          '4 mins',
+        )),
+        quiz('unit-9', 'quiz_u9', 'Unit 9 Quiz', '9', 'quiz-unit2', 'premium'),
+      ],
+    },
+    {
+      dialect,
+      unitId: 'unit-10',
+      title: 'Unit 10: Friends, Celebrations & Farewell',
+      availability: 'available',
+      items: [
+        ...EGYPTIAN_UNIT10_SCENARIOS.map(item => scenario(
+          item.contentId,
+          item.title,
+          item.scenarioName,
+          'premium',
+          'unit-10',
+          {
+            description: item.description,
+            setting: item.setting,
+            objective: item.objective,
+            sceneImageId: item.imageId,
+            sceneEntranceImageId: item.entranceImageId,
+          },
+        )),
+        quiz('unit-10', 'quiz_u10', 'Unit 10 Quiz', '10', 'quiz-unit2', 'premium'),
+      ],
+    },
   ],
 };

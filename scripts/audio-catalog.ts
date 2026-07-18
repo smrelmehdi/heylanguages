@@ -125,6 +125,48 @@ const EGYPTIAN_UNIT_7_LESSONS = [
 ] as const;
 const EGYPTIAN_UNIT_7_SOURCE_KEYS = new Set(EGYPTIAN_UNIT_7_LESSONS.map(([sourceKey]) => sourceKey));
 
+const EGYPTIAN_UNIT_8_SCENARIOS = [
+  ['doctor-appointment', 'EGYPTIAN_DOCTOR_APPOINTMENT_SCENARIO'],
+  ['hospital-reception', 'EGYPTIAN_HOSPITAL_RECEPTION_SCENARIO'],
+  ['describing-pain', 'EGYPTIAN_DESCRIBING_PAIN_SCENARIO'],
+  ['pharmacy-emergency', 'EGYPTIAN_PHARMACY_EMERGENCY_SCENARIO'],
+  ['calling-ambulance', 'EGYPTIAN_CALLING_AMBULANCE_SCENARIO'],
+  ['police-help', 'EGYPTIAN_POLICE_HELP_SCENARIO'],
+  ['lost-phone', 'EGYPTIAN_LOST_PHONE_SCENARIO'],
+  ['lost-child', 'EGYPTIAN_LOST_CHILD_SCENARIO'],
+  ['car-problem', 'EGYPTIAN_CAR_PROBLEM_SCENARIO'],
+  ['urgent-help', 'EGYPTIAN_URGENT_HELP_SCENARIO'],
+] as const;
+const EGYPTIAN_UNIT_8_SOURCE_KEYS = new Set(EGYPTIAN_UNIT_8_SCENARIOS.map(([sourceKey]) => sourceKey));
+
+const EGYPTIAN_UNIT_9_LESSONS = [
+  ['invitations', 'INVITATIONS_WORDS_EG'],
+  ['accepting-and-refusing', 'ACCEPTING_REFUSING_WORDS_EG'],
+  ['visiting-friends', 'VISITING_FRIENDS_WORDS_EG'],
+  ['family-visit', 'FAMILY_VISIT_WORDS_EG'],
+  ['cafe-with-friends', 'CAFE_WITH_FRIENDS_WORDS_EG'],
+  ['football', 'FOOTBALL_WORDS_EG'],
+  ['gaming', 'GAMING_WORDS_EG'],
+  ['social-media', 'SOCIAL_MEDIA_WORDS_EG'],
+  ['weekend-plans', 'WEEKEND_PLANS_WORDS_EG'],
+  ['making-plans', 'MAKING_PLANS_WORDS_EG'],
+] as const;
+const EGYPTIAN_UNIT_9_SOURCE_KEYS = new Set(EGYPTIAN_UNIT_9_LESSONS.map(([sourceKey]) => sourceKey));
+
+const EGYPTIAN_UNIT_10_SCENARIOS = [
+  ['neighbor-visit', 'EGYPTIAN_NEIGHBOR_VISIT_SCENARIO'],
+  ['brunch', 'EGYPTIAN_BRUNCH_SCENARIO'],
+  ['road-trip', 'EGYPTIAN_ROAD_TRIP_SCENARIO'],
+  ['birthday-invitation', 'EGYPTIAN_BIRTHDAY_INVITATION_SCENARIO'],
+  ['birthday-party', 'EGYPTIAN_BIRTHDAY_PARTY_SCENARIO'],
+  ['giving-a-gift', 'EGYPTIAN_GIVING_GIFT_SCENARIO'],
+  ['taking-photos', 'EGYPTIAN_TAKING_PHOTOS_SCENARIO'],
+  ['remembering-the-trip', 'EGYPTIAN_REMEMBERING_TRIP_SCENARIO'],
+  ['saying-goodbye', 'EGYPTIAN_SAYING_GOODBYE_SCENARIO'],
+  ['staying-in-touch', 'EGYPTIAN_STAYING_IN_TOUCH_SCENARIO'],
+] as const;
+const EGYPTIAN_UNIT_10_SOURCE_KEYS = new Set(EGYPTIAN_UNIT_10_SCENARIOS.map(([sourceKey]) => sourceKey));
+
 const UNIT_7_LESSONS = [
   ['work-office',     'WORK_OFFICE_WORDS'],
   ['work-greetings',  'WORK_GREETINGS_WORDS'],
@@ -274,6 +316,9 @@ export function getAudioCatalog(): AudioTarget[] {
   const egyptianDialogues = require('../data/egyptian-dialogues');
   const egyptianUnit6 = require('../data/egyptian-unit6');
   const egyptianWork = require('../data/egyptian-work');
+  const egyptianEmergencies = require('../data/egyptian-emergencies');
+  const egyptianSocial = require('../data/egyptian-social');
+  const egyptianFriends = require('../data/egyptian-friends');
   const msaWords = require('../data/msa-words');
   const msaDialogues = require('../data/msa-dialogues');
 
@@ -311,6 +356,15 @@ export function getAudioCatalog(): AudioTarget[] {
     ...EGYPTIAN_UNIT_7_LESSONS.flatMap(([sourceKey, exportName]) =>
       buildLessonTargets('egyptian', sourceKey, egyptianWork[exportName] ?? [], `egyptian/unit-7/${sourceKey}`),
     ),
+    ...EGYPTIAN_UNIT_8_SCENARIOS.flatMap(([sourceKey, exportName]) =>
+      buildScenarioTargets('egyptian', sourceKey, egyptianEmergencies[exportName]?.dialogue ?? [], `egyptian/unit-8/${sourceKey}`),
+    ),
+    ...EGYPTIAN_UNIT_9_LESSONS.flatMap(([sourceKey, exportName]) =>
+      buildLessonTargets('egyptian', sourceKey, egyptianSocial[exportName] ?? [], `egyptian/unit-9/${sourceKey}`),
+    ),
+    ...EGYPTIAN_UNIT_10_SCENARIOS.flatMap(([sourceKey, exportName]) =>
+      buildScenarioTargets('egyptian', sourceKey, egyptianFriends[exportName]?.dialogue ?? [], `egyptian/unit-10/${sourceKey}`),
+    ),
     ...buildAlphabetTargets(),
     ...CORE_SCENARIOS.flatMap(([sourceKey, gulfExport]) =>
       buildScenarioTargets('gulf', sourceKey, gulfDialogues[gulfExport] ?? [], sourceKey),
@@ -337,6 +391,12 @@ export function getAudioTargets(filter: AudioCatalogFilter = {}): AudioTarget[] 
         if (target.dialect !== 'egyptian' || !EGYPTIAN_UNIT_6_SOURCE_KEYS.has(target.sourceKey as any)) return false;
       } else if (filter.sourceKey === 'egyptian-unit-7') {
         if (target.dialect !== 'egyptian' || !EGYPTIAN_UNIT_7_SOURCE_KEYS.has(target.sourceKey as any)) return false;
+      } else if (filter.sourceKey === 'egyptian-unit-8') {
+        if (target.dialect !== 'egyptian' || !EGYPTIAN_UNIT_8_SOURCE_KEYS.has(target.sourceKey as any)) return false;
+      } else if (filter.sourceKey === 'egyptian-unit-9') {
+        if (target.dialect !== 'egyptian' || !EGYPTIAN_UNIT_9_SOURCE_KEYS.has(target.sourceKey as any)) return false;
+      } else if (filter.sourceKey === 'egyptian-unit-10') {
+        if (target.dialect !== 'egyptian' || !EGYPTIAN_UNIT_10_SOURCE_KEYS.has(target.sourceKey as any)) return false;
       } else if (filter.sourceKey === 'unit-7') {
         if (!UNIT_7_SOURCE_KEYS.has(target.sourceKey as any)) return false;
       } else if (filter.sourceKey === 'unit-9') {

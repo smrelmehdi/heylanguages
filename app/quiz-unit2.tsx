@@ -63,6 +63,30 @@ const EGYPTIAN_UNIT6_SCENARIOS = [
   'EgyptianEverydayAirport',
   'EgyptianPhoneCall',
 ];
+const EGYPTIAN_UNIT8_SCENARIOS = [
+  'EgyptianDoctorAppointment',
+  'EgyptianHospitalReception',
+  'EgyptianDescribingPain',
+  'EgyptianPharmacyEmergency',
+  'EgyptianCallingAmbulance',
+  'EgyptianPoliceHelp',
+  'EgyptianLostPhone',
+  'EgyptianLostChild',
+  'EgyptianCarProblem',
+  'EgyptianUrgentHelp',
+];
+const EGYPTIAN_UNIT10_SCENARIOS = [
+  'EgyptianNeighborVisit',
+  'EgyptianBrunch',
+  'EgyptianRoadTrip',
+  'EgyptianBirthdayInvitation',
+  'EgyptianBirthdayParty',
+  'EgyptianGivingGift',
+  'EgyptianTakingPhotos',
+  'EgyptianRememberingTrip',
+  'EgyptianSayingGoodbye',
+  'EgyptianStayingInTouch',
+];
 const UNIT8_SCENARIOS = [
   'LostInCity',
   'CarBreakdown',
@@ -177,7 +201,7 @@ function uniqueWords(words: Word[], correct?: Word) {
 }
 
 function makeWordOptions(correct: Word, words: Word[]) {
-  const distractors = uniqueWords(words, correct).slice(0, 3);
+  const distractors = seededSelection(uniqueWords(words, correct), 3, wordKey(correct), wordKey);
   return shuffle([
     { arabic: wordArabic(correct), transliteration: correct.transliteration, isCorrect: true },
     ...shuffle(distractors).map(word => ({
@@ -281,7 +305,7 @@ function buildWordUnitQuiz(unitKey: string, lessons: WordLessonEntry[], tier: Qu
         english: word.english,
         options: shuffle([
           { arabic: wordArabic(word), isCorrect: true },
-          ...uniqueWords(allWords, word).slice(0, 3).map(distractor => ({
+          ...seededSelection(uniqueWords(allWords, word), 3, wordKey(word), wordKey).map(distractor => ({
             arabic: wordArabic(distractor),
             isCorrect: false,
           })),
@@ -306,11 +330,11 @@ function wordOption(word: Word, isCorrect = false): PhraseOption {
 
 function makePhraseOptions(correct: PhraseOption, distractors: PhraseOption[]) {
   const seen = new Set([correct.arabic]);
-  const uniqueDistractors = distractors.filter(option => {
+  const uniqueDistractors = seededSelection(distractors.filter(option => {
     if (seen.has(option.arabic)) return false;
     seen.add(option.arabic);
     return true;
-  }).slice(0, 3);
+  }), 3, correct.arabic, option => option.arabic);
 
   return shuffle([
     { ...correct, isCorrect: true },
@@ -474,7 +498,12 @@ function buildEgyptianUnit7Quiz(lessons: WordLessonEntry[], content: DialectCont
       : lessonWords[1] ?? primary;
     const typing = lessonWords[2] ?? primary;
     const arabicSelect = lessonWords[3] ?? secondary;
-    const distractorsFor = (word: Word) => uniqueWords(lessonWords, word).slice(0, 3);
+    const distractorsFor = (word: Word) => seededSelection(
+      uniqueWords(lessonWords, word),
+      3,
+      `${lessonItem.id}:${wordKey(word)}`,
+      wordKey,
+    );
     const source = `egyptian-unit-7:${lessonItem.id}`;
 
     addLessonQuestion(lessonItem.id, makeWordSceneQuestion(
@@ -889,9 +918,35 @@ function shuffle<T>(items: T[]): T[] {
   return arr;
 }
 
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededSelection<T>(items: T[], count: number, seed: string, keyFor: (item: T) => string) {
+  return [...items]
+    .sort((left, right) => {
+      const leftRank = stableHash(`${seed}:${keyFor(left)}`);
+      const rightRank = stableHash(`${seed}:${keyFor(right)}`);
+      return leftRank - rightRank || keyFor(left).localeCompare(keyFor(right));
+    })
+    .slice(0, count);
+}
+
 function makeOptions(correct: DialogueTurn, distractors: DialogueTurn[], fallbackDistractors: DialogueTurn[] = []) {
-  const wrongTurns = uniqueTurns([...meaningfulTurns(distractors), ...distractors, ...fallbackDistractors], correct)
-    .slice(0, 3);
+  const contextual = uniqueTurns([...meaningfulTurns(distractors), ...distractors], correct);
+  const fallback = uniqueTurns(fallbackDistractors, correct)
+    .filter(turn => !contextual.some(candidate => turnKey(candidate) === turnKey(turn)));
+  const wrongTurns = seededSelection(
+    [...contextual, ...fallback],
+    3,
+    turnKey(correct),
+    turnKey,
+  );
   return shuffle([
     { arabic: displayTurnArabic(correct), transliteration: correct.transliteration, isCorrect: true },
     ...shuffle(wrongTurns)
@@ -1067,10 +1122,12 @@ function buildDialectUnit2Quiz(
       const candidates = meaningfulTurns(entry.turns.filter(t => t.type !== 'user'));
       const target = candidates[0];
       if (!target) return;
-      const distractors = uniqueTurns(
-        [...meaningfulTurns(userTurns), ...npcTurns],
-        target,
-      ).slice(0, 3);
+      const distractors = seededSelection(
+        uniqueTurns([...meaningfulTurns(userTurns), ...npcTurns], target),
+        3,
+        `${entry.name}:${turnKey(target)}`,
+        turnKey,
+      );
       if (distractors.length < 2) return;
       questions.push({
         id: `${dialect}_${entry.name}_arabic_select`,
@@ -1169,6 +1226,210 @@ function buildEgyptianUnit6Quiz(content: DialectContent, tier: QuizTierInfo) {
     add(scenarioSources[6], ['arabic_select']);
     add(scenarioSources[7], ['transliteration_type']);
     add(scenarioSources[9], ['arabic_select']);
+  }
+
+  return shuffleNoAdjacentFormats(selected);
+}
+
+function buildBalancedEgyptianScenarioQuiz(
+  unitKey: 'unit8' | 'unit10',
+  scenarioNames: string[],
+  content: DialectContent,
+  tier: QuizTierInfo,
+) {
+  const candidates = buildDialectUnit2Quiz(scenarioNames, content, 'egyptian', tier)
+    .filter(question => tier.formats.includes(question.format));
+  const selected: QuizQuestion[] = [];
+  const used = new Set<string>();
+  const sources = scenarioNames.map(name => name.toLowerCase());
+
+  const add = (source: string, formats: QuizQuestion['format'][]) => {
+    const question = candidates.find(candidate =>
+      candidate.scenarioSource === source
+      && formats.includes(candidate.format)
+      && !used.has(candidate.id)
+      && (candidate.format !== 'scene_replay' || Boolean(candidate.sceneImage))
+    );
+    if (!question) return false;
+    selected.push({
+      ...question,
+      id: `eg_${unitKey}_${question.id}`,
+      scenarioSource: `egyptian-${unitKey}:${question.scenarioSource}`,
+    });
+    used.add(question.id);
+    return true;
+  };
+
+  const baseFormats = sources.map((_, index): QuizQuestion['format'][] => {
+    if (content.sceneImages[scenarioNames[index]]) return ['scene_replay', 'listening'];
+    if (tier.tier === 1) return index % 3 === 0 ? ['scene_replay', 'listening'] : ['listening'];
+    if (tier.tier === 2) return index % 2 === 0 ? ['fill_conversation', 'listening'] : ['listening'];
+    if (tier.tier === 3) {
+      if (index % 4 === 2) return ['transliteration_type', 'listening'];
+      return index % 2 === 0 ? ['fill_conversation', 'listening'] : ['listening'];
+    }
+    if (index % 4 === 0) return ['arabic_select', 'listening'];
+    if (index % 4 === 1) return ['transliteration_type', 'listening'];
+    if (index % 4 === 2) return ['fill_conversation', 'listening'];
+    return ['scene_replay', 'listening'];
+  });
+
+  sources.forEach((source, index) => add(source, baseFormats[index]));
+
+  const extraFormats: QuizQuestion['format'][] = tier.tier === 1
+    ? ['listening', 'scene_replay']
+    : tier.tier === 2
+      ? ['fill_conversation', 'listening', 'scene_replay']
+      : tier.tier === 3
+        ? ['transliteration_type', 'fill_conversation', 'listening', 'scene_replay']
+        : ['arabic_select', 'transliteration_type', 'fill_conversation', 'listening', 'scene_replay'];
+
+  let round = 0;
+  while (selected.length < targetQuestionCount(tier) && round < extraFormats.length * sources.length) {
+    const source = sources[round % sources.length];
+    const format = extraFormats[Math.floor(round / sources.length) % extraFormats.length];
+    add(source, [format]);
+    round += 1;
+  }
+
+  return shuffleNoAdjacentFormats(selected);
+}
+
+const UNIT9_FILL_PROMPTS: Record<string, { prompt: string; answer: string; distractors: string[] }> = {
+  invitations: {
+    prompt: 'عايز تعزم صاحبك يخرج معاكم. هتقول إيه؟',
+    answer: 'تيجي معانا؟',
+    distractors: ['للأسف مش هقدر', 'معلش، مرة تانية', 'أشوفك بكرة'],
+  },
+  'accepting-and-refusing': {
+    prompt: 'صاحبك عزمك وإنت موافق. هترد بإيه؟',
+    answer: 'ماشي',
+    distractors: ['للأسف مش هقدر', 'معلش، مرة تانية', 'ينفع يوم تاني؟'],
+  },
+  'visiting-friends': {
+    prompt: 'رايح تزور صاحبك. هتسأله تجيب إيه؟',
+    answer: 'أجيب حاجة معايا؟',
+    distractors: ['البيت منور', 'تعبناك معانا', 'أشوفك بكرة'],
+  },
+  'family-visit': {
+    prompt: 'عايز تقول إنكم هتزوروا العيلة الجمعة. هتقول إيه؟',
+    answer: 'هنزوركم الجمعة',
+    distractors: ['سلم لي على العيلة', 'وحشتونا', 'خليكم على العشا'],
+  },
+  'cafe-with-friends': {
+    prompt: 'وصلتوا الكافيه وعايز تختار مكان. هتسأل إزاي؟',
+    answer: 'نقعد فين؟',
+    distractors: ['الحساب علينا', 'أنا هطلب قهوة', 'القعدة حلوة هنا'],
+  },
+  football: {
+    prompt: 'عايز تعرف صاحبك بيشجع أنهي فريق. هتسأل إزاي؟',
+    answer: 'بتشجع مين؟',
+    distractors: ['هنشوف الماتش', 'بلعب كورة', 'كسبنا الماتش'],
+  },
+  gaming: {
+    prompt: 'عايز تلعب مع صاحبك على النت. هتقول إيه؟',
+    answer: 'نلعب أونلاين',
+    distractors: ['نكمل بكرة', 'استنى، النت بطيء', 'اللعبة دي حلوة'],
+  },
+  'social-media': {
+    prompt: 'عايز صاحبك يبعت لك الصورة على واتساب. هتقول إيه؟',
+    answer: 'ابعتلي على واتساب',
+    distractors: ['شوفت البوست؟', 'عملت لك فولو', 'هرد عليك بعدين'],
+  },
+  'weekend-plans': {
+    prompt: 'عايز تعرف صاحبك فاضي بكرة ولا لأ. هتسأل إزاي؟',
+    answer: 'فاضي بكرة؟',
+    distractors: ['أنا عندي وقت', 'نروح فين؟', 'الجو هيبقى حلو'],
+  },
+  'making-plans': {
+    prompt: 'عايز تقترح إنكم تتقابلوا. هتقول إيه؟',
+    answer: 'خلينا نتقابل',
+    distractors: ['فاضي بكرة؟', 'أنا عندي وقت', 'أشوفك بكرة'],
+  },
+};
+
+function buildEgyptianUnit9Quiz(lessons: WordLessonEntry[], content: DialectContent, tier: QuizTierInfo) {
+  const allWords = uniqueWords(lessons.flatMap(lessonItem => lessonItem.words));
+  const candidatesByLesson = new Map<string, QuizQuestion[]>();
+  lessons.forEach(lessonItem => {
+    const words = uniqueWords(lessonItem.words);
+    const primary = words[0];
+    const secondary = words[1] ?? primary;
+    const reading = words[2] ?? secondary;
+    if (!primary || !secondary || !reading) return;
+    const source = `egyptian-unit-9:${lessonItem.id}`;
+    const distractors = (target: Word) => {
+      const contextual = uniqueWords(words, target);
+      const contextualKeys = new Set(contextual.map(wordKey));
+      const fallback = uniqueWords(allWords, target).filter(word => !contextualKeys.has(wordKey(word)));
+      return seededSelection(
+        [...contextual, ...fallback],
+        3,
+        `${lessonItem.id}:${wordKey(target)}`,
+        wordKey,
+      );
+    };
+    const questions: QuizQuestion[] = [
+      makeWordListeningQuestion(`eg_u9_${lessonItem.id}_listen`, source, primary, distractors(primary)),
+      makeTransliterationQuestion(`eg_u9_${lessonItem.id}_translit`, source, secondary),
+      makeArabicSelectQuestion(`eg_u9_${lessonItem.id}_arabic`, source, reading, distractors(reading)),
+    ];
+    const fill = UNIT9_FILL_PROMPTS[lessonItem.id];
+    const fillAnswer = fill ? findWord(words, fill.answer) : undefined;
+    if (fill && fillAnswer) {
+      const fillDistractors = fill.distractors
+        .map(arabic => findWord(allWords, arabic))
+        .filter((word): word is Word => Boolean(word));
+      questions.push(makeFillQuestion(
+        `eg_u9_${lessonItem.id}_fill`,
+        source,
+        fill.prompt,
+        wordOption(fillAnswer),
+        fillDistractors.map(word => wordOption(word)),
+      ));
+    }
+    if (lessonItem.id === 'cafe-with-friends' && content.sceneImages.Cafe) {
+      questions.push(makeWordSceneQuestion(
+        'eg_u9_cafe_scene', source, 'You are making a plan at a Cairo café. Choose the natural phrase.',
+        primary, distractors(primary), content.sceneImages.Cafe,
+      ));
+    }
+    candidatesByLesson.set(lessonItem.id, questions);
+  });
+
+  const selected: QuizQuestion[] = [];
+  const used = new Set<string>();
+  const lessonIds = lessons.map(lessonItem => lessonItem.id);
+  const add = (lessonId: string, formats: QuizQuestion['format'][]) => {
+    const question = (candidatesByLesson.get(lessonId) ?? []).find(candidate =>
+      formats.includes(candidate.format) && tier.formats.includes(candidate.format) && !used.has(candidate.id)
+    );
+    if (!question) return false;
+    selected.push(question);
+    used.add(question.id);
+    return true;
+  };
+
+  lessonIds.forEach((lessonId, index) => {
+    if (tier.tier === 1) add(lessonId, ['scene_replay', 'listening']);
+    else if (tier.tier === 2) add(lessonId, index % 2 === 0 ? ['fill_conversation', 'listening'] : ['listening']);
+    else if (tier.tier === 3) add(lessonId, index % 3 === 0 ? ['transliteration_type', 'listening'] : ['fill_conversation', 'listening']);
+    else add(lessonId, index % 3 === 0 ? ['arabic_select', 'listening'] : index % 3 === 1 ? ['transliteration_type', 'listening'] : ['fill_conversation', 'listening']);
+  });
+
+  const extraFormats: QuizQuestion['format'][] = tier.tier === 1
+    ? ['listening']
+    : tier.tier === 2
+      ? ['fill_conversation', 'listening', 'scene_replay']
+      : tier.tier === 3
+        ? ['transliteration_type', 'fill_conversation', 'listening']
+        : ['arabic_select', 'transliteration_type', 'fill_conversation', 'listening', 'scene_replay'];
+  let round = 0;
+  while (selected.length < targetQuestionCount(tier) && round < extraFormats.length * lessonIds.length) {
+    const lessonId = lessonIds[round % lessonIds.length];
+    const format = extraFormats[Math.floor(round / lessonIds.length) % extraFormats.length];
+    add(lessonId, [format]);
+    round += 1;
   }
 
   return shuffleNoAdjacentFormats(selected);
@@ -1304,10 +1565,13 @@ export default function QuizUnit2Screen() {
       requestedUnit === '7' && dialect === 'egyptian' ? buildEgyptianUnit7Quiz(getWordLessonsForUnit(dialect, 'unit-7'), content, currentTierInfo) :
       requestedUnit === '7' && dialect === 'gulf' ? buildWordUnitQuiz('unit7', getWordLessonsForUnit(dialect, 'unit-7'), currentTierInfo) :
       requestedUnit === '7' ? [] :
+      requestedUnit === '8' && dialect === 'egyptian' ? buildBalancedEgyptianScenarioQuiz('unit8', EGYPTIAN_UNIT8_SCENARIOS, content, currentTierInfo) :
       requestedUnit === '8' && dialect === 'gulf' ? buildScenarioUnitQuiz('unit8', UNIT8_SCENARIOS, content, dialect, currentTierInfo) :
       requestedUnit === '8' ? [] :
+      requestedUnit === '9' && dialect === 'egyptian' ? buildEgyptianUnit9Quiz(getWordLessonsForUnit(dialect, 'unit-9'), content, currentTierInfo) :
       requestedUnit === '9' && dialect === 'gulf' ? buildWordUnitQuiz('unit9', getWordLessonsForUnit(dialect, 'unit-9'), currentTierInfo) :
       requestedUnit === '9' ? [] :
+      requestedUnit === '10' && dialect === 'egyptian' ? buildBalancedEgyptianScenarioQuiz('unit10', EGYPTIAN_UNIT10_SCENARIOS, content, currentTierInfo) :
       requestedUnit === '10' && dialect === 'gulf' ? buildScenarioUnitQuiz('unit10', UNIT10_SCENARIOS, content, dialect, currentTierInfo) :
       requestedUnit === '10' ? [] :
       dialect === 'gulf' && requestedUnit === '2p1' && QUIZ_PART1_QUESTIONS.length > 0 ? QUIZ_PART1_QUESTIONS :
