@@ -24,6 +24,7 @@ import { getQuizContentId } from '../utils/access';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
 
+import ArabicSelect from '../components/quiz/ArabicSelect';
 import EmojiMatch from '../components/quiz/EmojiMatch';
 import FillConversation from '../components/quiz/FillConversation';
 import ListeningChallenge from '../components/quiz/ListeningChallenge';
@@ -32,11 +33,12 @@ import QuizProgress from '../components/quiz/QuizProgress';
 import QuizResults from '../components/quiz/QuizResults';
 import SceneReplay from '../components/quiz/SceneReplay';
 import TransliterationInput from '../components/quiz/TransliterationInput';
-import ArabicSelect from '../components/quiz/ArabicSelect';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
-import { getQuizTier, getQuizTierInfo, TYPING_QUESTION_XP, ARABIC_SELECT_XP, type QuizTierInfo } from '../utils/quiz-level';
 import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/quiz-types';
+import { getDialectCurriculumItems } from '../utils/content-resolver';
+import { buildCompletionKey, getCompletionKeyCandidates, parseCompletionKey } from '../utils/progression';
+import { ARABIC_SELECT_XP, getQuizTier, getQuizTierInfo, TYPING_QUESTION_XP, type QuizTierInfo } from '../utils/quiz-level';
 import {
   getPassingScore,
   getQuestionAttemptXp,
@@ -44,13 +46,23 @@ import {
   getQuizPassed,
   type QuizAnswerResult,
 } from '../utils/quiz-scoring';
-import { getDialectCurriculumItems } from '../utils/content-resolver';
-import { buildCompletionKey, getCompletionKeyCandidates, parseCompletionKey } from '../utils/progression';
 
 type Phase = 'intro' | 'quiz' | 'redrill' | 'results';
 
 const UNIT2_PART1_SCENARIOS = ['Cafe', 'Taxi', 'Hotel'];
 const UNIT2_PART2_SCENARIOS = ['Restaurant', 'Supermarket', 'Pharmacy'];
+const EGYPTIAN_UNIT6_SCENARIOS = [
+  'EgyptianCafeOrder',
+  'EgyptianRestaurantOrder',
+  'EgyptianEverydaySupermarket',
+  'EgyptianEverydayTaxi',
+  'EgyptianDirections',
+  'EgyptianEverydayPharmacy',
+  'EgyptianEverydayBarber',
+  'EgyptianEverydayHotel',
+  'EgyptianEverydayAirport',
+  'EgyptianPhoneCall',
+];
 const UNIT8_SCENARIOS = [
   'LostInCity',
   'CarBreakdown',
@@ -71,7 +83,7 @@ const UNIT10_SCENARIOS = [
   'FriendsFarewell',
 ];
 const EMOJI_POOL = ['☕', '🚕', '🏨', '🍽️', '🛒', '💊', '💬', '👋'];
-const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', '2p1', '2p2', '6', '7', '8', '9', '10']);
+const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
 
 type WordLessonEntry = {
   id: string;
@@ -206,7 +218,7 @@ function buildWordUnitQuiz(unitKey: string, lessons: WordLessonEntry[], tier: Qu
   const selectedWords = representativeWords(lessons);
   const questions: QuizQuestion[] = [];
 
-  const listeningLimit = tier.tier >= 2 ? 10 : 8;
+  const listeningLimit = 10;
   selectedWords.slice(0, listeningLimit).forEach((word, index) => {
     questions.push({
       id: `${unitKey}_listen_${index + 1}`,
@@ -251,7 +263,7 @@ function buildWordUnitQuiz(unitKey: string, lessons: WordLessonEntry[], tier: Qu
         audioText: wordAudioText(word),
         english: word.english,
         correctAnswer: word.transliteration,
-        acceptedAnswers: transliterationAlternatives(word.transliteration),
+        acceptedAnswers: acceptedAnswersForWord(word),
         hintFirstWord: firstWord,
       } satisfies TransliterationTypeQuestion);
     });
@@ -275,6 +287,565 @@ function buildWordUnitQuiz(unitKey: string, lessons: WordLessonEntry[], tier: Qu
           })),
         ]),
       } satisfies ArabicSelectQuestion);
+    });
+  }
+
+  const supportedQuestions = questions.filter(question => tier.formats.includes(question.format));
+  return capQuestionsForTier(shuffleNoAdjacentFormats(supportedQuestions), tier);
+}
+
+type PhraseOption = { arabic: string; transliteration: string; isCorrect: boolean };
+
+function phraseOption(arabic: string, transliteration: string, isCorrect = false): PhraseOption {
+  return { arabic, transliteration, isCorrect };
+}
+
+function wordOption(word: Word, isCorrect = false): PhraseOption {
+  return phraseOption(wordArabic(word), word.transliteration, isCorrect);
+}
+
+function makePhraseOptions(correct: PhraseOption, distractors: PhraseOption[]) {
+  const seen = new Set([correct.arabic]);
+  const uniqueDistractors = distractors.filter(option => {
+    if (seen.has(option.arabic)) return false;
+    seen.add(option.arabic);
+    return true;
+  }).slice(0, 3);
+
+  return shuffle([
+    { ...correct, isCorrect: true },
+    ...uniqueDistractors.map(option => ({ ...option, isCorrect: false })),
+  ]);
+}
+
+function findWord(words: Word[], arabic: string, transliteration?: string) {
+  return words.find(word =>
+    wordArabic(word) === arabic && (!transliteration || word.transliteration === transliteration)
+  ) ?? words.find(word => wordArabic(word) === arabic);
+}
+
+function acceptedAnswersForWord(word: Word) {
+  const answers = new Set([
+    ...(word.acceptedTransliterations ?? []),
+    ...transliterationAlternatives(word.transliteration),
+  ]);
+  answers.delete(word.transliteration);
+  return [...answers];
+}
+
+function makeWordSceneQuestion(
+  id: string,
+  scenarioSource: string,
+  prompt: string,
+  correct: Word,
+  distractors: Word[],
+  sceneImage: any,
+): QuizQuestion {
+  return {
+    id,
+    format: 'scene_replay',
+    scenarioSource,
+    xpValue: 10,
+    sceneImage,
+    audioFile: correct.audio ?? null,
+    audioText: wordAudioText(correct),
+    prompt,
+    options: makePhraseOptions(wordOption(correct), distractors.map(word => wordOption(word))),
+  };
+}
+
+function makeWordListeningQuestion(
+  id: string,
+  scenarioSource: string,
+  correct: Word,
+  distractors: Word[],
+): QuizQuestion {
+  return {
+    id,
+    format: 'listening',
+    scenarioSource,
+    xpValue: 10,
+    audioFile: correct.audio ?? null,
+    audioText: wordAudioText(correct),
+    options: makePhraseOptions(wordOption(correct), distractors.map(word => wordOption(word))),
+  };
+}
+
+function makeFillQuestion(
+  id: string,
+  scenarioSource: string,
+  prompt: string,
+  correct: PhraseOption,
+  distractors: PhraseOption[],
+): QuizQuestion {
+  return {
+    id,
+    format: 'fill_conversation',
+    scenarioSource,
+    xpValue: 10,
+    dialogue: [
+      { speaker: 'npc', arabic: prompt, transliteration: '', isBlank: false },
+      { speaker: 'yusuf', arabic: correct.arabic, transliteration: correct.transliteration, isBlank: true },
+    ],
+    options: makePhraseOptions(correct, distractors),
+  };
+}
+
+function makeEmojiQuestion(
+  id: string,
+  scenarioSource: string,
+  pairs: { arabic: string; transliteration: string; meaning: string }[],
+): QuizQuestion {
+  return {
+    id,
+    format: 'emoji_match',
+    scenarioSource,
+    xpValue: 10,
+    pairs: pairs.map(pair => ({
+      arabic: pair.arabic,
+      transliteration: pair.transliteration,
+      emoji: pair.meaning,
+    })),
+  };
+}
+
+function makeTransliterationQuestion(id: string, scenarioSource: string, word: Word): QuizQuestion {
+  return {
+    id,
+    format: 'transliteration_type',
+    scenarioSource,
+    xpValue: TYPING_QUESTION_XP,
+    arabic: wordArabic(word),
+    audioFile: word.audio ?? null,
+    audioText: wordAudioText(word),
+    english: word.english,
+    correctAnswer: word.transliteration,
+    acceptedAnswers: acceptedAnswersForWord(word),
+    hintFirstWord: word.transliteration.trim().split(/[\s-]/)[0] ?? '',
+  } satisfies TransliterationTypeQuestion;
+}
+
+function makeArabicSelectQuestion(
+  id: string,
+  scenarioSource: string,
+  correct: Word,
+  distractors: Word[],
+): QuizQuestion {
+  return {
+    id,
+    format: 'arabic_select',
+    scenarioSource,
+    xpValue: ARABIC_SELECT_XP,
+    audioFile: correct.audio ?? null,
+    audioText: wordAudioText(correct),
+    english: correct.english,
+    options: makePhraseOptions(wordOption(correct), distractors.map(word => wordOption(word)))
+      .map(option => ({ arabic: option.arabic, isCorrect: option.isCorrect })),
+  } satisfies ArabicSelectQuestion;
+}
+
+function getGenericQuizSceneImage(content: DialectContent) {
+  return content.sceneImages.Cafe
+    ?? content.sceneImages.Restaurant
+    ?? content.sceneImages.Supermarket
+    ?? content.sceneImages.Taxi
+    ?? Object.values(content.sceneImages).find(Boolean)
+    ?? null;
+}
+
+function buildEgyptianUnit7Quiz(lessons: WordLessonEntry[], content: DialectContent, tier: QuizTierInfo): QuizQuestion[] {
+  const allWords = uniqueWords(lessons.flatMap(lessonItem => lessonItem.words));
+  const sceneImage = getGenericQuizSceneImage(content);
+  const byLesson = new Map<string, QuizQuestion[]>();
+  const addLessonQuestion = (lessonId: string, question: QuizQuestion) => {
+    const questions = byLesson.get(lessonId) ?? [];
+    questions.push(question);
+    byLesson.set(lessonId, questions);
+  };
+
+  lessons.forEach(lessonItem => {
+    const lessonWords = uniqueWords(lessonItem.words);
+    if (lessonWords.length === 0) return;
+    const primary = lessonItem.id === 'job-titles'
+      ? findWord(lessonWords, 'زميلي') ?? lessonWords[0]
+      : lessonWords[0];
+    const secondary = lessonItem.id === 'job-titles'
+      ? findWord(lessonWords, 'زميلتي') ?? lessonWords[1] ?? primary
+      : lessonWords[1] ?? primary;
+    const typing = lessonWords[2] ?? primary;
+    const arabicSelect = lessonWords[3] ?? secondary;
+    const distractorsFor = (word: Word) => uniqueWords(lessonWords, word).slice(0, 3);
+    const source = `egyptian-unit-7:${lessonItem.id}`;
+
+    addLessonQuestion(lessonItem.id, makeWordSceneQuestion(
+      `eg_u7_${lessonItem.id}_scene`, source,
+      `Choose the Egyptian workplace phrase for: ${primary.english}`,
+      primary, distractorsFor(primary), sceneImage,
+    ));
+    addLessonQuestion(lessonItem.id, makeWordListeningQuestion(
+      `eg_u7_${lessonItem.id}_listen`, source,
+      secondary, distractorsFor(secondary),
+    ));
+    addLessonQuestion(lessonItem.id, makeTransliterationQuestion(
+      `eg_u7_${lessonItem.id}_translit`, source, typing,
+    ));
+    addLessonQuestion(lessonItem.id, makeArabicSelectQuestion(
+      `eg_u7_${lessonItem.id}_arabic_select`, source,
+      arabicSelect, distractorsFor(arabicSelect),
+    ));
+  });
+
+  const workFillSpecs = [
+    { lessonId: 'requests-at-work', prompt: 'الكمبيوتر مش شغال. هتطلب مساعدة إزاي؟', answer: 'ممكن تساعدني؟', distractors: ['ممكن تستنى دقيقة؟', 'كلمني لما تخلص', 'خلينا نتكلم بعدين'] },
+    { lessonId: 'requests-at-work', prompt: 'زميلك قال إن الملف عنده. هتطلبه إزاي؟', answer: 'ابعتلي الملف لو سمحت', distractors: ['اكتب اسمك هنا', 'كلمني لما تخلص', 'ممكن تستنى دقيقة؟'] },
+    { lessonId: 'requests-at-work', prompt: 'زميلك مشغول دلوقتي. هترد بإيه؟', answer: 'خلينا نتكلم بعدين', distractors: ['ابعتلي الملف لو سمحت', 'اكتب اسمك هنا', 'ممكن تساعدني؟'] },
+    { lessonId: 'schedules', prompt: 'الاجتماع الساعة عشرة. هتأكد المعاد إزاي؟', answer: 'المعاد مناسب', distractors: ['المعاد اتغير', 'أنا متأخر شوية', 'هخلص إمتى؟'] },
+    { lessonId: 'schedules', prompt: 'الاجتماع بدأ وإنت لسه واصل. هتقول إيه؟', answer: 'أنا متأخر شوية', distractors: ['المعاد مناسب', 'الساعة كام؟', 'المعاد اتغير'] },
+    { lessonId: 'problems-at-work', prompt: 'المشكلة لسه موجودة. محتاج تعمل إيه؟', answer: 'محتاج أكلم الدعم', distractors: ['النت فاصل', 'الملف مش موجود', 'نسيت الباسورد'] },
+  ] as const;
+  workFillSpecs.forEach((spec, index) => {
+    const word = findWord(allWords, spec.answer);
+    if (!word) return;
+    const distractors = spec.distractors
+      .map(arabic => findWord(allWords, arabic))
+      .filter((item): item is Word => Boolean(item));
+    addLessonQuestion(spec.lessonId, makeFillQuestion(
+      `eg_u7_fill_${index + 1}`,
+      `egyptian-unit-7:${spec.lessonId}`,
+      spec.prompt,
+      wordOption(word),
+      distractors.map(item => wordOption(item)),
+    ));
+  });
+
+  const matchWords = ['زميلي', 'زميلتي', 'المكتب', 'الكمبيوتر']
+    .map(arabic => findWord(allWords, arabic))
+    .filter((item): item is Word => Boolean(item));
+  let matchQuestion: QuizQuestion | null = null;
+  if (matchWords.length === 4) {
+    matchQuestion = makeEmojiQuestion(
+      'eg_u7_workplace_match',
+      'egyptian-unit-7',
+      matchWords.map(word => ({
+        arabic: wordArabic(word),
+        transliteration: word.transliteration,
+        meaning: word.english,
+      })),
+    );
+  }
+
+  const lessonIds = lessons.map(lessonItem => lessonItem.id);
+  const selected: QuizQuestion[] = [];
+  const used = new Set<string>();
+  const add = (lessonId: string, formats: QuizQuestion['format'][]) => {
+    const question = (byLesson.get(lessonId) ?? []).find(candidate =>
+      formats.includes(candidate.format) && tier.formats.includes(candidate.format) && !used.has(candidate.id)
+    );
+    if (!question) return;
+    selected.push(question);
+    used.add(question.id);
+  };
+  const addMatch = () => {
+    if (matchQuestion && tier.formats.includes(matchQuestion.format) && !used.has(matchQuestion.id)) {
+      selected.push(matchQuestion);
+      used.add(matchQuestion.id);
+    }
+  };
+
+  const baseFormats: QuizQuestion['format'][][] = tier.tier === 1
+    ? lessonIds.map((_, index) => [index % 2 === 0 ? 'scene_replay' : 'listening'])
+    : tier.tier === 2
+      ? lessonIds.map((id, index) =>
+          ['schedules', 'requests-at-work', 'problems-at-work'].includes(id)
+            ? ['fill_conversation', index % 2 === 0 ? 'scene_replay' : 'listening']
+            : [index % 2 === 0 ? 'scene_replay' : 'listening'])
+      : tier.tier === 3
+        ? lessonIds.map((id, index) =>
+            ['schedules', 'requests-at-work', 'problems-at-work'].includes(id)
+              ? ['fill_conversation', 'listening']
+              : [index % 2 === 0 ? 'scene_replay' : 'listening'])
+        : lessonIds.map((id, index) =>
+            index === 1 || index === 6
+              ? ['arabic_select', 'listening']
+              : ['schedules', 'requests-at-work', 'problems-at-work'].includes(id)
+                ? ['fill_conversation', 'listening']
+                : [index % 2 === 0 ? 'scene_replay' : 'listening']);
+
+  lessonIds.forEach((lessonId, index) => add(lessonId, baseFormats[index]));
+  if (tier.tier >= 2) addMatch();
+  if (tier.tier === 2) {
+    add('requests-at-work', ['fill_conversation']);
+  } else if (tier.tier === 3) {
+    ['work-introduction', 'job-titles', 'daily-routine', 'meetings'].forEach(id => add(id, ['transliteration_type']));
+  } else if (tier.tier >= 4) {
+    ['work-introduction', 'office-objects', 'daily-routine', 'workplace-conversation'].forEach(id => add(id, ['transliteration_type']));
+    ['workplace-places', 'requests-at-work', 'problems-at-work'].forEach(id => add(id, ['arabic_select']));
+  }
+
+  return shuffleNoAdjacentFormats(selected);
+}
+
+function buildEgyptianUnit4Quiz(lessons: WordLessonEntry[], content: DialectContent, tier: QuizTierInfo): QuizQuestion[] {
+  const words = uniqueWords(lessons.flatMap(lesson => lesson.words));
+  const sceneImage = getGenericQuizSceneImage(content);
+  const w = (arabic: string, transliteration?: string) => findWord(words, arabic, transliteration);
+  const questions: QuizQuestion[] = [];
+
+  const one = w('واحد');
+  const two = w('اتنين');
+  const three = w('تلاتة');
+  const four = w('أربعة');
+  const five = w('خمسة');
+  const eight = w('تمانية');
+  const thirteen = w('تلتاشر');
+  const fourteen = w('أربعتاشر');
+  const seventeen = w('سبعتاشر');
+  const nineteen = w('تسعتاشر');
+  const twenty = w('عشرين');
+  const thirty = w('تلاتين');
+  const forty = w('أربعين');
+  const hundred = w('مية');
+  const thousand = w('ألف');
+  const phone = w('صفر واحد صفر');
+  const bill = w('الحساب كام؟');
+  const pound = w('جنيه');
+  const time = w('الساعة كام؟');
+  const oneOClock = w('الساعة واحدة');
+  const half = w('ونص');
+  const ageQuestion = w('عندك كام سنة؟');
+  const ageAnswer = w('عندي عشرين سنة');
+  const twentyOne = w('واحد وعشرين');
+  const fortyFive = w('خمسة وأربعين');
+
+  if (sceneImage && one && two && three && four) {
+    questions.push(makeWordSceneQuestion('eg_u4_recognition_one', 'egyptian-unit-4', 'Choose the Egyptian number for: One', one, [two, three, four], sceneImage));
+  }
+  if (sceneImage && thirteen && fourteen && seventeen && nineteen) {
+    questions.push(makeWordSceneQuestion('eg_u4_recognition_thirteen', 'egyptian-unit-4', 'Choose: Thirteen', thirteen, [fourteen, seventeen, nineteen], sceneImage));
+  }
+  if (sceneImage && hundred && thousand && thirty && forty) {
+    questions.push(makeWordSceneQuestion('eg_u4_recognition_hundred', 'egyptian-unit-4', 'Choose: One hundred', hundred, [thousand, thirty, forty], sceneImage));
+  }
+  if (five && eight && two && three) {
+    questions.push(makeWordListeningQuestion('eg_u4_listen_five', 'egyptian-unit-4', five, [eight, two, three]));
+  }
+  if (twenty && thirty && forty && hundred) {
+    questions.push(makeWordListeningQuestion('eg_u4_listen_twenty', 'egyptian-unit-4', twenty, [thirty, forty, hundred]));
+  }
+  if (time && oneOClock && bill && ageQuestion) {
+    questions.push(makeWordListeningQuestion('eg_u4_listen_time_question', 'egyptian-unit-4', time, [oneOClock, bill, ageQuestion]));
+  }
+  if (phone) {
+    questions.push(makeFillQuestion(
+      'eg_u4_phone_prefix',
+      'egyptian-unit-4',
+      'رقمي...',
+      wordOption(phone),
+      [phraseOption('اتنين وتلاتين', 'itnein w talateen'), phraseOption('ألف ومية', 'alf w miyya'), phraseOption('خمسة وأربعين', 'khamsa w arbaeen')],
+    ));
+  }
+  if (bill && pound && time && ageQuestion) {
+    questions.push(makeFillQuestion(
+      'eg_u4_price_question',
+      'egyptian-unit-4',
+      'في الكاشير، أسأل:',
+      wordOption(bill),
+      [wordOption(pound), wordOption(time), wordOption(ageQuestion)],
+    ));
+  }
+  if (ageAnswer && twentyOne && fortyFive && oneOClock) {
+    questions.push(makeFillQuestion(
+      'eg_u4_age_answer',
+      'egyptian-unit-4',
+      'عندك كام سنة؟',
+      wordOption(ageAnswer),
+      [wordOption(twentyOne), wordOption(fortyFive), wordOption(oneOClock)],
+    ));
+  }
+  if (oneOClock && time && half && ageQuestion) {
+    questions.push(makeFillQuestion(
+      'eg_u4_time_answer',
+      'egyptian-unit-4',
+      'الساعة كام؟',
+      wordOption(oneOClock),
+      [wordOption(time), wordOption(half), wordOption(ageQuestion)],
+    ));
+  }
+
+  if (tier.tier >= 2 && thirteen && twenty && hundred && thousand) {
+    questions.push(makeEmojiQuestion('eg_u4_match_values', 'egyptian-unit-4', [
+      { arabic: wordArabic(thirteen), transliteration: thirteen.transliteration, meaning: '13' },
+      { arabic: wordArabic(twenty), transliteration: twenty.transliteration, meaning: '20' },
+      { arabic: wordArabic(hundred), transliteration: hundred.transliteration, meaning: '100' },
+      { arabic: wordArabic(thousand), transliteration: thousand.transliteration, meaning: '1000' },
+    ]));
+  }
+  if (tier.tier >= 2 && phone && bill && time && ageAnswer) {
+    questions.push(makeEmojiQuestion('eg_u4_match_contexts', 'egyptian-unit-4', [
+      { arabic: wordArabic(phone), transliteration: phone.transliteration, meaning: 'phone' },
+      { arabic: wordArabic(bill), transliteration: bill.transliteration, meaning: 'price' },
+      { arabic: wordArabic(time), transliteration: time.transliteration, meaning: 'time' },
+      { arabic: wordArabic(ageAnswer), transliteration: ageAnswer.transliteration, meaning: 'age' },
+    ]));
+  }
+
+  if (tier.hasTyping) {
+    [thirteen, bill, fortyFive].filter((word): word is Word => Boolean(word)).forEach((word, index) => {
+      questions.push(makeTransliterationQuestion(`eg_u4_translit_${index + 1}`, 'egyptian-unit-4', word));
+    });
+  }
+
+  if (tier.hasArabicSelect) {
+    const selectSets = [
+      [seventeen, thirteen, fourteen, nineteen],
+      [fortyFive, twentyOne, hundred, thousand],
+      [half, time, oneOClock, ageQuestion],
+    ] as const;
+    selectSets.forEach((set, index) => {
+      const [correct, ...distractors] = set.filter((word): word is Word => Boolean(word));
+      if (correct && distractors.length >= 3) {
+        questions.push(makeArabicSelectQuestion(`eg_u4_arabic_select_${index + 1}`, 'egyptian-unit-4', correct, distractors));
+      }
+    });
+  }
+
+  return capQuestionsForTier(shuffleNoAdjacentFormats(questions), tier);
+}
+
+function buildEgyptianUnit5Quiz(lessons: WordLessonEntry[], content: DialectContent, tier: QuizTierInfo): QuizQuestion[] {
+  const words = uniqueWords(lessons.flatMap(lesson => lesson.words));
+  const sceneImage = getGenericQuizSceneImage(content);
+  const w = (arabic: string, transliteration?: string) => findWord(words, arabic, transliteration);
+  const questions: QuizQuestion[] = [];
+
+  const ana = w('أنا');
+  const inta = w('إنت');
+  const inti = w('إنتي');
+  const humma = w('هما');
+  const da = w('ده');
+  const di = w('دي');
+  const dool = w('دول');
+  const kitaabi = w('كتابي');
+  const kitaabak = w('كتابك', 'kitaabak');
+  const eih = w('إيه؟');
+  const fein = w('فين؟');
+  const mish = w('مش');
+  const maArafsh = w('ما أعرفش');
+  const maYinfa = w('ما ينفعش');
+  const baruuh = w('أنا بروح');
+  const bitruuh = w('إنت بتروح');
+  const ruht = w('أنا رحت');
+  const raah = w('هو راح');
+  const haruuh = w('هروح');
+  const hanruuh = w('هنروح');
+  const kwayyis = w('كويس');
+  const kwayyisa = w('كويسة');
+  const fi = w('في');
+  const ala = w('على');
+  const ganb = w('جنب');
+  const sentence = w('العربية دي كبيرة شوية');
+
+  if (sceneImage && ana && inta && inti && humma) {
+    questions.push(makeWordSceneQuestion('eg_u5_pronoun_ana', 'egyptian-unit-5', 'Choose the Egyptian pronoun for: I / me', ana, [inta, inti, humma], sceneImage));
+  }
+  if (sceneImage && da && di && dool && eih) {
+    questions.push(makeWordSceneQuestion('eg_u5_demonstrative_di', 'egyptian-unit-5', 'Choose the feminine form: This / that', di, [da, dool, eih], sceneImage));
+  }
+  if (kitaabi && kitaabak && eih && fein) {
+    questions.push(makeWordListeningQuestion('eg_u5_listen_kitaabi', 'egyptian-unit-5', kitaabi, [kitaabak, eih, fein]));
+  }
+  if (haruuh && hanruuh && ruht && baruuh) {
+    questions.push(makeWordListeningQuestion('eg_u5_listen_future', 'egyptian-unit-5', haruuh, [hanruuh, ruht, baruuh]));
+  }
+  if (ana && inta && inti && humma) {
+    questions.push(makeFillQuestion(
+      'eg_u5_choose_pronoun',
+      'egyptian-unit-5',
+      '... من مصر',
+      wordOption(ana),
+      [wordOption(inta), wordOption(inti), wordOption(humma)],
+    ));
+  }
+  if (da && di && dool) {
+    questions.push(makeFillQuestion(
+      'eg_u5_choose_demonstrative',
+      'egyptian-unit-5',
+      '... عربية',
+      wordOption(di),
+      [wordOption(da), wordOption(dool), phraseOption('هو', 'huwwa')],
+    ));
+  }
+  if (mish && maArafsh && maYinfa && eih) {
+    questions.push(makeFillQuestion(
+      'eg_u5_complete_negation',
+      'egyptian-unit-5',
+      'أنا ... فاهم',
+      wordOption(mish),
+      [wordOption(maArafsh), wordOption(maYinfa), wordOption(eih)],
+    ));
+  }
+  if (baruuh && bitruuh && ruht && haruuh) {
+    questions.push(makeFillQuestion(
+      'eg_u5_present_marker',
+      'egyptian-unit-5',
+      'إنت ... فين؟',
+      wordOption(bitruuh),
+      [wordOption(baruuh), wordOption(ruht), wordOption(haruuh)],
+    ));
+  }
+  if (raah && ruht && baruuh && haruuh) {
+    questions.push(makeFillQuestion(
+      'eg_u5_past_tense',
+      'egyptian-unit-5',
+      'هو ... الشغل',
+      wordOption(raah),
+      [wordOption(ruht), wordOption(baruuh), wordOption(haruuh)],
+    ));
+  }
+  if (sentence && kwayyis && kwayyisa && da) {
+    questions.push(makeFillQuestion(
+      'eg_u5_sentence_order',
+      'egyptian-unit-5',
+      'اختار الجملة الطبيعية:',
+      wordOption(sentence),
+      [wordOption(kwayyis), wordOption(kwayyisa), wordOption(da)],
+    ));
+  }
+
+  if (tier.tier >= 2 && da && di && dool && humma) {
+    questions.push(makeEmojiQuestion('eg_u5_match_demonstratives', 'egyptian-unit-5', [
+      { arabic: wordArabic(da), transliteration: da.transliteration, meaning: 'this (m.)' },
+      { arabic: wordArabic(di), transliteration: di.transliteration, meaning: 'this (f.)' },
+      { arabic: wordArabic(dool), transliteration: dool.transliteration, meaning: 'these' },
+      { arabic: wordArabic(humma), transliteration: humma.transliteration, meaning: 'they' },
+    ]));
+  }
+  if (tier.tier >= 2 && fi && ala && ganb && fein) {
+    questions.push(makeEmojiQuestion('eg_u5_match_prepositions', 'egyptian-unit-5', [
+      { arabic: wordArabic(fi), transliteration: fi.transliteration, meaning: 'in / at' },
+      { arabic: wordArabic(ala), transliteration: ala.transliteration, meaning: 'on' },
+      { arabic: wordArabic(ganb), transliteration: ganb.transliteration, meaning: 'next to' },
+      { arabic: wordArabic(fein), transliteration: fein.transliteration, meaning: 'where?' },
+    ]));
+  }
+
+  if (tier.hasTyping) {
+    [maArafsh, bitruuh, sentence].filter((word): word is Word => Boolean(word)).forEach((word, index) => {
+      questions.push(makeTransliterationQuestion(`eg_u5_translit_${index + 1}`, 'egyptian-unit-5', word));
+    });
+  }
+
+  if (tier.hasArabicSelect) {
+    const selectSets = [
+      [mish, maArafsh, maYinfa, eih],
+      [haruuh, baruuh, ruht, hanruuh],
+      [sentence, da, di, dool],
+    ] as const;
+    selectSets.forEach((set, index) => {
+      const [correct, ...distractors] = set.filter((word): word is Word => Boolean(word));
+      if (correct && distractors.length >= 3) {
+        questions.push(makeArabicSelectQuestion(`eg_u5_arabic_select_${index + 1}`, 'egyptian-unit-5', correct, distractors));
+      }
     });
   }
 
@@ -364,6 +935,15 @@ function transliterationAlternatives(canonical: string) {
 
   variants.delete(canonical);
   return [...variants];
+}
+
+function acceptedAnswersForTurn(turn: DialogueTurn) {
+  const answers = new Set([
+    ...(turn.acceptedTransliterations ?? []),
+    ...transliterationAlternatives(turn.transliteration),
+  ]);
+  answers.delete(turn.transliteration);
+  return [...answers];
 }
 
 function buildDialectUnit2Quiz(
@@ -475,7 +1055,7 @@ function buildDialectUnit2Quiz(
         audioText: turnAudioText(candidate),
         english: candidate.english,
         correctAnswer: candidate.transliteration,
-        acceptedAnswers: transliterationAlternatives(candidate.transliteration),
+        acceptedAnswers: acceptedAnswersForTurn(candidate),
         hintFirstWord: firstWord,
       } satisfies TransliterationTypeQuestion);
     });
@@ -526,6 +1106,72 @@ function buildScenarioUnitQuiz(
       scenarioSource: `${unitKey}:${question.scenarioSource}`,
     }));
   return capQuestionsForTier(shuffleNoAdjacentFormats(sourceQuestions), tier);
+}
+
+function buildEgyptianUnit6Quiz(content: DialectContent, tier: QuizTierInfo) {
+  const candidates = buildDialectUnit2Quiz(EGYPTIAN_UNIT6_SCENARIOS, content, 'egyptian', tier)
+    .filter(question => tier.formats.includes(question.format));
+  const scenarioSources = EGYPTIAN_UNIT6_SCENARIOS.map(name => name.toLowerCase());
+  const selected: QuizQuestion[] = [];
+  const used = new Set<string>();
+  const add = (scenarioSource: string, formats: QuizQuestion['format'][]) => {
+    const question = candidates.find(candidate =>
+      candidate.scenarioSource === scenarioSource
+      && formats.includes(candidate.format)
+      && !used.has(candidate.id)
+      && (candidate.format !== 'scene_replay' || Boolean(candidate.sceneImage))
+    );
+    if (!question) return;
+    selected.push(question);
+    used.add(question.id);
+  };
+  const addEmoji = () => {
+    const question = candidates.find(candidate => candidate.format === 'emoji_match' && !used.has(candidate.id));
+    if (!question) return;
+    selected.push(question);
+    used.add(question.id);
+  };
+
+  const baseFormats: QuizQuestion['format'][][] = tier.tier === 1
+    ? [
+        ['scene_replay', 'listening'], ['listening'], ['scene_replay', 'listening'], ['listening'], ['listening'],
+        ['listening'], ['listening'], ['scene_replay', 'listening'], ['listening'], ['listening'],
+      ]
+    : tier.tier === 2
+      ? [
+          ['scene_replay', 'listening'], ['fill_conversation'], ['listening'], ['scene_replay', 'listening'], ['fill_conversation'],
+          ['listening'], ['fill_conversation'], ['scene_replay', 'listening'], ['listening'], ['fill_conversation'],
+        ]
+      : tier.tier === 3
+        ? [
+            ['scene_replay', 'listening'], ['fill_conversation'], ['listening'], ['transliteration_type'], ['fill_conversation'],
+            ['transliteration_type'], ['listening'], ['scene_replay', 'listening'], ['transliteration_type'], ['fill_conversation'],
+          ]
+        : [
+            ['scene_replay', 'listening'], ['arabic_select'], ['listening'], ['transliteration_type'], ['fill_conversation'],
+            ['arabic_select'], ['listening'], ['scene_replay', 'listening'], ['transliteration_type'], ['fill_conversation'],
+          ];
+
+  scenarioSources.forEach((source, index) => add(source, baseFormats[index]));
+  if (tier.tier >= 2) addEmoji();
+  if (tier.tier === 2) {
+    add(scenarioSources[0], ['listening']);
+  } else if (tier.tier === 3) {
+    add(scenarioSources[0], ['transliteration_type']);
+    add(scenarioSources[1], ['listening']);
+    add(scenarioSources[2], ['fill_conversation']);
+    add(scenarioSources[7], ['transliteration_type']);
+  } else if (tier.tier >= 4) {
+    add(scenarioSources[0], ['arabic_select']);
+    add(scenarioSources[1], ['transliteration_type']);
+    add(scenarioSources[2], ['fill_conversation']);
+    add(scenarioSources[4], ['listening']);
+    add(scenarioSources[6], ['arabic_select']);
+    add(scenarioSources[7], ['transliteration_type']);
+    add(scenarioSources[9], ['arabic_select']);
+  }
+
+  return shuffleNoAdjacentFormats(selected);
 }
 
 // ── Shuffle: no two same formats adjacent ────────────────────────────────────
@@ -600,6 +1246,8 @@ export default function QuizUnit2Screen() {
     requestedUnit === 'review' ? 'Review Quiz' :
     requestedUnit === '2p2' ? 'Unit 2 Quiz · Part 2' :
     requestedUnit === '2p1' ? 'Unit 2 Quiz · Part 1' :
+    requestedUnit === '4'   ? 'Unit 4 Quiz' :
+    requestedUnit === '5'   ? 'Unit 5 Quiz' :
     requestedUnit === '6'   ? 'Unit 6 Quiz' :
     requestedUnit === '7'   ? 'Unit 7 Quiz' :
     requestedUnit === '8'   ? 'Unit 8 Quiz' :
@@ -641,13 +1289,19 @@ export default function QuizUnit2Screen() {
       .map(k => parseCompletionKey(k)?.contentId ?? k);
     const tier = getQuizTier(completedContentIds);
     const currentTierInfo = getQuizTierInfo(tier);
-    if (!['2p1', '2p2', '6', '7', '8', '9', '10'].includes(requestedUnit)) return null;
+    if (!['2p1', '2p2', '4', '5', '6', '7', '8', '9', '10'].includes(requestedUnit)) return null;
 
     const scenarioNames = requestedUnit === '2p2' ? UNIT2_PART2_SCENARIOS : UNIT2_PART1_SCENARIOS;
     const dialectQuestions = buildDialectUnit2Quiz(scenarioNames, content, dialect, currentTierInfo);
     const base =
+      requestedUnit === '4' && dialect === 'egyptian' ? buildEgyptianUnit4Quiz(getWordLessonsForUnit(dialect, 'unit-4'), content, currentTierInfo) :
+      requestedUnit === '4' ? [] :
+      requestedUnit === '5' && dialect === 'egyptian' ? buildEgyptianUnit5Quiz(getWordLessonsForUnit(dialect, 'unit-5'), content, currentTierInfo) :
+      requestedUnit === '5' ? [] :
+      requestedUnit === '6' && dialect === 'egyptian' ? buildEgyptianUnit6Quiz(content, currentTierInfo) :
       requestedUnit === '6' && dialect === 'gulf' ? QUIZ_UNIT6_QUESTIONS :
       requestedUnit === '6' ? [] :
+      requestedUnit === '7' && dialect === 'egyptian' ? buildEgyptianUnit7Quiz(getWordLessonsForUnit(dialect, 'unit-7'), content, currentTierInfo) :
       requestedUnit === '7' && dialect === 'gulf' ? buildWordUnitQuiz('unit7', getWordLessonsForUnit(dialect, 'unit-7'), currentTierInfo) :
       requestedUnit === '7' ? [] :
       requestedUnit === '8' && dialect === 'gulf' ? buildScenarioUnitQuiz('unit8', UNIT8_SCENARIOS, content, dialect, currentTierInfo) :

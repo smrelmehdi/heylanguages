@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Asset } from 'expo-asset';
-import { ALPHABET_AUDIO } from '../data/alphabet-audio';
+import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
 import { getDialectContent } from '../data/content-registry';
 import { getDialectProgressionItems } from './content-resolver';
 
@@ -43,11 +43,35 @@ function uniqueAudioModules(dialect: OfflineDialect): number[] {
       turns.forEach(turn => maybeAdd(turn.audio));
     }
     if (item.contentType === 'writing') {
-      ALPHABET_AUDIO.forEach(letter => maybeAdd(letter.audio));
+      getAlphabetAudioForDialect(dialect).forEach(letter => maybeAdd(letter.audio));
     }
   });
 
   return [...ids];
+}
+
+export function getOfflineDialectPlannedAudioPaths(dialect: OfflineDialect): string[] {
+  const content = getDialectContent(dialect);
+  const paths = new Set<string>();
+  const maybeAdd = (value: unknown) => {
+    if (typeof value === 'string' && value.trim()) paths.add(value);
+  };
+
+  getDialectProgressionItems(dialect).forEach(item => {
+    if (item.contentType === 'lesson') {
+      const words = item.lessonWords ?? (item.lessonKey ? content.lessons[item.lessonKey] : undefined) ?? [];
+      words.forEach(word => maybeAdd(word.audioPath));
+    }
+    if (item.contentType === 'scenario' && item.scenarioName) {
+      const turns = content.scenarios[item.scenarioName] ?? [];
+      turns.forEach(turn => maybeAdd(turn.audioPath));
+    }
+    if (item.contentType === 'writing') {
+      getAlphabetAudioForDialect(dialect).forEach(letter => maybeAdd(letter.audioPath));
+    }
+  });
+
+  return [...paths];
 }
 
 export async function getOfflinePackMap(): Promise<OfflinePackMap> {

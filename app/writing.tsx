@@ -16,7 +16,8 @@ import PremiumRouteGate from '../components/PremiumRouteGate';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
-import { ALPHABET_AUDIO } from '../data/alphabet-audio';
+import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
+import type { AlphabetAudioItem } from '../data/alphabet-audio';
 import { stripTashkeel } from '../utils/arabic';
 import { getWritingContentId } from '../utils/access';
 import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
@@ -45,7 +46,13 @@ interface ArabicLetter {
   transliteration: string;
   soundLike: string;
   forms: LetterForms;
-  word: { arabic: string; transliteration: string; meaning: string };
+  word: {
+    arabic: string;
+    audioText?: string;
+    transliteration: string;
+    acceptedTransliterations?: string[];
+    meaning: string;
+  };
 }
 
 interface QuizQuestion {
@@ -108,6 +115,43 @@ const JEEM_FAMILY: ArabicLetter[] = [
     word: { arabic: 'خَيْر', transliteration: 'khayr', meaning: 'good' },
   },
 ];
+
+function getWritingFamilyForDialect(family: ArabicLetter[], dialect: string): ArabicLetter[] {
+  if (dialect !== 'egyptian') return family;
+
+  const spokenWordOverrides: Record<string, Partial<ArabicLetter['word']>> = {
+    jeem: { arabic: 'جميل', audioText: 'جميل' },
+    ra: {
+      arabic: 'رجل',
+      audioText: 'راجل',
+      transliteration: 'raagel',
+      acceptedTransliterations: ['raagel', 'ragel'],
+    },
+    seen: { arabic: 'سُكَّر', audioText: 'سكر', transliteration: 'sokkar', meaning: 'sugar' },
+    fa: { arabic: 'فندق', audioText: 'فندق', transliteration: "fondo'" },
+    qaf: { arabic: 'قهوة', audioText: 'قهوة', transliteration: 'ahwa' },
+    waw: { arabic: 'وقت', audioText: 'وقت', transliteration: "wa't" },
+  };
+
+  return family.map(letter => {
+    const wordOverride = spokenWordOverrides[letter.id];
+    return {
+      ...letter,
+      ...(letter.id === 'jeem' ? {
+        name: 'Giim',
+        transliteration: 'g',
+        soundLike: 'Like "g" in "go"',
+      } : {}),
+      word: {
+        ...letter.word,
+        ...(letter.word.arabic.includes('ج')
+          ? { transliteration: letter.word.transliteration.replace(/j/g, 'g') }
+          : {}),
+        ...wordOverride,
+      },
+    };
+  });
+}
 
 const DAL_FAMILY: ArabicLetter[] = [
   {
@@ -294,19 +338,17 @@ const ALL_LETTERS: ArabicLetter[] = [
   ...HAWAW_FAMILY, ...YA_FAMILY,
 ];
 
-const ALPHABET_AUDIO_BY_NAME = new Map(
-  ALPHABET_AUDIO.map(item => [item.displayArabic, item]),
-);
-
-const ALPHABET_AUDIO_BY_INDEX = new Map(
-  ALPHABET_AUDIO.map(item => [item.index, item]),
-);
-
-function getAlphabetAudioForLetter(letter: ArabicLetter) {
+function getAlphabetAudioForLetter(letter: ArabicLetter, alphabetAudio: AlphabetAudioItem[]) {
+  const alphabetAudioByName = new Map(
+    alphabetAudio.map(item => [item.displayArabic, item]),
+  );
+  const alphabetAudioByIndex = new Map(
+    alphabetAudio.map(item => [item.index, item]),
+  );
   const index = ALL_LETTERS.findIndex(item => item.id === letter.id) + 1;
   return {
     index,
-    item: ALPHABET_AUDIO_BY_INDEX.get(index) ?? ALPHABET_AUDIO_BY_NAME.get(letter.nameAudio),
+    item: alphabetAudioByIndex.get(index) ?? alphabetAudioByName.get(letter.nameAudio),
   };
 }
 
@@ -362,12 +404,13 @@ function generateQuiz(family: ArabicLetter[]): QuizQuestion[] {
 export default function WritingScreen() {
   const router    = useRouter();
   const { family } = useLocalSearchParams<{ family?: string }>();
-  const { dialect } = useDialect();
+  const { dialect, content, isDialectHydrated } = useDialect();
+  const alphabetAudio = getAlphabetAudioForDialect(dialect);
 
   const familyStr = Array.isArray(family) ? family[0] : (family ?? 'ba');
   const routeContentId = getWritingContentId(Array.isArray(family) ? family[0] : family);
 
-  const CURRENT_FAMILY: ArabicLetter[] =
+  const BASE_FAMILY: ArabicLetter[] =
     familyStr === 'alif' ? ALIF_FAMILY  :
     familyStr === 'jeem' ? JEEM_FAMILY  :
     familyStr === 'dal'  ? DAL_FAMILY   :
@@ -382,9 +425,12 @@ export default function WritingScreen() {
     familyStr === 'ha'   ? HAWAW_FAMILY :
     familyStr === 'ya'   ? YA_FAMILY    :
     BA_FAMILY;
+  const CURRENT_FAMILY = getWritingFamilyForDialect(BASE_FAMILY, dialect);
 
   const familyRef  = useRef(CURRENT_FAMILY);
   const dialectRef = useRef(dialect);
+  familyRef.current = CURRENT_FAMILY;
+  dialectRef.current = dialect;
 
   const publicScenarioKey =
     familyStr === 'alif' ? 'alif_family' :
@@ -491,8 +537,9 @@ export default function WritingScreen() {
     targetIndex = letterIdx,
     shouldStopPrevious = true,
   ) => {
+    if (!isDialectHydrated) return;
     const playbackToken = ++alphabetPlaybackTokenRef.current;
-    const match = getAlphabetAudioForLetter(targetLetter);
+    const match = getAlphabetAudioForLetter(targetLetter, alphabetAudio);
     const targetAudio = match.item;
     const stoppedPrevious = shouldStopPrevious && hasAlphabetPlaybackRef.current;
     if (shouldStopPrevious) {
@@ -543,7 +590,7 @@ export default function WritingScreen() {
     }
     if (stalePlaybackBlocked) return;
     hasAlphabetPlaybackRef.current = true;
-    speakArabic(targetAudio?.audioText ?? targetLetter.nameAudio);
+    speakArabic(targetAudio?.audioText ?? targetLetter.nameAudio, content.voiceId);
   };
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -555,12 +602,13 @@ export default function WritingScreen() {
   }, []);
 
   useEffect(() => {
+    if (!isDialectHydrated) return;
     phaseRef.current = 'learn';
     setPhase('learn');
     setDrawnStrokes([]);
     activeDrawRef.current = [];
     playLetterAudio(familyRef.current[letterIdx], letterIdx);
-  }, [letterIdx]);
+  }, [letterIdx, dialect, isDialectHydrated]);
 
   // ── PanResponder (practice only) ───────────────────────────────────────────
   const drawPanResponder = useRef(PanResponder.create({
@@ -715,7 +763,10 @@ export default function WritingScreen() {
             <Text style={styles.wordTranslit}>{letter.word.transliteration}</Text>
             <Text style={styles.wordMeaning}>{letter.word.meaning}</Text>
           </View>
-          <Pressable style={styles.audioBtn} onPress={() => speakArabic(letter.word.arabic)}>
+          <Pressable
+            style={styles.audioBtn}
+            onPress={() => speakArabic(letter.word.audioText ?? letter.word.arabic, content.voiceId)}
+          >
             <Ionicons name="volume-high" size={18} color={theme.colors.bgBase} />
           </Pressable>
         </View>

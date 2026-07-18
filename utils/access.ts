@@ -137,6 +137,16 @@ export const SCENARIO_TYPE_TO_CONTENT_ID: Record<string, string> = {
   FriendsRoadTrip: 'friendsroadtrip',
   FriendsBirthday: 'friendsbirthday',
   FriendsFarewell: 'friendsfarewell',
+  EgyptianCafeOrder: 'cafe-order',
+  EgyptianRestaurantOrder: 'restaurant-order',
+  EgyptianEverydaySupermarket: 'everyday-supermarket',
+  EgyptianEverydayTaxi: 'everyday-taxi',
+  EgyptianDirections: 'directions',
+  EgyptianEverydayPharmacy: 'everyday-pharmacy',
+  EgyptianEverydayBarber: 'everyday-barber',
+  EgyptianEverydayHotel: 'everyday-hotel',
+  EgyptianEverydayAirport: 'everyday-airport',
+  EgyptianPhoneCall: 'phone-call',
 };
 
 export const WRITING_FAMILY_TO_CONTENT_ID: Record<string, string> = {

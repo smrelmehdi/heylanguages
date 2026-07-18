@@ -86,6 +86,10 @@ const UNIT_7_SOURCE_ONLY = SOURCE === 'unit-7';
 const UNIT_9_SOURCE_ONLY = SOURCE === 'unit-9';
 const MSA_SOURCE_ONLY = SOURCE === 'msa';
 const EGYPTIAN_SOURCE_ONLY = SOURCE === 'egyptian';
+const EGYPTIAN_ALPHABET_SOURCE_ONLY = SOURCE === 'egyptian-alphabet';
+const EGYPTIAN_UNIT_6_SOURCE_ONLY = SOURCE === 'egyptian-unit-6';
+const EGYPTIAN_UNIT_7_SOURCE_ONLY = SOURCE === 'egyptian-unit-7';
+const EGYPTIAN_UNIT_67_RISK_TEST_ONLY = SOURCE === 'egyptian-unit67-risk-test';
 const PROVIDER = optionValue('--provider');
 const ALPHABET_MODE = optionValue('--alphabet-mode');
 const SCENARIO = optionValue('--scenario');
@@ -158,9 +162,9 @@ if (SCENARIO && !SCENARIO_ONLY) {
   process.exit(1);
 }
 
-if (SOURCE && !ALPHABET_SOURCE_ONLY && !UNIT_4_SOURCE_ONLY && !UNIT_5_SOURCE_ONLY && !UNIT_7_SOURCE_ONLY && !UNIT_9_SOURCE_ONLY && !MSA_SOURCE_ONLY && !EGYPTIAN_SOURCE_ONLY) {
+if (SOURCE && !ALPHABET_SOURCE_ONLY && !UNIT_4_SOURCE_ONLY && !UNIT_5_SOURCE_ONLY && !UNIT_7_SOURCE_ONLY && !UNIT_9_SOURCE_ONLY && !MSA_SOURCE_ONLY && !EGYPTIAN_SOURCE_ONLY && !EGYPTIAN_ALPHABET_SOURCE_ONLY && !EGYPTIAN_UNIT_6_SOURCE_ONLY && !EGYPTIAN_UNIT_7_SOURCE_ONLY && !EGYPTIAN_UNIT_67_RISK_TEST_ONLY) {
   console.error(`✗ Unsupported --source value: ${SOURCE}`);
-  console.error('  Supported: alphabet, unit-4, unit-5, unit-7, unit-9, msa, egyptian');
+  console.error('  Supported: alphabet, unit-4, unit-5, unit-7, unit-9, msa, egyptian, egyptian-alphabet, egyptian-unit-6, egyptian-unit-7, egyptian-unit67-risk-test');
   process.exit(1);
 }
 
@@ -195,7 +199,7 @@ if (LINE_ARG !== null) {
   }
 }
 
-if (LINE_ARG !== null && !SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY && !ALPHABET_SOURCE_ONLY) {
+if (LINE_ARG !== null && !SCENARIO_ONLY && !GREETINGS_ONLY && !INTRO_ONLY && !ALPHABET_SOURCE_ONLY && !EGYPTIAN_ALPHABET_SOURCE_ONLY) {
   console.error(`✗ --line is only supported with --scenario ${Object.keys(SCENARIO_CONFIG).join('|')}, --lesson greetings, --lesson intro, or --source alphabet`);
   process.exit(1);
 }
@@ -308,6 +312,27 @@ function collectTargets(): Target[] {
         BASIC_WORDS_EG: 'egyptian/basic-words',
         GREETINGS_WORDS_EG: 'egyptian/greetings',
         INTRO_WORDS_EG: 'egyptian/intro',
+        NUMBERS_1_5_WORDS_EG: 'egyptian/unit-4/numbers-1-5',
+        NUMBERS_6_10_WORDS_EG: 'egyptian/unit-4/numbers-6-10',
+        NUMBERS_11_20_WORDS_EG: 'egyptian/unit-4/numbers-11-20',
+        NUMBERS_TENS_WORDS_EG: 'egyptian/unit-4/numbers-tens',
+        NUMBERS_100_1000_WORDS_EG: 'egyptian/unit-4/numbers-100-1000',
+        NUMBERS_PHONE_WORDS_EG: 'egyptian/unit-4/numbers-phone',
+        NUMBERS_PRICES_WORDS_EG: 'egyptian/unit-4/numbers-prices',
+        NUMBERS_TIME_WORDS_EG: 'egyptian/unit-4/numbers-time',
+        NUMBERS_AGE_WORDS_EG: 'egyptian/unit-4/numbers-age',
+        NUMBERS_TOGETHER_WORDS_EG: 'egyptian/unit-4/numbers-together',
+        GRAMMAR_PRONOUNS_WORDS_EG: 'egyptian/unit-5/grammar-pronouns',
+        GRAMMAR_THIS_THAT_WORDS_EG: 'egyptian/unit-5/grammar-this-that',
+        GRAMMAR_POSSESSIVES_WORDS_EG: 'egyptian/unit-5/grammar-possessives',
+        GRAMMAR_QUESTIONS_WORDS_EG: 'egyptian/unit-5/grammar-questions',
+        GRAMMAR_NEGATION_WORDS_EG: 'egyptian/unit-5/grammar-negation',
+        GRAMMAR_PRESENT_WORDS_EG: 'egyptian/unit-5/grammar-present',
+        GRAMMAR_PAST_WORDS_EG: 'egyptian/unit-5/grammar-past',
+        GRAMMAR_FUTURE_WORDS_EG: 'egyptian/unit-5/grammar-future',
+        GRAMMAR_ADJECTIVES_WORDS_EG: 'egyptian/unit-5/grammar-adjectives',
+        GRAMMAR_PREPOSITIONS_WORDS_EG: 'egyptian/unit-5/grammar-prepositions',
+        GRAMMAR_SENTENCES_WORDS_EG: 'egyptian/unit-5/grammar-sentences',
       };
       for (const [name, arr] of Object.entries(egw)) {
         if (!Array.isArray(arr)) continue;
@@ -436,6 +461,23 @@ function collectTargets(): Target[] {
     return out;
   }
 
+  if (EGYPTIAN_ALPHABET_SOURCE_ONLY) {
+    const { ALPHABET_AUDIO } = require('../data/alphabet-audio');
+    if (LINE_INDEX !== null && !ALPHABET_AUDIO.some((target: any) => target.index === LINE_INDEX)) {
+      console.error(`✗ --line ${LINE_INDEX} is out of range for Egyptian alphabet (1-${ALPHABET_AUDIO.length})`);
+      process.exit(1);
+    }
+    ALPHABET_AUDIO.forEach((target: any) => {
+      if (LINE_INDEX !== null && target.index !== LINE_INDEX) return;
+      add(target.audioText, 'egyptian', `audio-catalog:egyptian-alphabet[${target.index}]`, 'egyptian', {
+        outputPath: resolve(ROOT, 'assets/audio/egyptian/alphabet-v2', `${target.index}.mp3`),
+        itemIndex: target.index,
+        allowDuplicate: true,
+      });
+    });
+    return out;
+  }
+
   if (UNIT_4_SOURCE_ONLY) {
     const { getAudioTargets } = require('./audio-catalog');
     const unit4Targets = getAudioTargets({ sourceKey: 'unit-4' });
@@ -469,6 +511,44 @@ function collectTargets(): Target[] {
       add(target.audioText, 'gulf', `audio-catalog:${target.sourceKey}[${target.index}]`, 'gulf', {
         outputPath: resolve(ROOT, target.audioPath),
         itemIndex: target.line ?? target.index + 1,
+        allowDuplicate: true,
+      });
+    });
+    return out;
+  }
+
+  if (EGYPTIAN_UNIT_6_SOURCE_ONLY || EGYPTIAN_UNIT_7_SOURCE_ONLY) {
+    const { getAudioTargets } = require('./audio-catalog');
+    const sourceKey = EGYPTIAN_UNIT_6_SOURCE_ONLY ? 'egyptian-unit-6' : 'egyptian-unit-7';
+    const targets = getAudioTargets({ sourceKey });
+    targets.forEach((target: any) => {
+      add(target.audioText, 'egyptian', `audio-catalog:${target.sourceKey}[${target.index}]`, 'egyptian', {
+        outputPath: resolve(ROOT, target.audioPath),
+        itemIndex: target.line ?? target.index + 1,
+        allowDuplicate: true,
+      });
+    });
+    return out;
+  }
+
+  if (EGYPTIAN_UNIT_67_RISK_TEST_ONLY) {
+    const samples = [
+      ['01-cafe-medium-sweet.mp3', 'قهوة مظبوط'],
+      ['02-barber-sides.mp3', 'والگيناب، عايزها قصيرة؟'],
+      ['03-airport-delay.mp3', 'هو في تأخير؟'],
+      ['04-supermarket-bag.mp3', 'تحب كيس؟'],
+      ['05-meeting-room.mp3', 'أوضة الاجتماعات'],
+      ['06-break.mp3', 'بريك'],
+      ['07-password.mp3', 'باسورد'],
+      ['08-engineer.mp3', 'مهندس'],
+      ['09-accountant.mp3', 'محاسب'],
+      ['10-turn-left.mp3', 'لأ، لِفّ شمال'],
+      ['11-nice-to-meet-you.mp3', 'فرصة سعيدة'],
+    ] as const;
+    samples.forEach(([filename, text], index) => {
+      add(text, 'egyptian', `egyptian-unit67-risk-test[${index}]`, 'egyptian', {
+        outputPath: resolve(ROOT, 'tmp/egyptian-unit67-risk-test', filename),
+        itemIndex: index + 1,
         allowDuplicate: true,
       });
     });
@@ -958,7 +1038,7 @@ async function main() {
   const exactIdx = new Map<string, string>();
   // Secondary index: fuzzy match on (voice × tashkeel-stripped text)
   const fuzzyIdx = new Map<string, string>();
-  const reuseDisabled = NARROW_LESSON || ALPHABET_SOURCE_ONLY || UNIT_4_SOURCE_ONLY || UNIT_5_SOURCE_ONLY || UNIT_7_SOURCE_ONLY || UNIT_9_SOURCE_ONLY || MSA_SOURCE_ONLY || EGYPTIAN_SOURCE_ONLY || (SCENARIO_ONLY && FORCE);
+  const reuseDisabled = NARROW_LESSON || ALPHABET_SOURCE_ONLY || EGYPTIAN_ALPHABET_SOURCE_ONLY || EGYPTIAN_UNIT_6_SOURCE_ONLY || EGYPTIAN_UNIT_7_SOURCE_ONLY || EGYPTIAN_UNIT_67_RISK_TEST_ONLY || UNIT_4_SOURCE_ONLY || UNIT_5_SOURCE_ONLY || UNIT_7_SOURCE_ONLY || UNIT_9_SOURCE_ONLY || MSA_SOURCE_ONLY || EGYPTIAN_SOURCE_ONLY || (SCENARIO_ONLY && FORCE);
   if (!reuseDisabled) {
     for (const e of [...fromWired, ...fromSiblings]) {
       const k1 = e.voiceId + '::' + normalize(e.text);
@@ -970,6 +1050,12 @@ async function main() {
     console.log(`→ ${SCENARIO} scenario mode: existing-file reuse disabled with --force; targets will use audioText`);
   } else if (ALPHABET_SOURCE_ONLY) {
     console.log('→ alphabet source mode: existing-file reuse disabled; targets will use catalog audioText');
+  } else if (EGYPTIAN_ALPHABET_SOURCE_ONLY) {
+    console.log('→ Egyptian alphabet source mode: existing-file reuse disabled; targets will use alphabet audioText with Eleven v3');
+  } else if (EGYPTIAN_UNIT_6_SOURCE_ONLY || EGYPTIAN_UNIT_7_SOURCE_ONLY) {
+    console.log(`→ ${SOURCE} source mode: existing-file reuse disabled; targets will use Egyptian audioText with Eleven v3`);
+  } else if (EGYPTIAN_UNIT_67_RISK_TEST_ONLY) {
+    console.log('→ Egyptian Units 6–7 risk-test mode: output is isolated under tmp/ and uses Eleven v3');
   } else if (UNIT_4_SOURCE_ONLY) {
     console.log('→ unit-4 source mode: existing-file reuse disabled; targets will use catalog audioText');
   } else if (UNIT_5_SOURCE_ONLY) {

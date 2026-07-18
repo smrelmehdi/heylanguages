@@ -1,0 +1,42 @@
+import { ALPHABET_AUDIO, type AlphabetAudioItem } from './alphabet-audio';
+
+const EGYPTIAN_ALPHABET_AUDIO_FILES = [
+  require('../assets/audio/egyptian/alphabet-v2/1.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/2.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/3.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/4.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/5.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/6.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/7.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/8.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/9.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/10.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/11.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/12.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/13.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/14.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/15.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/16.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/17.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/18.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/19.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/20.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/21.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/22.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/23.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/24.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/25.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/26.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/27.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/28.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/29.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/30.mp3'),
+  require('../assets/audio/egyptian/alphabet-v2/31.mp3'),
+];
+
+export const ALPHABET_AUDIO_EG: AlphabetAudioItem[] = ALPHABET_AUDIO.map((item, index) => ({
+  ...item,
+  ...(item.id === 'jim' ? { transliteration: 'Giim', english: 'Giim' } : {}),
+  audioPath: `assets/audio/egyptian/alphabet-v2/${item.index}.mp3`,
+  audio: EGYPTIAN_ALPHABET_AUDIO_FILES[index],
+}));

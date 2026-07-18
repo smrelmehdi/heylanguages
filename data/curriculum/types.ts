@@ -30,6 +30,11 @@ export interface CurriculumItem {
   scenarioName?: string;
   quizUnit?: string;
   sceneImageKey?: string;
+  sceneImageId?: string;
+  sceneEntranceImageId?: string;
+  description?: string;
+  setting?: string;
+  objective?: string;
   acceptedTransliterationProfile?: string;
 }
 

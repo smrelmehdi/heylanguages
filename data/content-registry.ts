@@ -10,6 +10,8 @@ import {
     TAXI_DIALOGUE_EG,
 } from './egyptian-dialogues';
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
+import { EGYPTIAN_UNIT6_SCENARIOS, EGYPTIAN_UNIT6_SCENARIOS_BY_NAME } from './egyptian-unit6';
+import { EGYPTIAN_UNIT7_LESSONS } from './egyptian-work';
 import type { DialogueTurn } from './gulf-dialogues';
 import {
     AIRPORT_DIALOGUE,
@@ -233,6 +235,7 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       Pharmacy:    PHARMACY_DIALOGUE_EG,
       Barbershop:  BARBERSHOP_DIALOGUE_EG,
       Airport:     AIRPORT_DIALOGUE_EG,
+      ...EGYPTIAN_UNIT6_SCENARIOS_BY_NAME,
     },
     sceneImages: {
       // ── Cairo (real images) ───────────────────────────────────────────────
@@ -254,9 +257,26 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       BarbershopEntrance: require('../assets/images/dubai-barbershop-entrance.png'),
       Airport:            require('../assets/images/dubai-airport-interior.png'),
       AirportEntrance:    require('../assets/images/dubai-airport-entrance.png'),
+      // Unit 6 reuses only confirmed Cairo assets. Missing Cairo scenes stay unset.
+      EgyptianCafeOrder:          require('../assets/images/cairo-cafe-interior.png'),
+      EgyptianRestaurantOrder:    require('../assets/images/cairo-restaurant-interior.png'),
+      EgyptianEverydaySupermarket: require('../assets/images/cairo-supermarket-interior.png'),
+      EgyptianEverydayTaxi:       require('../assets/images/cairo-taxi-interior.png'),
+      EgyptianEverydayHotel:      require('../assets/images/cairo-hotel-interior.png'),
     },
-    availableLessons: ['basic', 'greetings', 'intro'],
-    availableScenarios: ['Cafe', 'Taxi', 'Hotel', 'Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop', 'Airport'],
+    availableLessons: [
+      'basic', 'greetings', 'intro',
+      'numbers-1-5', 'numbers-6-10', 'numbers-11-20', 'numbers-tens', 'numbers-100-1000',
+      'numbers-phone', 'numbers-prices', 'numbers-time', 'numbers-age', 'numbers-together',
+      'grammar-pronouns', 'grammar-this-that', 'grammar-possessives', 'grammar-questions',
+      'grammar-negation', 'grammar-present', 'grammar-past', 'grammar-future',
+      'grammar-adjectives', 'grammar-prepositions', 'grammar-sentences',
+      ...EGYPTIAN_UNIT7_LESSONS.map(item => item.contentId),
+    ],
+    availableScenarios: [
+      'Cafe', 'Taxi', 'Hotel', 'Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop', 'Airport',
+      ...EGYPTIAN_UNIT6_SCENARIOS.map(item => item.scenarioName),
+    ],
   },
 };
 

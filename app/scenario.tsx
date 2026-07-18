@@ -51,6 +51,9 @@ type ScenarioEvalResult = {
 };
 
 function getPartLabel(index: number, type: string | undefined): string {
+  if (type?.startsWith('Egyptian')) {
+    return index < 5 ? '💬 Getting Started' : '✅ Completing the Task';
+  }
   if (type === 'Taxi') {
     if (index < 6) return '🚕 Greetings';
     if (index < 12) return '🗺️ During Ride';
@@ -192,12 +195,28 @@ function getSpeakerRoleLabel(type: string | undefined): string {
     case 'Barbershop': return 'Barber says';
     case 'Airport': return 'Airport staff says';
     case 'Restaurant': return 'Waiter says';
+    case 'EgyptianCafeOrder': return 'Barista says';
+    case 'EgyptianRestaurantOrder': return 'Waiter says';
+    case 'EgyptianEverydaySupermarket': return 'Staff says';
+    case 'EgyptianEverydayTaxi': return 'Driver says';
+    case 'EgyptianDirections': return 'Local says';
+    case 'EgyptianEverydayPharmacy': return 'Pharmacist says';
+    case 'EgyptianEverydayBarber': return 'Barber says';
+    case 'EgyptianEverydayHotel': return 'Receptionist says';
+    case 'EgyptianEverydayAirport': return 'Airport staff says';
+    case 'EgyptianPhoneCall': return 'Caller says';
     case 'Cafe':
     default: return 'Waiter says';
   }
 }
 
 function getScenarioCompletionCopy(type: string | undefined) {
+  if (type?.startsWith('Egyptian')) {
+    return {
+      headline: 'You completed an Egyptian Arabic conversation.',
+      subtitle: 'You followed a practical exchange and responded with language built for everyday use.',
+    };
+  }
   switch (type) {
     case 'Taxi':
       return {
@@ -505,6 +524,16 @@ export default function ScenarioScreen() {
       case 'FriendsRoadTrip':    return `🚗 Road Trip · ${dialectLabel}`;
       case 'FriendsBirthday':    return `🎂 Birthday Party · ${dialectLabel}`;
       case 'FriendsFarewell':    return `👋 Saying Goodbye · ${dialectLabel}`;
+      case 'EgyptianCafeOrder': return `☕ Café Order · ${dialectLabel}`;
+      case 'EgyptianRestaurantOrder': return `🍽️ Restaurant Order · ${dialectLabel}`;
+      case 'EgyptianEverydaySupermarket': return `🛒 Supermarket · ${dialectLabel}`;
+      case 'EgyptianEverydayTaxi': return `🚕 Taxi · ${dialectLabel}`;
+      case 'EgyptianDirections': return `🗺️ Directions · ${dialectLabel}`;
+      case 'EgyptianEverydayPharmacy': return `💊 Pharmacy · ${dialectLabel}`;
+      case 'EgyptianEverydayBarber': return `✂️ Barber · ${dialectLabel}`;
+      case 'EgyptianEverydayHotel': return `🏨 Hotel · ${dialectLabel}`;
+      case 'EgyptianEverydayAirport': return `✈️ Airport · ${dialectLabel}`;
+      case 'EgyptianPhoneCall': return `📞 Phone Call · ${dialectLabel}`;
       default:                   return `☕ Café · ${dialectLabel}`;
     }
   };
@@ -599,11 +628,18 @@ export default function ScenarioScreen() {
 
   // Reset per-turn state when index changes
   useEffect(() => {
+    if (isComingSoon) return;
     setRecordingState('idle');
     setShowNext(false);
     setScenarioEvalResult(null);
-    handleAutoPlay();
-  }, [currentIndex]);
+    const timer = setTimeout(() => {
+      handleAutoPlay().catch(console.warn);
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      stopAudio();
+    };
+  }, [currentIndex, dialect, currentTurnAudioText, currentTurn.audio, isComingSoon]);
 
   // Restore saved progress for this dialect + scenario.
   useEffect(() => {

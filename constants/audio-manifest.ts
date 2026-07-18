@@ -1133,7 +1133,7 @@ export const AUDIO_MANIFEST: Record<AudioDialect, Record<string, any>> = {
     "تمام، عشرين كيلو، البوردينج باس بتاعك، البوابة رقم تمنية": require("./../assets/audio/egyptian/airport/w6.mp3"),
     "الطيارة هتقلع الساعة كام؟": require("./../assets/audio/egyptian/airport/u6.mp3"),
     "الساعة تلاتة ونص، يعني عندك ساعة": require("./../assets/audio/egyptian/airport/w7.mp3"),
-    "تمام، شكراً جزيلاً": require("./../assets/audio/egyptian/airport/u7.mp3"),
+    "شكراً جداً": require("./../assets/audio/egyptian/airport/u7.mp3"),
     "العفو، رحلة سعيدة": require("./../assets/audio/egyptian/airport/w8.mp3"),
   },
   msa: {
