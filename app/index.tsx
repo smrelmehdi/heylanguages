@@ -79,9 +79,9 @@ function BouncingDots() {
 }
 
 const DIALECTS = [
+  { label: 'Modern Standard Arabic', sublabel: 'Formal · News · Books', value: 'msa', flag: '🌍', recommended: true },
   { label: 'Gulf Arabic', sublabel: 'UAE · Saudi · Kuwait', value: 'gulf', flag: '🇦🇪' },
   { label: 'Egyptian Arabic', sublabel: 'Most widely understood', value: 'egyptian', flag: '🇪🇬' },
-  { label: 'Modern Standard', sublabel: 'Formal · News · Books', value: 'msa', flag: '🌍' },
   { label: 'Maghrebi', sublabel: '🔜 Coming Soon', value: 'maghrebi', flag: '🇲🇦', disabled: true },
 ];
 
@@ -390,6 +390,8 @@ export default function OnboardingWizard() {
                 <Pressable
                   key={d.value}
                   onPress={() => handleDialectSelect(d)}
+                  disabled={d.disabled}
+                  accessibilityState={{ disabled: Boolean(d.disabled), selected: dialect === d.value }}
                   style={({ pressed }) => ({
                     width: '47%',
                     backgroundColor: theme.colors.bgSurface,
@@ -405,6 +407,11 @@ export default function OnboardingWizard() {
                   {d.disabled && (
                     <View style={styles.soonBadge}>
                       <Text style={styles.soonText}>Soon</Text>
+                    </View>
+                  )}
+                  {d.recommended && (
+                    <View style={styles.recommendedBadge}>
+                      <Text style={styles.recommendedText}>Recommended</Text>
                     </View>
                   )}
                   <Text style={{ fontSize: 24, marginBottom: 4 }}>{d.flag}</Text>
@@ -854,6 +861,13 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.xs, paddingHorizontal: 6, paddingVertical: 2,
   },
   soonText: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium, textTransform: 'uppercase', letterSpacing: 1 },
+  recommendedBadge: {
+    position: 'absolute', top: 8, right: 8,
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.radii.xs, paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: theme.colors.borderAccent,
+  },
+  recommendedText: { fontSize: 9, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, textTransform: 'uppercase', letterSpacing: 1 },
 
   // ── Bouncing dots ──────────────────────────────────────────────────────────
   bouncingDotsRow: {

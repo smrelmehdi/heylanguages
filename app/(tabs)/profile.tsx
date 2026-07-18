@@ -83,10 +83,9 @@ export default function ProfileScreen() {
       'Change Dialect',
       'Select your preferred Arabic dialect',
       [
+        { text: '🌍 Modern Standard Arabic', onPress: () => updateDialect('msa') },
         { text: '🇦🇪 Gulf Arabic', onPress: () => updateDialect('gulf') },
         { text: '🇪🇬 Egyptian Arabic', onPress: () => updateDialect('egyptian') },
-        { text: '🌍 Modern Standard', onPress: () => updateDialect('msa') },
-        { text: '🇱🇧 Levantine (Coming Soon)', onPress: () => {} },
         { text: '🇲🇦 Maghrebi (Coming Soon)', onPress: () => {} },
         { text: 'Cancel', style: 'cancel' },
       ]
@@ -185,9 +184,9 @@ export default function ProfileScreen() {
   const xpToNext = getXPToNextLevel(xpTotal);
 
   const DIALECTS: Array<{ id: OfflineDialect; label: string }> = [
+    { id: 'msa', label: 'Modern Standard Arabic' },
     { id: 'gulf', label: 'Gulf Arabic' },
     { id: 'egyptian', label: 'Egyptian Arabic' },
-    { id: 'msa', label: 'Modern Standard' },
   ];
 
   const handleDownloadPack = async (dialect: OfflineDialect) => {
