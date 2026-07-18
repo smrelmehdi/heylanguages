@@ -3,6 +3,7 @@ import { Asset } from 'expo-asset';
 import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
 import { getDialectContent } from '../data/content-registry';
 import { getDialectProgressionItems } from './content-resolver';
+import { MSA_WRITING_EXAMPLE_WORDS } from '../data/msa-alphabet-audio';
 
 export type OfflineDialect = 'gulf' | 'egyptian' | 'msa';
 
@@ -44,6 +45,7 @@ function uniqueAudioModules(dialect: OfflineDialect): number[] {
     }
     if (item.contentType === 'writing') {
       getAlphabetAudioForDialect(dialect).forEach(letter => maybeAdd(letter.audio));
+      if (dialect === 'msa') MSA_WRITING_EXAMPLE_WORDS.forEach(word => maybeAdd(word.audio));
     }
   });
 
@@ -68,6 +70,7 @@ export function getOfflineDialectPlannedAudioPaths(dialect: OfflineDialect): str
     }
     if (item.contentType === 'writing') {
       getAlphabetAudioForDialect(dialect).forEach(letter => maybeAdd(letter.audioPath));
+      if (dialect === 'msa') MSA_WRITING_EXAMPLE_WORDS.forEach(word => maybeAdd(word.audioPath));
     }
   });
 

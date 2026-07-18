@@ -71,9 +71,10 @@ export function getMissingContentDiagnostic(input: ResolveContentInput): Missing
 }
 
 export function resolveContent(input: ResolveContentInput): ResolvedContent | null {
+  const isDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true;
   const dialect = normalizeDialect(input.dialect);
   if (!dialect) {
-    if (__DEV__) {
+    if (isDevelopment) {
       console.warn('[content-resolver] Missing dialect content:', {
         ...input,
         reason: `Unsupported curriculum dialect: ${input.dialect}`,
@@ -83,7 +84,7 @@ export function resolveContent(input: ResolveContentInput): ResolvedContent | nu
   }
   const diagnostic = getMissingContentDiagnostic({ ...input, dialect });
   if (diagnostic) {
-    if (__DEV__) {
+    if (isDevelopment) {
       console.warn('[content-resolver] Missing dialect content:', diagnostic);
     }
     return null;

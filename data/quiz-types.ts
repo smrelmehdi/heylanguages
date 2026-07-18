@@ -42,12 +42,17 @@ export interface ListeningQuestion extends BaseQuestion {
 
 export interface EmojiMatchQuestion extends BaseQuestion {
   format: 'emoji_match';
-  pairs: { arabic: string; transliteration: string; emoji: string }[];
+  pairs: {
+    arabic: string;
+    transliteration: string;
+    /** Exact English meaning or an explicitly curated semantic symbol. */
+    meaning: string;
+  }[];
 }
 
 /**
  * Tier 3+ — User hears audio and sees Arabic, then types the transliteration from memory.
- * Graded with fuzzy matching (see utils/quiz-level.ts gradeTransliteration).
+ * Graded against the canonical and explicitly accepted transliterations.
  */
 export interface TransliterationTypeQuestion extends BaseQuestion {
   format: 'transliteration_type';
@@ -61,13 +66,11 @@ export interface TransliterationTypeQuestion extends BaseQuestion {
 }
 
 /**
- * Tier 4+ — User hears audio and picks from Arabic-script-only options.
- * No transliteration shown — forces recognition of the Arabic script.
+ * Tier 4+ — User reads an English prompt and picks from Arabic-script-only
+ * options. Audio is deliberately excluded so this remains a reading task.
  */
 export interface ArabicSelectQuestion extends BaseQuestion {
   format: 'arabic_select';
-  audioFile: any | null;
-  audioText: string;
   english: string;
   options: { arabic: string; isCorrect: boolean }[];
 }

@@ -1,7 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ArrowLeft } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,14 +8,18 @@ import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
 import { useDialect } from '../contexts/DialectContext';
+import { useXP } from '../contexts/XPContext';
 import { stripTashkeel } from '../utils/arabic';
 import { getQuizContentId } from '../utils/access';
 import { getDialectCurriculumItems } from '../utils/content-resolver';
 import { feedbackCorrect, feedbackStreak, feedbackWrong } from '../utils/feedback';
-import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
+import { buildCompletionKey } from '../utils/progression';
+import { persistQuizPass } from '../utils/quiz-completion';
+import { finishQuizAttempt, getOrCreateQuizAttemptSeed, startFreshQuizAttempt } from '../utils/quiz-attempt';
+import { getQuizPassed } from '../utils/quiz-scoring';
+import { selectWithAttemptSeed } from '../utils/quiz-selection';
 import { getQuizSrsSummary, recordQuizSrsResult, selectQuizItems, type QuizSrsSummary } from '../utils/srs';
 import { recordActivity } from '../utils/streak';
-import { supabase } from '../utils/supabase';
 import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
 
 type QuestionType = 'mc_ar_to_en' | 'mc_en_to_ar' | 'audio';
@@ -36,13 +39,21 @@ interface Question {
 
 const getDisplayArabic = (word: Word) => word.displayArabic ?? word.arabic;
 const getAudioText = (word: Word) => word.audioText ?? word.displayArabic ?? word.arabic;
-const shuffleOptions = (options: string[]) => [...options].sort(() => Math.random() - 0.5);
+const shuffleOptions = (options: string[], seed: string) =>
+  selectWithAttemptSeed(options, options.length, seed, 'options', option => option);
 
 function buildWordSrsId(scope: string, word: Word): string {
   return `${scope}:${getDisplayArabic(word)}:${word.english}`;
 }
 
-function generateQuiz(selected: Word[], allWords: Word[], count = 15, scope = 'quiz'): Question[] {
+function generateQuiz(
+  selected: Word[],
+  allWords: Word[],
+  count = 15,
+  scope = 'quiz',
+  lessonPools: Word[][] = [allWords],
+  attemptSeed = scope,
+): Question[] {
   const arToEnCutoff = Math.round(count * 8 / 15);
   const enToArCutoff = Math.round(count * 12 / 15);
 
@@ -54,18 +65,22 @@ function generateQuiz(selected: Word[], allWords: Word[], count = 15, scope = 'q
 
     const displayArabic = getDisplayArabic(word);
     const audioText = getAudioText(word);
-    const otherWords = allWords.filter(w => getDisplayArabic(w) !== displayArabic);
-    const wrongWords = otherWords.sort(() => Math.random() - 0.5).slice(0, 3);
+    const sourcePool = lessonPools.find(pool => pool.some(item => getDisplayArabic(item) === displayArabic)) ?? [];
+    const otherWords = sourcePool.filter(w =>
+      getDisplayArabic(w) !== displayArabic
+      && w.english.trim().toLowerCase() !== word.english.trim().toLowerCase()
+    );
+    const wrongWords = selectWithAttemptSeed(otherWords, 3, attemptSeed, word.english, getDisplayArabic);
 
     let options: string[];
     let correctAnswer: string;
 
     if (type === 'mc_en_to_ar') {
       correctAnswer = displayArabic;
-      options = [displayArabic, ...wrongWords.map(getDisplayArabic)].sort(() => Math.random() - 0.5);
+      options = shuffleOptions([displayArabic, ...wrongWords.map(getDisplayArabic)], `${attemptSeed}:${displayArabic}`);
     } else {
       correctAnswer = word.english;
-      options = [word.english, ...wrongWords.map(w => w.english)].sort(() => Math.random() - 0.5);
+      options = shuffleOptions([word.english, ...wrongWords.map(w => w.english)], `${attemptSeed}:${displayArabic}`);
     }
 
     return {
@@ -82,58 +97,17 @@ function generateQuiz(selected: Word[], allWords: Word[], count = 15, scope = 'q
   });
 }
 
-function buildQuestion(type: QuestionType, word: Word, wrongOptions: string[], scope: string): Question {
-  const displayArabic = getDisplayArabic(word);
-  const correctAnswer = type === 'mc_en_to_ar' ? displayArabic : word.english;
-
-  return {
-    id: buildWordSrsId(scope, word),
-    type,
-    arabic: displayArabic,
-    audioText: getAudioText(word),
-    transliteration: word.transliteration,
-    english: word.english,
-    options: shuffleOptions([correctAnswer, ...wrongOptions]),
-    correctAnswer,
-    audio: word.audio,
-  };
-}
-
-function generateUnit1Quiz(lessonWords: { basic: Word[]; greetings: Word[]; intro: Word[] }, scopePrefix = 'unit1'): Question[] {
-  const BASIC = lessonWords.basic;
-  const GREETINGS = lessonWords.greetings;
-  const INTRO = lessonWords.intro;
-  if (BASIC.length < 20 || GREETINGS.length < 15 || INTRO.length < 15) return [];
-
-  return [
-    buildQuestion('mc_ar_to_en', BASIC[0], [BASIC[1].english, BASIC[4].english, BASIC[13].english], scopePrefix),
-    buildQuestion('mc_ar_to_en', BASIC[1], [BASIC[13].english, BASIC[14].english, BASIC[15].english], scopePrefix),
-    buildQuestion('mc_ar_to_en', BASIC[12], [BASIC[11].english, BASIC[10].english, GREETINGS[11].english], scopePrefix),
-    buildQuestion('mc_ar_to_en', INTRO[0], [INTRO[2].english, INTRO[4].english, INTRO[8].english], scopePrefix),
-    buildQuestion('mc_ar_to_en', INTRO[3], [INTRO[5].english, INTRO[1].english, INTRO[9].english], scopePrefix),
-    buildQuestion('mc_ar_to_en', INTRO[10], [INTRO[11].english, INTRO[12].english, INTRO[14].english], scopePrefix),
-    buildQuestion('mc_en_to_ar', BASIC[13], [getDisplayArabic(BASIC[1]), getDisplayArabic(BASIC[14]), getDisplayArabic(BASIC[15])], scopePrefix),
-    buildQuestion('mc_en_to_ar', BASIC[9], [getDisplayArabic(BASIC[10]), getDisplayArabic(BASIC[18]), getDisplayArabic(BASIC[19])], scopePrefix),
-    buildQuestion('mc_en_to_ar', INTRO[4], [getDisplayArabic(INTRO[2]), getDisplayArabic(INTRO[6]), getDisplayArabic(INTRO[8])], scopePrefix),
-    buildQuestion('mc_en_to_ar', INTRO[5], [getDisplayArabic(INTRO[3]), getDisplayArabic(INTRO[1]), getDisplayArabic(INTRO[9])], scopePrefix),
-    buildQuestion('mc_en_to_ar', INTRO[11], [getDisplayArabic(INTRO[10]), getDisplayArabic(INTRO[12]), getDisplayArabic(INTRO[14])], scopePrefix),
-    buildQuestion('audio', BASIC[4], [BASIC[3].english, BASIC[5].english, BASIC[15].english], scopePrefix),
-    buildQuestion('audio', GREETINGS[11], [GREETINGS[0].english, GREETINGS[7].english, GREETINGS[14].english], scopePrefix),
-    buildQuestion('audio', INTRO[7], [INTRO[6].english, INTRO[5].english, INTRO[3].english], scopePrefix),
-    buildQuestion('audio', INTRO[14], [BASIC[11].english, GREETINGS[14].english, INTRO[0].english], scopePrefix),
-  ];
-}
-
-function getDialectUnitWords(dialect: string, unitId: string) {
+function getDialectUnitWordLessons(dialect: string, unitId: string) {
   return getDialectCurriculumItems(dialect)
-    .filter(item => item.unitId === unitId && item.contentType === 'lesson')
-    .flatMap(item => item.lessonWords ?? []);
+    .filter(item => item.unitId === unitId && item.contentType === 'lesson' && (item.lessonWords?.length ?? 0) > 0)
+    .map(item => item.lessonWords ?? []);
 }
 
 export default function QuizScreen() {
   const router = useRouter();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
   const { dialect, content } = useDialect();
+  const { addXP, refreshFromServer } = useXP();
   const routeContentId = getQuizContentId(unit);
   const routeLabel = unit ? `Unit ${unit} Quiz` : 'Unit 1 Quiz';
   const isSupportedQuizUnit = SUPPORTED_WORD_QUIZ_UNITS.has(unit ?? '1');
@@ -148,6 +122,12 @@ export default function QuizScreen() {
   const [completed, setCompleted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [persistedXpAdded, setPersistedXpAdded] = useState(0);
+  const [isPersistingPass, setIsPersistingPass] = useState(false);
+  const [generation, setGeneration] = useState(0);
+  const savedAttemptRef = useRef(false);
+  const attemptSeedRef = useRef<string | null>(null);
+  const attemptScope = `${dialect}:legacy:${unit ?? '1'}`;
 
   const currentQuestion = questions[currentIndex];
   const arabicPromptLength = currentQuestion ? stripTashkeel(currentQuestion.arabic).length : 0;
@@ -159,14 +139,25 @@ export default function QuizScreen() {
   const answeredCount = currentIndex + (selectedAnswer ? 1 : 0);
   const missedCount = answeredCount - correctCount;
   const progress = currentIndex / questions.length;
+  const finalPercentage = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+  const attemptPassed = getQuizPassed(correctCount, questions.length);
+
+  // MSA quizzes use the tiered, unit-specific engine for every supported unit.
+  useEffect(() => {
+    if (dialect === 'msa' && isSupportedQuizUnit) {
+      router.replace(`/quiz-unit2?unit=${unit ?? '1'}` as never);
+    }
+  }, [dialect, isSupportedQuizUnit, router, unit]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadQuestions = async () => {
       setIsLoadingQuiz(true);
+      const attemptSeed = attemptSeedRef.current ?? await getOrCreateQuizAttemptSeed(attemptScope);
+      attemptSeedRef.current = attemptSeed;
 
-      if (!isSupportedQuizUnit || !routeContentId) {
+      if (dialect === 'msa' || !isSupportedQuizUnit || !routeContentId) {
         if (!cancelled) {
           setQuestions([]);
           setSrsSummary(null);
@@ -175,30 +166,46 @@ export default function QuizScreen() {
         return;
       }
 
-      if (dialect === 'gulf' && unit === '4') {
-        const allUnit4Words = getDialectUnitWords(dialect, 'unit-4');
-        const selected = await selectQuizItems(allUnit4Words, word => buildWordSrsId('unit4', word), 15);
+      if (unit === '4') {
+        const unit4Lessons = getDialectUnitWordLessons(dialect, 'unit-4');
+        const allUnit4Words = unit4Lessons.flat();
+        if (allUnit4Words.length === 0) {
+          if (!cancelled) {
+            setQuestions([]);
+            setSrsSummary(null);
+            setIsLoadingQuiz(false);
+          }
+          return;
+        }
+        const selected = await selectQuizItems(allUnit4Words, word => buildWordSrsId('unit4', word), 15, attemptSeed);
         if (!cancelled) {
-          const builtQuestions = generateQuiz(selected, allUnit4Words, 15, 'unit4');
+          const builtQuestions = generateQuiz(selected, allUnit4Words, 15, `${dialect}_unit4`, unit4Lessons, attemptSeed);
           setQuestions(builtQuestions);
           setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
         }
-      } else if (dialect === 'gulf' && unit === '5') {
-        const allUnit5Words = getDialectUnitWords(dialect, 'unit-5');
-        const selected = await selectQuizItems(allUnit5Words, word => buildWordSrsId('unit5', word), 18);
+      } else if (unit === '5') {
+        const unit5Lessons = getDialectUnitWordLessons(dialect, 'unit-5');
+        const allUnit5Words = unit5Lessons.flat();
+        if (allUnit5Words.length === 0) {
+          if (!cancelled) {
+            setQuestions([]);
+            setSrsSummary(null);
+            setIsLoadingQuiz(false);
+          }
+          return;
+        }
+        const selected = await selectQuizItems(allUnit5Words, word => buildWordSrsId('unit5', word), 18, attemptSeed);
         if (!cancelled) {
-          const builtQuestions = generateQuiz(selected, allUnit5Words, 18, 'unit5');
+          const builtQuestions = generateQuiz(selected, allUnit5Words, 18, `${dialect}_unit5`, unit5Lessons, attemptSeed);
           setQuestions(builtQuestions);
           setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
-        }
-      } else if (unit === '4' || unit === '5') {
-        if (!cancelled) {
-          setQuestions([]);
-          setSrsSummary(null);
         }
       } else {
         if (!cancelled) {
-          const builtQuestions = generateUnit1Quiz(content.lessons, `${dialect}_unit1`);
+          const unit1Lessons = [content.lessons.basic, content.lessons.greetings, content.lessons.intro];
+          const allUnit1Words = unit1Lessons.flat();
+          const selected = await selectQuizItems(allUnit1Words, word => buildWordSrsId('unit1', word), 15, attemptSeed);
+          const builtQuestions = generateQuiz(selected, allUnit1Words, 15, `${dialect}_unit1`, unit1Lessons, attemptSeed);
           setQuestions(builtQuestions);
           setSrsSummary(await getQuizSrsSummary(builtQuestions.map(question => question.id)));
         }
@@ -219,7 +226,7 @@ export default function QuizScreen() {
     return () => {
       cancelled = true;
     };
-  }, [unit, dialect, content, isSupportedQuizUnit, routeContentId]);
+  }, [unit, dialect, content, isSupportedQuizUnit, routeContentId, generation]);
 
   useEffect(() => {
     if (currentQuestion?.type === 'audio') {
@@ -237,60 +244,41 @@ export default function QuizScreen() {
   useEffect(() => () => { stopAudio(); }, []);
 
   useEffect(() => {
-    if (!completed) return;
+    if (!completed || !attemptPassed) return;
     recordActivity().catch(console.warn);
-  }, [completed]);
+  }, [attemptPassed, completed]);
 
   useEffect(() => {
-    if (!completed || !routeContentId) return;
+    if (!completed || !attemptSeedRef.current) return;
+    finishQuizAttempt(attemptScope, attemptSeedRef.current).catch(console.warn);
+  }, [attemptScope, completed]);
+
+  useEffect(() => {
+    if (!completed || !attemptPassed || !routeContentId || savedAttemptRef.current) return;
+    savedAttemptRef.current = true;
+    setIsPersistingPass(true);
     const saveQuizCompletion = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
         const scenarioKey = buildCompletionKey(dialect, `unit-${unit ?? '1'}`, routeContentId);
-        const legacyCandidates = getCompletionKeyCandidates(dialect, routeContentId);
-
-        if (!session) {
-          const raw = await AsyncStorage.getItem('guest_progress');
-          const progress = raw ? JSON.parse(raw) : {};
-          progress[scenarioKey] = true;
-          await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-          return;
-        }
-
-        const { data: existing } = await supabase
-          .from('scenario_progress')
-          .select('id, attempts')
-          .eq('user_id', session.user.id)
-          .in('scenario', legacyCandidates.length > 0 ? legacyCandidates : [scenarioKey])
-          .maybeSingle();
-
-        if (existing) {
-          await supabase.from('scenario_progress').update({
-            completed: true,
-            best_score: Math.round((correctCount / questions.length) * 100),
-            attempts: (existing.attempts ?? 0) + 1,
-          }).eq('id', existing.id);
-        } else {
-          await supabase.from('scenario_progress').insert({
-            user_id: session.user.id,
-            scenario: scenarioKey,
-            dialect,
-            completed: true,
-            best_score: Math.round((correctCount / questions.length) * 100),
-            attempts: 1,
-          });
-        }
-
-        if (!existing && xpEarned > 0) {
-          const { data: userData } = await supabase.from('users').select('xp').eq('id', session.user.id).single();
-          await supabase.from('users').update({ xp: (userData?.xp ?? 0) + xpEarned }).eq('id', session.user.id);
-        }
+        const result = await persistQuizPass({
+          completionKey: scenarioKey,
+          dialect,
+          legacyContentId: routeContentId,
+          score: finalPercentage,
+          xp: xpEarned,
+          addGuestXp: addXP,
+          refreshSignedInXp: refreshFromServer,
+        });
+        setPersistedXpAdded(result.xpAwarded);
       } catch (err) {
+        savedAttemptRef.current = false;
         console.warn('Quiz save error:', err);
+      } finally {
+        setIsPersistingPass(false);
       }
     };
     saveQuizCompletion();
-  }, [completed, routeContentId]);
+  }, [addXP, attemptPassed, completed, dialect, finalPercentage, refreshFromServer, routeContentId, unit, xpEarned]);
 
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;
@@ -339,13 +327,20 @@ export default function QuizScreen() {
     }
   };
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
+    setIsLoadingQuiz(true);
     setCompleted(false);
     setCurrentIndex(0);
     setSelectedAnswer(null);
     setIsCorrect(null);
     setXpEarned(0);
     setCorrectCount(0);
+    setCurrentStreak(0);
+    setPersistedXpAdded(0);
+    setIsPersistingPass(false);
+    savedAttemptRef.current = false;
+    attemptSeedRef.current = await startFreshQuizAttempt(attemptScope);
+    setGeneration(value => value + 1);
   };
 
   if (!isSupportedQuizUnit || !routeContentId) {
@@ -379,7 +374,7 @@ export default function QuizScreen() {
 
   // ─── Completion screen ───
   if (completed) {
-    const percentage = Math.round((correctCount / questions.length) * 100);
+    const percentage = finalPercentage;
     const grade =
       percentage >= 80 ? '🌟 Excellent!' :
       percentage >= 60 ? '👍 Good job!' :
@@ -396,8 +391,8 @@ export default function QuizScreen() {
 
           <View style={styles.completionStats}>
             <View style={styles.statItem}>
-              <Text style={styles.statVal}>+{xpEarned}</Text>
-              <Text style={styles.statLabel}>XP Earned</Text>
+              <Text style={styles.statVal}>+{attemptPassed ? persistedXpAdded : 0}</Text>
+              <Text style={styles.statLabel}>XP Added</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
@@ -411,8 +406,12 @@ export default function QuizScreen() {
             </View>
           </View>
 
-          <Pressable style={styles.doneButton} onPress={() => router.replace('/(tabs)')}>
-            <Text style={styles.doneButtonText}>Back to Home</Text>
+          <Pressable
+            style={[styles.doneButton, isPersistingPass && { opacity: 0.6 }]}
+            onPress={() => router.replace('/(tabs)')}
+            disabled={isPersistingPass}
+          >
+            <Text style={styles.doneButtonText}>{isPersistingPass ? 'Saving progress…' : 'Back to Home'}</Text>
           </Pressable>
 
           {srsSummary && (
@@ -422,7 +421,7 @@ export default function QuizScreen() {
             </View>
           )}
 
-          {percentage < 80 && (
+          {!attemptPassed && (
             <Pressable style={styles.retryButton} onPress={handleRetry}>
               <Text style={styles.retryText}>Try Again</Text>
             </Pressable>

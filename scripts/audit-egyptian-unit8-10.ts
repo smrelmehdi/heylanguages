@@ -127,7 +127,11 @@ const routeAudit = {
   validEgyptianUnit9: Boolean(resolveContent({ dialect: 'egyptian', unitId: 'unit-9', contentId: 'invitations', contentType: 'lesson' })),
   validEgyptianUnit10: Boolean(resolveContent({ dialect: 'egyptian', unitId: 'unit-10', contentId: 'staying-in-touch', contentType: 'scenario' })),
   gulfRejectsEgyptianScenario: !resolveContent({ dialect: 'gulf', unitId: 'unit-8', contentId: 'doctor-appointment', contentType: 'scenario' }),
-  msaRejectsEgyptianScenario: !resolveContent({ dialect: 'msa', unitId: 'unit-8', contentId: 'doctor-appointment', contentType: 'scenario' }),
+  msaResolvesItsOwnScenarioNamespace: (() => {
+    const resolved = resolveContent({ dialect: 'msa', unitId: 'unit-8', contentId: 'doctor-appointment', contentType: 'scenario' });
+    return resolved?.item.dialect === 'msa'
+      && resolved.item.scenarioName !== 'EgyptianDoctorAppointment';
+  })(),
   wrongTypeRejected: !resolveContent({ dialect: 'egyptian', unitId: 'unit-8', contentId: 'doctor-appointment', contentType: 'lesson' }),
   malformedRejected: !resolveContent({ dialect: 'egyptian', unitId: 'unit-8', contentId: '../doctor-appointment', contentType: 'scenario' }),
 };

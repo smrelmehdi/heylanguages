@@ -14,10 +14,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { theme } from '../../constants/theme';
+import { useDialect } from '../../contexts/DialectContext';
 import type { TransliterationTypeQuestion } from '../../data/quiz-types';
 import { gradeTransliteration, type TransliterationGradeStatus } from '../../utils/quiz-level';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudio, speakArabic, stopAudio } from '../../utils/tts';
+import { playLocalAudioWithTtsFallback, stopAudio } from '../../utils/tts';
 
 interface Props {
   question: TransliterationTypeQuestion;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export default function TransliterationInput({ question, answerResult, onAnswer }: Props) {
+  const { content } = useDialect();
   const [input, setInput] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [hintRevealed, setHintRevealed] = useState(false);
@@ -47,8 +49,7 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
     setIsStartingAudio(true);
     setAudioError(null);
     try {
-      if (question.audioFile) await playLocalAudio(question.audioFile);
-      else await speakArabic(question.audioText);
+      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId);
     } catch {
       setAudioError('Audio did not start. Tap to retry.');
     } finally {

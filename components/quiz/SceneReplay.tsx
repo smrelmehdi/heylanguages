@@ -5,8 +5,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { SceneReplayQuestion } from '../../data/quiz-types';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { speakArabic, playLocalAudio, stopAudio } from '../../utils/tts';
+import { playLocalAudioWithTtsFallback, stopAudio } from '../../utils/tts';
 import { theme } from '../../constants/theme';
+import { useDialect } from '../../contexts/DialectContext';
 
 interface Props {
   question: SceneReplayQuestion;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function SceneReplay({ question, answerResult, onAnswer, showTranslit = true }: Props) {
+  const { content } = useDialect();
   const [selected, setSelected] = useState<number | null>(null);
   const [translitRevealed, setTranslitRevealed] = useState(false);
   const [isStartingAudio, setIsStartingAudio] = useState(false);
@@ -26,8 +28,7 @@ export default function SceneReplay({ question, answerResult, onAnswer, showTran
     setIsStartingAudio(true);
     setAudioError(null);
     try {
-      if (question.audioFile) await playLocalAudio(question.audioFile);
-      else await speakArabic(question.audioText);
+      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId);
     } catch {
       setAudioError('Audio did not start. Tap to retry.');
     } finally {

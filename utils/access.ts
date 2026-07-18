@@ -33,7 +33,7 @@ const TESTING_UNLOCK_OVERRIDE_KEY = 'internal_testing_unlock_all_override';
 const VALID_APP_ENVS = new Set<PublicAppEnv>(['development', 'preview', 'production']);
 const RAW_APP_ENV = process.env.EXPO_PUBLIC_APP_ENV;
 const RAW_TESTING_UNLOCK = process.env.EXPO_PUBLIC_TESTING_UNLOCK_ALL;
-const IS_LOCAL_DEV = typeof __DEV__ !== 'undefined' && __DEV__;
+const IS_LOCAL_DEV = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true;
 
 export const APP_ENV: PublicAppEnv =
   VALID_APP_ENVS.has(RAW_APP_ENV as PublicAppEnv)
@@ -114,6 +114,38 @@ export const SCENARIO_TYPE_TO_CONTENT_ID: Record<string, string> = {
   Pharmacy: 'pharmacy',
   Barbershop: 'barbershop',
   Airport: 'airport',
+  Directions: 'directions',
+  PhoneCall: 'phone-call',
+  MsaAdvancedCafe: 'advanced-cafe-order',
+  MsaAdvancedRestaurant: 'advanced-restaurant-order',
+  MsaAdvancedSupermarket: 'advanced-supermarket',
+  MsaAdvancedTaxi: 'advanced-taxi',
+  MsaAdvancedDirections: 'advanced-directions',
+  MsaAdvancedPharmacy: 'advanced-pharmacy',
+  MsaAdvancedBarber: 'advanced-barber',
+  MsaAdvancedHotel: 'advanced-hotel',
+  MsaAdvancedAirport: 'advanced-airport',
+  MsaAdvancedPhone: 'advanced-phone-call',
+  MsaDoctorAppointment: 'doctor-appointment',
+  MsaHospitalReception: 'hospital-reception',
+  MsaDescribingPain: 'describing-pain',
+  MsaPharmacyEmergency: 'pharmacy-emergency',
+  MsaCallingAmbulance: 'calling-ambulance',
+  MsaPoliceHelp: 'police-help',
+  MsaLostPhone: 'lost-phone',
+  MsaLostChild: 'lost-child',
+  MsaCarProblem: 'car-problem',
+  MsaUrgentHelp: 'urgent-help',
+  MsaNeighborVisit: 'neighbor-visit',
+  MsaBrunch: 'brunch',
+  MsaRoadTrip: 'road-trip',
+  MsaBirthdayInvitation: 'birthday-invitation',
+  MsaBirthdayParty: 'birthday-party',
+  MsaGivingGift: 'giving-a-gift',
+  MsaTakingPhotos: 'taking-photos',
+  MsaRememberingTrip: 'remembering-the-trip',
+  MsaSayingGoodbye: 'saying-goodbye',
+  MsaStayingInTouch: 'staying-in-touch',
   MorningRoutine: 'morningroutine',
   AtGym: 'atgym',
   CookingHome: 'cookinghome',

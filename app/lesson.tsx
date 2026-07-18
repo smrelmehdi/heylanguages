@@ -20,7 +20,7 @@ import { resolveContent } from '../utils/content-resolver';
 import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
-import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, speakArabic, stopAudio } from '../utils/tts';
+import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 export default function LessonScreen() {
   const router = useRouter();
@@ -226,25 +226,24 @@ export default function LessonScreen() {
     }
 
     if (unit4Audio) {
-      await playLocalAudio(unit4Audio.audio);
+      await playLocalAudioWithTtsFallback(unit4Audio.audio, currentAudioText, content.voiceId);
       return;
     }
 
-    if (currentWord.audio) {
-      await playLocalAudio(currentWord.audio);
-    } else {
-      // Use audioText (tashkeel-stripped) for TTS when available; fall back to raw arabic
-      const ttsText = (isUnit4AudioLesson(typeStr) || currentWord.audioText) ? currentAudioText : currentWord.arabic;
-      await speakArabic(ttsText, content.voiceId);
-    }
+    // Use audioText when available; raw Arabic is only a legacy fallback.
+    const ttsText = (isUnit4AudioLesson(typeStr) || currentWord.audioText) ? currentAudioText : currentWord.arabic;
+    await playLocalAudioWithTtsFallback(currentWord.audio, ttsText, content.voiceId);
   };
 
   useEffect(() => {
     setEvalResult(null);
     if (isComingSoon) return;
     const timer = setTimeout(() => { playWordAudio().catch(console.warn); }, 300);
-    return () => clearTimeout(timer);
-  }, [currentIndex]);
+    return () => {
+      clearTimeout(timer);
+      stopAudio();
+    };
+  }, [currentIndex, dialect, currentAudioText, currentWord.audio, typeStr, isComingSoon]);
 
   const handleSpeak = () => {
     playWordAudio().catch(console.warn);

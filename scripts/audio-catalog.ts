@@ -16,6 +16,10 @@ export type AudioTarget = {
   transliteration?: string;
   english?: string;
   audioPath: string;
+  audio?: any;
+  unit?: number;
+  voiceId?: string;
+  modelId?: string;
 };
 
 type AudioCatalogFilter = {
@@ -243,7 +247,10 @@ function buildLessonTargets(
         evalTarget: word.evalTarget,
         transliteration: word.transliteration,
         english: word.english,
-        audioPath: toRelativeAudioPath(word.audio) ?? `assets/audio/${folder}/${i + 1}.mp3`,
+        audioPath: word.audioPath ?? toRelativeAudioPath(word.audio) ?? `assets/audio/${folder}/${i + 1}.mp3`,
+        audio: word.audio,
+        voiceId: word.voiceId,
+        modelId: word.modelId,
       } satisfies AudioTarget;
     })
     .filter(Boolean) as AudioTarget[];
@@ -281,7 +288,10 @@ function buildScenarioTargets(
         evalTarget: turn.evalTarget,
         transliteration: turn.transliteration,
         english: turn.english,
-        audioPath: toRelativeAudioPath(turn.audio) ?? `assets/audio/${folder}/${filePrefix}${fileIndex}.mp3`,
+        audioPath: turn.audioPath ?? toRelativeAudioPath(turn.audio) ?? `assets/audio/${folder}/${filePrefix}${fileIndex}.mp3`,
+        audio: turn.audio,
+        voiceId: turn.voiceId,
+        modelId: turn.modelId,
       } satisfies AudioTarget;
     })
     .filter(Boolean) as AudioTarget[];
@@ -308,6 +318,52 @@ function buildAlphabetTargets(): AudioTarget[] {
   });
 }
 
+function buildMsaCurriculumTargets(): AudioTarget[] {
+  const { MSA_CURRICULUM } = require('../data/curriculum/msa');
+  const { getDialectContent } = require('../data/content-registry');
+  const { ALPHABET_AUDIO_MSA, MSA_WRITING_EXAMPLE_WORDS } = require('../data/msa-alphabet-audio');
+  const content = getDialectContent('msa');
+  const targets: AudioTarget[] = [];
+  let alphabetAdded = false;
+
+  for (const unit of MSA_CURRICULUM.units) {
+    const unitNumber = Number(unit.unitId.replace('unit-', ''));
+    for (const item of unit.items) {
+      if (item.contentType === 'lesson') {
+        const words = item.lessonWords ?? (item.lessonKey ? content.lessons[item.lessonKey] : []) ?? [];
+        targets.push(...buildLessonTargets('msa', item.contentId, words, `msa/unit-${unitNumber}/${item.contentId}`)
+          .map(target => ({ ...target, unit: unitNumber })));
+      } else if (item.contentType === 'scenario' && item.scenarioName) {
+        targets.push(...buildScenarioTargets('msa', item.contentId, content.scenarios[item.scenarioName] ?? [], `msa/unit-${unitNumber}/${item.contentId}`)
+          .map(target => ({ ...target, unit: unitNumber })));
+      } else if (item.contentType === 'writing' && !alphabetAdded) {
+        alphabetAdded = true;
+        targets.push(...ALPHABET_AUDIO_MSA.map((letter: any, index: number) => ({
+          id: `msa:alphabet:${letter.id}`,
+          dialect: 'msa' as const,
+          kind: 'alphabet' as const,
+          sourceKey: 'alphabet',
+          index,
+          line: index + 1,
+          displayArabic: letter.displayArabic,
+          audioText: letter.audioText,
+          evalTarget: letter.evalTarget,
+          transliteration: letter.transliteration,
+          english: letter.english,
+          audioPath: letter.audioPath,
+          audio: letter.audio,
+          unit: 3,
+          voiceId: letter.voiceId,
+          modelId: letter.modelId,
+        })));
+        targets.push(...buildLessonTargets('msa', 'writing-examples', MSA_WRITING_EXAMPLE_WORDS, 'msa/unit-3/writing-examples')
+          .map(target => ({ ...target, unit: 3 })));
+      }
+    }
+  }
+  return targets;
+}
+
 export function getAudioCatalog(): AudioTarget[] {
   const words = require('../constants/words');
   const { BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS } = words;
@@ -319,9 +375,6 @@ export function getAudioCatalog(): AudioTarget[] {
   const egyptianEmergencies = require('../data/egyptian-emergencies');
   const egyptianSocial = require('../data/egyptian-social');
   const egyptianFriends = require('../data/egyptian-friends');
-  const msaWords = require('../data/msa-words');
-  const msaDialogues = require('../data/msa-dialogues');
-
   return [
     ...buildLessonTargets('gulf', 'basic-words', BASIC_WORDS, 'basic-words'),
     ...buildLessonTargets('gulf', 'greetings', GREETINGS_WORDS, 'greetings'),
@@ -338,9 +391,7 @@ export function getAudioCatalog(): AudioTarget[] {
     ...UNIT_9_LESSONS.flatMap(([sourceKey, exportName]) =>
       buildLessonTargets('gulf', sourceKey, words[exportName] ?? [], `unit-9/${sourceKey}`),
     ),
-    ...buildLessonTargets('msa', 'basic-words', msaWords.BASIC_WORDS_MSA ?? [], 'msa/basic-words'),
-    ...buildLessonTargets('msa', 'greetings', msaWords.GREETINGS_WORDS_MSA ?? [], 'msa/greetings'),
-    ...buildLessonTargets('msa', 'intro', msaWords.INTRO_WORDS_MSA ?? [], 'msa/intro'),
+    ...buildMsaCurriculumTargets(),
     ...buildLessonTargets('egyptian', 'basic-words', egyptianWords.BASIC_WORDS_EG ?? [], 'egyptian/basic-words'),
     ...buildLessonTargets('egyptian', 'greetings', egyptianWords.GREETINGS_WORDS_EG ?? [], 'egyptian/greetings'),
     ...buildLessonTargets('egyptian', 'intro', egyptianWords.INTRO_WORDS_EG ?? [], 'egyptian/intro'),
@@ -368,9 +419,6 @@ export function getAudioCatalog(): AudioTarget[] {
     ...buildAlphabetTargets(),
     ...CORE_SCENARIOS.flatMap(([sourceKey, gulfExport]) =>
       buildScenarioTargets('gulf', sourceKey, gulfDialogues[gulfExport] ?? [], sourceKey),
-    ),
-    ...CORE_SCENARIOS.flatMap(([sourceKey, _gulfExport, msaExport, _egyptianExport, folder]) =>
-      buildScenarioTargets('msa', sourceKey, msaDialogues[msaExport] ?? [], `msa/${folder}`),
     ),
     ...CORE_SCENARIOS.flatMap(([sourceKey, _gulfExport, _msaExport, egyptianExport, folder]) =>
       buildScenarioTargets('egyptian', sourceKey, egyptianDialogues[egyptianExport] ?? [], `egyptian/${folder}`),

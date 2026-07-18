@@ -23,13 +23,24 @@ type QuizSrsMap = Record<string, QuizSrsEntry>;
 
 const QUIZ_SRS_STORAGE_KEY = 'quiz_srs_v1';
 
-function shuffle<T>(items: T[]): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
   }
-  return copy;
+  return hash >>> 0;
+}
+
+function shuffle<T>(items: T[], seed?: string, getId?: (item: T) => string): T[] {
+  if (seed && getId) {
+    return [...items].sort((left, right) => {
+      const leftId = getId(left);
+      const rightId = getId(right);
+      return stableHash(`${seed}:${leftId}`) - stableHash(`${seed}:${rightId}`) || leftId.localeCompare(rightId);
+    });
+  }
+  return [...items];
 }
 
 async function loadQuizSrsMap(): Promise<QuizSrsMap> {
@@ -150,6 +161,7 @@ export async function selectQuizItems<T>(
   items: T[],
   getId: (item: T) => string,
   count: number,
+  attemptSeed?: string,
 ): Promise<T[]> {
   const map = await loadQuizSrsMap();
   const now = Date.now();
@@ -188,15 +200,15 @@ export async function selectQuizItems<T>(
   for (const item of prioritizeByRecency(weak, map, getId)) pushUnique(item);
 
   const weightedRest = [
-    ...shuffle(unseen),
-    ...shuffle(weak),
-    ...shuffle(weak),
-    ...shuffle(stable),
+    ...shuffle(unseen, `${attemptSeed}:unseen`, getId),
+    ...shuffle(weak, `${attemptSeed}:weak-1`, getId),
+    ...shuffle(weak, `${attemptSeed}:weak-2`, getId),
+    ...shuffle(stable, `${attemptSeed}:stable`, getId),
   ];
 
   for (const item of weightedRest) pushUnique(item);
 
-  for (const item of shuffle(items)) pushUnique(item);
+  for (const item of shuffle(items, `${attemptSeed}:all`, getId)) pushUnique(item);
 
   return selected.slice(0, Math.min(count, items.length));
 }

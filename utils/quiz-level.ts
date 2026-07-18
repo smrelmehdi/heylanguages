@@ -94,17 +94,18 @@ export type TransliterationGradeResult = {
   status: TransliterationGradeStatus;
   matchedAnswer?: string;
   canonicalAnswer: string;
-  distance?: number;
 };
 
 /**
- * Normalize a transliteration string for fuzzy comparison.
- * Strips punctuation, collapses whitespace, lowercases.
+ * Normalize harmless presentation differences only. Apostrophes remain
+ * meaningful because they can represent ayn or hamza; long vowels and
+ * consonants are likewise never rewritten globally.
  */
 export function normalizeTranslit(raw: string): string {
   return raw
     .toLowerCase()
-    .replace(/[^\w\s]/g, '')   // strip punctuation
+    .replace(/[.,!?;:،؛؟"“”()\[\]]/g, ' ')
+    .replace(/[-‐‑‒–—]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -114,29 +115,9 @@ function containsArabic(raw: string) {
 }
 
 /**
- * Simple Levenshtein distance between two strings.
- * Used to accept close-enough transliteration answers.
- */
-function levenshtein(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
-
-/**
  * Grade a user's transliteration input against the correct answer.
- * Returns 'correct' | 'close' | 'wrong'.
- * 'close' counts as correct in scoring but shows corrective feedback.
+ * Phonetic alternatives must be attached to the individual curriculum item;
+ * broad edit-distance matching is unsafe for consonant and vowel contrasts.
  */
 export function gradeTransliteration(
   userInput: string,
@@ -162,34 +143,11 @@ export function gradeTransliteration(
 
   const exact = answers.find(answer => answer.normalized === userN);
   if (exact) {
-    return { status: 'correct', matchedAnswer: exact.raw, canonicalAnswer, distance: 0 };
-  }
-
-  let best = { raw: correctAnswer, normalized: normalizeTranslit(correctAnswer), distance: Number.POSITIVE_INFINITY };
-  answers.forEach(answer => {
-    const distance = levenshtein(userN, answer.normalized);
-    if (distance < best.distance) best = { ...answer, distance };
-  });
-
-  const expectedLength = best.normalized.length;
-  const tolerance =
-    expectedLength <= 3 ? 0 :
-    expectedLength <= 7 ? 1 :
-    Math.min(3, Math.max(1, Math.floor(expectedLength * 0.18)));
-
-  if (best.distance <= tolerance) {
-    return {
-      status: 'close',
-      matchedAnswer: best.raw,
-      canonicalAnswer,
-      distance: best.distance,
-    };
+    return { status: 'correct', matchedAnswer: exact.raw, canonicalAnswer };
   }
 
   return {
     status: 'incorrect',
-    matchedAnswer: best.raw,
     canonicalAnswer,
-    distance: best.distance,
   };
 }

@@ -1,15 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { theme } from '../../constants/theme';
 import type { ArabicSelectQuestion } from '../../data/quiz-types';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudio, speakArabic, stopAudio } from '../../utils/tts';
 
 interface Props {
   question: ArabicSelectQuestion;
@@ -19,35 +12,6 @@ interface Props {
 
 export default function ArabicSelect({ question, answerResult, onAnswer }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
-  const [isStartingAudio, setIsStartingAudio] = useState(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const btnScale = useSharedValue(1);
-
-  const doPlay = async () => {
-    if (isStartingAudio) return;
-    setIsStartingAudio(true);
-    setAudioError(null);
-    btnScale.value = withSequence(
-      withTiming(0.92, { duration: 80 }),
-      withTiming(1, { duration: 80 }),
-    );
-    try {
-      if (question.audioFile) await playLocalAudio(question.audioFile);
-      else await speakArabic(question.audioText);
-    } catch {
-      setAudioError('Audio did not start. Tap to retry.');
-    } finally {
-      setTimeout(() => setIsStartingAudio(false), 250);
-    }
-  };
-
-  useEffect(() => {
-    const t = setTimeout(doPlay, 350);
-    return () => {
-      clearTimeout(t);
-      stopAudio();
-    };
-  }, []);
 
   const handleSelect = (index: number) => {
     if (selected !== null || answerResult !== 'none') return;
@@ -55,28 +19,10 @@ export default function ArabicSelect({ question, answerResult, onAnswer }: Props
     onAnswer({ correct: question.options[index].isCorrect });
   };
 
-  const playBtnStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: btnScale.value }],
-  }));
-
   return (
     <View style={styles.container}>
-      {/* Instruction */}
-      <Text style={styles.instruction}>Which Arabic phrase did you hear?</Text>
-
-      {/* English meaning for context */}
+      <Text style={styles.instruction}>Choose the Arabic phrase meaning:</Text>
       <Text style={styles.english}>"{question.english}"</Text>
-
-      {/* Audio button */}
-      <View style={styles.playArea}>
-        <Pressable onPress={doPlay} disabled={answerResult !== 'none' || isStartingAudio}>
-          <Animated.View style={[styles.playBtn, playBtnStyle]}>
-            <Text style={styles.speakerIcon}>🔊</Text>
-          </Animated.View>
-        </Pressable>
-        <Text style={styles.playLabel}>{isStartingAudio ? 'Starting audio…' : 'Tap to hear again'}</Text>
-        {audioError && <Text style={styles.audioError}>{audioError}</Text>}
-      </View>
 
       {/* Arabic-only options — no transliteration */}
       <View style={styles.options}>
@@ -105,6 +51,8 @@ export default function ArabicSelect({ question, answerResult, onAnswer }: Props
               style={[styles.option, { backgroundColor: bg, borderColor: border }]}
               onPress={() => handleSelect(i)}
               disabled={selected !== null}
+              accessibilityRole="button"
+              accessibilityLabel={`Arabic option ${i + 1}: ${opt.arabic}`}
             >
               <Text style={[styles.optionArabic, { color: textColor }]}>
                 {opt.arabic}
@@ -137,21 +85,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
-
-  playArea: { alignItems: 'center', gap: 6 },
-  playBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.bgElevated,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderAccent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  speakerIcon: { fontSize: 28 },
-  playLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary },
-  audioError: { fontSize: 13, color: theme.colors.accentWarm, textAlign: 'center' },
 
   options: { gap: 10 },
   option: {

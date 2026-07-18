@@ -7,6 +7,8 @@ export type AlphabetAudioItem = {
   transliteration: string;
   english: string;
   audioPath: string;
+  voiceId?: string;
+  modelId?: string;
   audio?: any;
 };
 

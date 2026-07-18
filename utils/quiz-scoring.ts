@@ -17,7 +17,7 @@ export function getPassingScore(totalQuestions: number) {
 }
 
 export function getQuizPassed(correctCount: number, totalQuestions: number) {
-  return correctCount >= getPassingScore(totalQuestions);
+  return totalQuestions > 0 && correctCount >= getPassingScore(totalQuestions);
 }
 
 export function getQuizMaxXp(questions: QuizQuestion[]) {

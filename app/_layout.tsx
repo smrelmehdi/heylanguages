@@ -14,6 +14,7 @@ import '../global.css';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { Session } from '@supabase/supabase-js';
+import { hydrateTestingUnlockAllOverride } from '../utils/access';
 import { supabase } from '../utils/supabase';
 
 export { ErrorBoundary } from 'expo-router';
@@ -60,7 +61,10 @@ function RootLayoutNav() {
 
   useEffect(() => {
     // Check existing session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.all([
+      supabase.auth.getSession(),
+      hydrateTestingUnlockAllOverride(),
+    ]).then(([{ data: { session } }]) => {
       setSession(session);
       setInitialized(true);
     });

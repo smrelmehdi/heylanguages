@@ -16,10 +16,7 @@ import PremiumRouteGate from '../components/PremiumRouteGate';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import type { DialectContent, DialogueTurn } from '../data/content-registry';
-import { QUIZ_PART1_QUESTIONS } from '../data/quiz-part1';
-import { QUIZ_PART2_QUESTIONS } from '../data/quiz-part2';
 import type { QuizQuestion } from '../data/quiz-types';
-import { QUIZ_UNIT6_QUESTIONS } from '../data/quiz-unit6';
 import { getQuizContentId } from '../utils/access';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
@@ -36,8 +33,12 @@ import TransliterationInput from '../components/quiz/TransliterationInput';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
 import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/quiz-types';
+import { MSA_UNIT3_QUIZ_WORDS } from '../data/msa-alphabet-audio';
 import { getDialectCurriculumItems } from '../utils/content-resolver';
-import { buildCompletionKey, getCompletionKeyCandidates, parseCompletionKey } from '../utils/progression';
+import { buildCompletionKey, parseCompletionKey } from '../utils/progression';
+import { finishQuizAttempt, getOrCreateQuizAttemptSeed, startFreshQuizAttempt } from '../utils/quiz-attempt';
+import { persistQuizPass } from '../utils/quiz-completion';
+import { selectWithAttemptSeed, stableQuizHash } from '../utils/quiz-selection';
 import { ARABIC_SELECT_XP, getQuizTier, getQuizTierInfo, TYPING_QUESTION_XP, type QuizTierInfo } from '../utils/quiz-level';
 import {
   getPassingScore,
@@ -106,8 +107,8 @@ const UNIT10_SCENARIOS = [
   'FriendsBirthday',
   'FriendsFarewell',
 ];
-const EMOJI_POOL = ['☕', '🚕', '🏨', '🍽️', '🛒', '💊', '💬', '👋'];
-const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
+const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
+let currentAttemptSelectionSeed = 'initial';
 
 type WordLessonEntry = {
   id: string;
@@ -212,18 +213,58 @@ function makeWordOptions(correct: Word, words: Word[]) {
   ]);
 }
 
-function contextEmoji(word: Word, fallbackIndex: number) {
-  const firstSymbol = Array.from(word.context.trim())[0];
-  return firstSymbol && firstSymbol.length > 0 ? firstSymbol : EMOJI_POOL[fallbackIndex % EMOJI_POOL.length] ?? '💬';
+function lessonWordsFor(word: Word, lessons: WordLessonEntry[]) {
+  const key = wordKey(word);
+  return lessons.find(lesson => lesson.words.some(candidate => wordKey(candidate) === key))?.words ?? [];
 }
 
-function representativeWords(lessons: WordLessonEntry[]) {
-  const firstPass = lessons.flatMap(lesson => [
-    lesson.words[0],
-    lesson.words[3],
-    lesson.words[6],
-  ].filter((word): word is Word => Boolean(word)));
-  return uniqueWords([...firstPass, ...lessons.flatMap(lesson => lesson.words)]);
+function balancedWords(lessons: WordLessonEntry[], count: number, seed: string) {
+  const orderedLessons = seededSelection(lessons, lessons.length, `${seed}:lessons`, lesson => lesson.id);
+  const pools = orderedLessons.map(lesson => seededSelection(
+    uniqueWords(lesson.words),
+    lesson.words.length,
+    `${seed}:${lesson.id}`,
+    wordKey,
+  ));
+  const selected: Word[] = [];
+  for (let round = 0; selected.length < count && pools.some(pool => round < pool.length); round += 1) {
+    pools.forEach(pool => {
+      const word = pool[round];
+      if (word && selected.length < count && !selected.some(item => wordKey(item) === wordKey(word))) selected.push(word);
+    });
+  }
+  return selected;
+}
+
+function matchingWords(lessons: WordLessonEntry[], count: number, seed: string) {
+  const candidates = balancedWords(lessons, lessons.flatMap(lesson => lesson.words).length, seed);
+  const seenArabic = new Set<string>();
+  const seenMeanings = new Set<string>();
+  const selected: Word[] = [];
+  candidates.forEach(word => {
+    const arabic = wordArabic(word).trim();
+    const meaning = word.english.trim().toLowerCase();
+    if (!arabic || !meaning || seenArabic.has(arabic) || seenMeanings.has(meaning) || selected.length >= count) return;
+    seenArabic.add(arabic);
+    seenMeanings.add(meaning);
+    selected.push(word);
+  });
+  return selected;
+}
+
+function distinctMeaningPairs(words: Word[]) {
+  const seenArabic = new Set<string>();
+  const seenMeanings = new Set<string>();
+  const pairs = words.flatMap(word => {
+    const arabic = wordArabic(word).trim();
+    const meaning = word.english.trim();
+    const normalizedMeaning = meaning.toLowerCase();
+    if (!arabic || !meaning || seenArabic.has(arabic) || seenMeanings.has(normalizedMeaning)) return [];
+    seenArabic.add(arabic);
+    seenMeanings.add(normalizedMeaning);
+    return [{ arabic, transliteration: word.transliteration, meaning }];
+  });
+  return pairs.length === words.length ? pairs : [];
 }
 
 function targetQuestionCount(tier: QuizTierInfo) {
@@ -238,47 +279,44 @@ function capQuestionsForTier(questions: QuizQuestion[], tier: QuizTierInfo) {
 }
 
 function buildWordUnitQuiz(unitKey: string, lessons: WordLessonEntry[], tier: QuizTierInfo): QuizQuestion[] {
-  const allWords = uniqueWords(lessons.flatMap(lesson => lesson.words));
-  const selectedWords = representativeWords(lessons);
   const questions: QuizQuestion[] = [];
 
   const listeningLimit = 10;
-  selectedWords.slice(0, listeningLimit).forEach((word, index) => {
+  balancedWords(lessons, listeningLimit, `${unitKey}:listening`).forEach((word, index) => {
+    const options = makeWordOptions(word, lessonWordsFor(word, lessons));
+    if (options.length !== 4) return;
     questions.push({
-      id: `${unitKey}_listen_${index + 1}`,
+      id: `${unitKey}_listen_${stableQuizHash(wordKey(word)).toString(36)}`,
       format: 'listening',
       scenarioSource: unitKey,
       xpValue: 10,
       audioFile: word.audio ?? null,
       audioText: wordAudioText(word),
-      options: makeWordOptions(word, allWords),
+      options,
     });
   });
 
-  const emojiChunks = [
-    selectedWords.slice(10, 14),
-    selectedWords.slice(14, 18),
-  ].filter(chunk => chunk.length === 4);
+  const emojiChunks = ['one', 'two']
+    .map(seed => matchingWords(lessons, 4, `${unitKey}:match:${seed}`))
+    .filter(chunk => chunk.length === 4);
 
   emojiChunks.forEach((chunk, chunkIndex) => {
+    const pairs = distinctMeaningPairs(chunk);
+    if (pairs.length !== 4) return;
     questions.push({
-      id: `${unitKey}_emoji_${chunkIndex + 1}`,
+      id: `${unitKey}_match_${stableQuizHash(pairs.map(pair => pair.arabic).sort().join('|')).toString(36)}`,
       format: 'emoji_match',
       scenarioSource: unitKey,
       xpValue: 10,
-      pairs: chunk.map((word, index) => ({
-        arabic: wordArabic(word),
-        transliteration: word.transliteration,
-        emoji: contextEmoji(word, chunkIndex * 4 + index),
-      })),
+      pairs,
     });
   });
 
   if (tier.hasTyping) {
-    selectedWords.slice(18, 21).forEach((word, index) => {
+    balancedWords(lessons, 3, `${unitKey}:typing`).forEach((word, index) => {
       const firstWord = word.transliteration.trim().split(/[\s-]/)[0] ?? '';
       questions.push({
-        id: `${unitKey}_translit_${index + 1}`,
+        id: `${unitKey}_translit_${stableQuizHash(wordKey(word)).toString(36)}`,
         format: 'transliteration_type',
         scenarioSource: unitKey,
         xpValue: TYPING_QUESTION_XP,
@@ -294,18 +332,23 @@ function buildWordUnitQuiz(unitKey: string, lessons: WordLessonEntry[], tier: Qu
   }
 
   if (tier.hasArabicSelect) {
-    selectedWords.slice(21, 24).forEach((word, index) => {
+    balancedWords(lessons, 3, `${unitKey}:arabic-select`).forEach((word, index) => {
+      const distractors = seededSelection(
+        uniqueWords(lessonWordsFor(word, lessons), word),
+        3,
+        wordKey(word),
+        wordKey,
+      );
+      if (distractors.length !== 3) return;
       questions.push({
-        id: `${unitKey}_arabic_select_${index + 1}`,
+        id: `${unitKey}_arabic_select_${stableQuizHash(wordKey(word)).toString(36)}`,
         format: 'arabic_select',
         scenarioSource: unitKey,
         xpValue: ARABIC_SELECT_XP,
-        audioFile: word.audio ?? null,
-        audioText: wordAudioText(word),
         english: word.english,
         options: shuffle([
           { arabic: wordArabic(word), isCorrect: true },
-          ...seededSelection(uniqueWords(allWords, word), 3, wordKey(word), wordKey).map(distractor => ({
+          ...distractors.map(distractor => ({
             arabic: wordArabic(distractor),
             isCorrect: false,
           })),
@@ -349,10 +392,7 @@ function findWord(words: Word[], arabic: string, transliteration?: string) {
 }
 
 function acceptedAnswersForWord(word: Word) {
-  const answers = new Set([
-    ...(word.acceptedTransliterations ?? []),
-    ...transliterationAlternatives(word.transliteration),
-  ]);
+  const answers = new Set(word.acceptedTransliterations ?? []);
   answers.delete(word.transliteration);
   return [...answers];
 }
@@ -428,7 +468,7 @@ function makeEmojiQuestion(
     pairs: pairs.map(pair => ({
       arabic: pair.arabic,
       transliteration: pair.transliteration,
-      emoji: pair.meaning,
+      meaning: pair.meaning,
     })),
   };
 }
@@ -460,8 +500,6 @@ function makeArabicSelectQuestion(
     format: 'arabic_select',
     scenarioSource,
     xpValue: ARABIC_SELECT_XP,
-    audioFile: correct.audio ?? null,
-    audioText: wordAudioText(correct),
     english: correct.english,
     options: makePhraseOptions(wordOption(correct), distractors.map(word => wordOption(word)))
       .map(option => ({ arabic: option.arabic, isCorrect: option.isCorrect })),
@@ -668,9 +706,9 @@ function buildEgyptianUnit4Quiz(lessons: WordLessonEntry[], content: DialectCont
     questions.push(makeFillQuestion(
       'eg_u4_phone_prefix',
       'egyptian-unit-4',
-      'رقمي...',
+      "Which phrase says: 'My number starts with 010'?",
       wordOption(phone),
-      [phraseOption('اتنين وتلاتين', 'itnein w talateen'), phraseOption('ألف ومية', 'alf w miyya'), phraseOption('خمسة وأربعين', 'khamsa w arbaeen')],
+      [phraseOption('صفر اتنين صفر', 'sifr itnein sifr'), phraseOption('صفر واحد اتنين', 'sifr waahid itnein'), phraseOption('واحد صفر صفر', 'waahid sifr sifr')],
     ));
   }
   if (bill && pound && time && ageQuestion) {
@@ -686,18 +724,18 @@ function buildEgyptianUnit4Quiz(lessons: WordLessonEntry[], content: DialectCont
     questions.push(makeFillQuestion(
       'eg_u4_age_answer',
       'egyptian-unit-4',
-      'عندك كام سنة؟',
+      "How do you say: 'I am twenty years old'?",
       wordOption(ageAnswer),
-      [wordOption(twentyOne), wordOption(fortyFive), wordOption(oneOClock)],
+      [phraseOption('عندي واحد وعشرين سنة', 'andi waahid w ishreen sana'), phraseOption('عندي خمسة وأربعين سنة', 'andi khamsa w arbaeen sana'), phraseOption('عندي تلاتين سنة', 'andi talateen sana')],
     ));
   }
   if (oneOClock && time && half && ageQuestion) {
     questions.push(makeFillQuestion(
       'eg_u4_time_answer',
       'egyptian-unit-4',
-      'الساعة كام؟',
+      "How do you say: 'It is one o'clock'?",
       wordOption(oneOClock),
-      [wordOption(time), wordOption(half), wordOption(ageQuestion)],
+      [phraseOption('الساعة اتنين', "is-saa'a itnein"), phraseOption('الساعة واحدة ونص', "is-saa'a waahda w noss"), phraseOption('الساعة تلاتة', "is-saa'a talaata")],
     ));
   }
 
@@ -738,7 +776,12 @@ function buildEgyptianUnit4Quiz(lessons: WordLessonEntry[], content: DialectCont
     });
   }
 
-  return capQuestionsForTier(shuffleNoAdjacentFormats(questions), tier);
+  const supportedCustom = questions.filter(question => tier.formats.includes(question.format));
+  const genericFill = buildWordUnitQuiz('egyptian-unit4', lessons, tier);
+  return capQuestionsForTier(
+    shuffleNoAdjacentFormats([...supportedCustom, ...genericFill.filter(question => !supportedCustom.some(item => item.id === question.id))]),
+    tier,
+  );
 }
 
 function buildEgyptianUnit5Quiz(lessons: WordLessonEntry[], content: DialectContent, tier: QuizTierInfo): QuizQuestion[] {
@@ -790,7 +833,7 @@ function buildEgyptianUnit5Quiz(lessons: WordLessonEntry[], content: DialectCont
     questions.push(makeFillQuestion(
       'eg_u5_choose_pronoun',
       'egyptian-unit-5',
-      '... من مصر',
+      "Complete the Egyptian sentence for: 'I am from Egypt.'",
       wordOption(ana),
       [wordOption(inta), wordOption(inti), wordOption(humma)],
     ));
@@ -835,9 +878,13 @@ function buildEgyptianUnit5Quiz(lessons: WordLessonEntry[], content: DialectCont
     questions.push(makeFillQuestion(
       'eg_u5_sentence_order',
       'egyptian-unit-5',
-      'اختار الجملة الطبيعية:',
+      'اختار الجملة الصحيحة نحويًا:',
       wordOption(sentence),
-      [wordOption(kwayyis), wordOption(kwayyisa), wordOption(da)],
+      [
+        phraseOption('العربية ده كبيرة شوية', 'il-arabeyya da kibiira shwayya'),
+        phraseOption('العربية دي كبير شوية', 'il-arabeyya di kibiir shwayya'),
+        phraseOption('العربية دول كبيرة شوية', 'il-arabeyya dool kibiira shwayya'),
+      ],
     ));
   }
 
@@ -878,13 +925,24 @@ function buildEgyptianUnit5Quiz(lessons: WordLessonEntry[], content: DialectCont
     });
   }
 
-  return capQuestionsForTier(shuffleNoAdjacentFormats(questions), tier);
+  const supportedCustom = questions.filter(question => tier.formats.includes(question.format));
+  const genericFill = buildWordUnitQuiz('egyptian-unit5', lessons, tier);
+  return capQuestionsForTier(
+    shuffleNoAdjacentFormats([...supportedCustom, ...genericFill.filter(question => !supportedCustom.some(item => item.id === question.id))]),
+    tier,
+  );
 }
 
 function getWordLessonsForUnit(dialect: string, unitId: string): WordLessonEntry[] {
   return getDialectCurriculumItems(dialect)
     .filter(item => item.unitId === unitId && item.contentType === 'lesson' && item.lessonWords)
     .map(item => ({ id: item.contentId, words: item.lessonWords ?? [] }));
+}
+
+function getScenarioNamesForUnit(dialect: string, unitId: string) {
+  return getDialectCurriculumItems(dialect)
+    .filter(item => item.unitId === unitId && item.contentType === 'scenario' && item.scenarioName)
+    .map(item => item.scenarioName as string);
 }
 
 function selectFollowUpPair(turns: DialogueTurn[]) {
@@ -910,43 +968,40 @@ function selectBlankTurn(turns: DialogueTurn[]) {
 }
 
 function shuffle<T>(items: T[]): T[] {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-function stableHash(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
+  return seededSelection(items, items.length, 'shuffle', item => JSON.stringify(item));
 }
 
 function seededSelection<T>(items: T[], count: number, seed: string, keyFor: (item: T) => string) {
-  return [...items]
-    .sort((left, right) => {
-      const leftRank = stableHash(`${seed}:${keyFor(left)}`);
-      const rightRank = stableHash(`${seed}:${keyFor(right)}`);
-      return leftRank - rightRank || keyFor(left).localeCompare(keyFor(right));
-    })
-    .slice(0, count);
+  return selectWithAttemptSeed(items, count, currentAttemptSelectionSeed, seed, keyFor);
 }
 
-function makeOptions(correct: DialogueTurn, distractors: DialogueTurn[], fallbackDistractors: DialogueTurn[] = []) {
-  const contextual = uniqueTurns([...meaningfulTurns(distractors), ...distractors], correct);
-  const fallback = uniqueTurns(fallbackDistractors, correct)
-    .filter(turn => !contextual.some(candidate => turnKey(candidate) === turnKey(turn)));
-  const wrongTurns = seededSelection(
-    [...contextual, ...fallback],
-    3,
-    turnKey(correct),
-    turnKey,
-  );
+function turnResponseShape(turn: DialogueTurn) {
+  return /[?؟]\s*$/.test(displayTurnArabic(turn).trim()) || /[?]\s*$/.test(turn.english.trim())
+    ? 'question'
+    : 'response';
+}
+
+function makeOptions(correct: DialogueTurn, distractors: DialogueTurn[]) {
+  const seenMeanings = new Set([correct.english.trim().toLowerCase()]);
+  const contextual = uniqueTurns([...meaningfulTurns(distractors), ...distractors], correct)
+    .filter(turn => {
+      const meaning = turn.english.trim().toLowerCase();
+      if (!meaning || seenMeanings.has(meaning)) return false;
+      seenMeanings.add(meaning);
+      return true;
+    });
+  const sameShape = contextual.filter(turn => turnResponseShape(turn) === turnResponseShape(correct));
+  const primary = seededSelection(sameShape, 3, `${turnKey(correct)}:same-shape`, turnKey);
+  const primaryKeys = new Set(primary.map(turnKey));
+  const wrongTurns = [
+    ...primary,
+    ...seededSelection(
+      contextual.filter(turn => !primaryKeys.has(turnKey(turn))),
+      3 - primary.length,
+      `${turnKey(correct)}:same-scenario`,
+      turnKey,
+    ),
+  ];
   return shuffle([
     { arabic: displayTurnArabic(correct), transliteration: correct.transliteration, isCorrect: true },
     ...shuffle(wrongTurns)
@@ -954,49 +1009,8 @@ function makeOptions(correct: DialogueTurn, distractors: DialogueTurn[], fallbac
   ]);
 }
 
-function transliterationAlternatives(canonical: string) {
-  const normalized = canonical.toLowerCase();
-  const variants = new Set<string>();
-  const addVariant = (from: RegExp, to: string) => variants.add(canonical.replace(from, to));
-
-  if (normalized.includes('shukran')) addVariant(/shukran/ig, 'shokran');
-  if (normalized.includes('shokran')) addVariant(/shokran/ig, 'shukran');
-  if (normalized.includes('hatha')) addVariant(/hatha/ig, 'hadha');
-  if (normalized.includes('hadha')) addVariant(/hadha/ig, 'hatha');
-  if (normalized.includes('ayez')) {
-    addVariant(/ayez/ig, 'ayiz');
-    addVariant(/ayez/ig, 'aayiz');
-  }
-  if (normalized.includes('ayiz')) {
-    addVariant(/ayiz/ig, 'ayez');
-    addVariant(/ayiz/ig, 'aayiz');
-  }
-  if (normalized.includes('aayiz')) {
-    addVariant(/aayiz/ig, 'ayez');
-    addVariant(/aayiz/ig, 'ayiz');
-  }
-  if (normalized.includes('izzayak')) {
-    addVariant(/izzayak/ig, 'ezzayak');
-    addVariant(/izzayak/ig, 'ezayak');
-  }
-  if (normalized.includes('ezzayak')) {
-    addVariant(/ezzayak/ig, 'izzayak');
-    addVariant(/ezzayak/ig, 'ezayak');
-  }
-  if (normalized.includes('ezayak')) {
-    addVariant(/ezayak/ig, 'izzayak');
-    addVariant(/ezayak/ig, 'ezzayak');
-  }
-
-  variants.delete(canonical);
-  return [...variants];
-}
-
 function acceptedAnswersForTurn(turn: DialogueTurn) {
-  const answers = new Set([
-    ...(turn.acceptedTransliterations ?? []),
-    ...transliterationAlternatives(turn.transliteration),
-  ]);
+  const answers = new Set(turn.acceptedTransliterations ?? []);
   answers.delete(turn.transliteration);
   return [...answers];
 }
@@ -1012,10 +1026,9 @@ function buildDialectUnit2Quiz(
     .filter(entry => entry.turns.length > 0);
   const allTurns = scenarioEntries.flatMap(entry => entry.turns);
   const userTurns = allTurns.filter(turn => turn.type === 'user');
-  const npcTurns = allTurns.filter(turn => turn.type !== 'user');
   const questions: QuizQuestion[] = [];
 
-  scenarioEntries.forEach((entry, scenarioIndex) => {
+  scenarioEntries.forEach(entry => {
     const sceneImage = content.sceneImages[entry.name] ?? null;
     const scenarioUserTurns = entry.turns.filter(turn => turn.type === 'user');
     const scenarioNpcTurns = entry.turns.filter(turn => turn.type !== 'user');
@@ -1024,7 +1037,8 @@ function buildDialectUnit2Quiz(
 
     if (followUpPair) {
       const { promptTurn, answerTurn } = followUpPair;
-      questions.push({
+      const options = makeOptions(answerTurn, scenarioUserTurns);
+      if (promptTurn.audio && options.length === 4) questions.push({
         id: `${dialect}_${entry.name}_scene`,
         format: 'scene_replay',
         scenarioSource: entry.name.toLowerCase(),
@@ -1032,8 +1046,8 @@ function buildDialectUnit2Quiz(
         sceneImage,
         audioFile: promptTurn.audio ?? null,
         audioText: turnAudioText(promptTurn),
-        prompt: 'What is the correct response?',
-        options: makeOptions(answerTurn, scenarioUserTurns, userTurns),
+        prompt: `After “${promptTurn.english}”, which learner response comes next?`,
+        options,
       });
     }
 
@@ -1047,44 +1061,46 @@ function buildDialectUnit2Quiz(
         transliteration: turn.transliteration,
         isBlank: start + offset === blank.index,
       }));
-      questions.push({
+      const options = makeOptions(blankTurn, scenarioUserTurns);
+      if (options.length === 4) questions.push({
         id: `${dialect}_${entry.name}_fill`,
         format: 'fill_conversation',
         scenarioSource: entry.name.toLowerCase(),
         xpValue: 10,
         dialogue,
-        options: makeOptions(blankTurn, scenarioUserTurns, userTurns),
+        options,
       });
     }
 
-    const listeningCandidates = meaningfulTurns(scenarioUserTurns);
-    const listeningTurn = listeningCandidates[scenarioIndex % Math.max(1, listeningCandidates.length)];
-    if (listeningTurn) {
+    const listeningCandidates = meaningfulTurns(scenarioUserTurns).filter(turn => Boolean(turn.audio));
+    seededSelection(listeningCandidates, 3, `${dialect}:${entry.name}:listening`, turnKey).forEach((listeningTurn, listeningIndex) => {
+      const options = makeOptions(listeningTurn, scenarioQuestionTurns.filter(turn => turn.type === listeningTurn.type));
+      if (options.length !== 4) return;
       questions.push({
-        id: `${dialect}_${entry.name}_listen`,
+        id: `${dialect}_${entry.name}_listen_${stableQuizHash(turnKey(listeningTurn)).toString(36)}`,
         format: 'listening',
         scenarioSource: entry.name.toLowerCase(),
         xpValue: 10,
         audioFile: listeningTurn.audio ?? null,
         audioText: turnAudioText(listeningTurn),
-        options: makeOptions(listeningTurn, scenarioQuestionTurns, [...userTurns, ...npcTurns]),
+        options,
       });
-    }
+    });
   });
 
   const representativeUserTurns = uniqueTurns([
     ...scenarioEntries
-      .map(entry => meaningfulTurns(entry.turns.filter(turn => turn.type === 'user'))[0])
+      .map(entry => seededSelection(meaningfulTurns(entry.turns.filter(turn => turn.type === 'user')), 1, `${dialect}:${entry.name}:match`, turnKey)[0])
       .filter((turn): turn is DialogueTurn => Boolean(turn)),
     ...meaningfulTurns(userTurns),
     ...userTurns,
   ]);
-  const pairs = representativeUserTurns.slice(0, 4).map((turn, index) => ({
+  const pairs = seededSelection(representativeUserTurns, 4, `${dialect}:${scenarioNames.join(':')}:match`, turnKey).map(turn => ({
     arabic: displayTurnArabic(turn),
     transliteration: turn.transliteration,
-    emoji: EMOJI_POOL[index] ?? '💬',
+    meaning: turn.english,
   }));
-  if (pairs.length === 4) {
+  if (pairs.length === 4 && new Set(pairs.map(pair => pair.meaning.trim().toLowerCase())).size === 4) {
     questions.push({
       id: `${dialect}_${scenarioNames.join('_')}_emoji`,
       format: 'emoji_match',
@@ -1097,7 +1113,7 @@ function buildDialectUnit2Quiz(
   // ── Tier 3+: Transliteration typing questions (1 per scenario) ───────────
   if (tier && tier.hasTyping) {
     scenarioEntries.forEach(entry => {
-      const candidate = meaningfulTurns(entry.turns.filter(t => t.type === 'user'))[0];
+      const candidate = seededSelection(meaningfulTurns(entry.turns.filter(t => t.type === 'user')), 1, `${dialect}:${entry.name}:typing`, turnKey)[0];
       if (!candidate || !candidate.transliteration) return;
       const firstWord = candidate.transliteration.trim().split(/[\s-]/)[0] ?? '';
       questions.push({
@@ -1120,22 +1136,20 @@ function buildDialectUnit2Quiz(
   if (tier && tier.hasArabicSelect) {
     scenarioEntries.forEach(entry => {
       const candidates = meaningfulTurns(entry.turns.filter(t => t.type !== 'user'));
-      const target = candidates[0];
+      const target = seededSelection(candidates, 1, `${dialect}:${entry.name}:arabic-select`, turnKey)[0];
       if (!target) return;
       const distractors = seededSelection(
-        uniqueTurns([...meaningfulTurns(userTurns), ...npcTurns], target),
+        uniqueTurns(entry.turns.filter(turn => turn.type !== 'user'), target),
         3,
         `${entry.name}:${turnKey(target)}`,
         turnKey,
       );
       if (distractors.length < 2) return;
-      questions.push({
+      if (distractors.length === 3) questions.push({
         id: `${dialect}_${entry.name}_arabic_select`,
         format: 'arabic_select',
         scenarioSource: entry.name.toLowerCase(),
         xpValue: ARABIC_SELECT_XP,
-        audioFile: target.audio ?? null,
-        audioText: turnAudioText(target),
         english: target.english,
         options: shuffle([
           { arabic: displayTurnArabic(target), isCorrect: true },
@@ -1155,14 +1169,46 @@ function buildScenarioUnitQuiz(
   dialect: string,
   tier: QuizTierInfo,
 ) {
-  const sourceQuestions = buildDialectUnit2Quiz(scenarioNames, content, dialect, tier)
+  const candidates = buildDialectUnit2Quiz(scenarioNames, content, dialect, tier)
     .filter(question => tier.formats.includes(question.format))
     .map(question => ({
       ...question,
       id: `${unitKey}_${question.id}`,
       scenarioSource: `${unitKey}:${question.scenarioSource}`,
     }));
-  return capQuestionsForTier(shuffleNoAdjacentFormats(sourceQuestions), tier);
+  const selected: QuizQuestion[] = [];
+  const used = new Set<string>();
+  const add = (question: QuizQuestion | undefined) => {
+    if (!question || used.has(question.id)) return;
+    selected.push(question);
+    used.add(question.id);
+  };
+  const findForScenario = (scenarioName: string, formats: QuizQuestion['format'][]) =>
+    candidates.find(question =>
+      question.scenarioSource === `${unitKey}:${scenarioName.toLowerCase()}`
+      && formats.includes(question.format)
+      && !used.has(question.id)
+      && (question.format !== 'scene_replay' || Boolean(question.sceneImage))
+    );
+
+  const coverageFormats: QuizQuestion['format'][][] = tier.tier === 1
+    ? [['scene_replay', 'listening'], ['listening', 'scene_replay']]
+    : [['scene_replay', 'listening'], ['fill_conversation', 'listening'], ['listening', 'scene_replay']];
+  scenarioNames.forEach((name, index) => add(findForScenario(name, coverageFormats[index % coverageFormats.length])));
+
+  if (tier.tier >= 2) add(candidates.find(question => question.format === 'emoji_match'));
+  if (tier.hasTyping) seededSelection(
+    candidates.filter(question => question.format === 'transliteration_type'), 3, `${unitKey}:typing`, question => question.id,
+  ).forEach(add);
+  if (tier.hasArabicSelect) seededSelection(
+    candidates.filter(question => question.format === 'arabic_select'), 3, `${unitKey}:arabic-select`, question => question.id,
+  ).forEach(add);
+
+  const target = targetQuestionCount(tier);
+  candidates
+    .filter(question => !used.has(question.id))
+    .forEach(question => { if (selected.length < target) add(question); });
+  return shuffleNoAdjacentFormats(selected.slice(0, target));
 }
 
 function buildEgyptianUnit6Quiz(content: DialectContent, tier: QuizTierInfo) {
@@ -1456,8 +1502,9 @@ export default function QuizUnit2Screen() {
   const insets = useSafeAreaInsets();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
   const { dialect, content } = useDialect();
-  const { addXP } = useXP();
+  const { addXP, refreshFromServer } = useXP();
   const requestedUnit = unit ?? '2p1';
+  const attemptScope = `${dialect}:${requestedUnit}`;
   const routeContentId = getQuizContentId(requestedUnit);
   const isSupportedQuizUnit = SUPPORTED_TIERED_QUIZ_UNITS.has(requestedUnit);
 
@@ -1488,6 +1535,7 @@ export default function QuizUnit2Screen() {
   const wrongIdsRef = useRef(new Set<string>());
   const correctedPracticeIdsRef = useRef(new Set<string>());
   const awardedQuestionIdsRef = useRef(new Set<string>());
+  const attemptSeedRef = useRef<string | null>(null);
 
   // Card entrance animation
   const cardOpacity = useSharedValue(0);
@@ -1505,6 +1553,9 @@ export default function QuizUnit2Screen() {
 
   const quizTitle =
     requestedUnit === 'review' ? 'Review Quiz' :
+    requestedUnit === '1'   ? 'Unit 1 Quiz' :
+    requestedUnit === '2'   ? 'Unit 2 Quiz' :
+    requestedUnit === '3'   ? 'Unit 3 Quiz' :
     requestedUnit === '2p2' ? 'Unit 2 Quiz · Part 2' :
     requestedUnit === '2p1' ? 'Unit 2 Quiz · Part 1' :
     requestedUnit === '4'   ? 'Unit 4 Quiz' :
@@ -1517,6 +1568,10 @@ export default function QuizUnit2Screen() {
     'Unit 2 Quiz';
 
   const buildAttemptPlan = async (): Promise<QuizAttemptPlan | null> => {
+    const attemptSeed = attemptSeedRef.current ?? await getOrCreateQuizAttemptSeed(attemptScope);
+    attemptSeedRef.current = attemptSeed;
+    currentAttemptSelectionSeed = attemptSeed;
+
     if (requestedUnit === 'review') {
       const allScenarioNames = Object.keys(content.scenarios);
       const allDialectQuestions = buildDialectUnit2Quiz(allScenarioNames, content, dialect);
@@ -1546,21 +1601,44 @@ export default function QuizUnit2Screen() {
     } catch { /* non-fatal */ }
 
     const completedContentIds = Object.keys(completedMap)
-      .filter(k => completedMap[k])
-      .map(k => parseCompletionKey(k)?.contentId ?? k);
+      .filter(key => completedMap[key])
+      .flatMap(key => {
+        const parsed = parseCompletionKey(key);
+        if (parsed) return parsed.dialect === dialect ? [parsed.contentId] : [];
+        return dialect === 'gulf' ? [key] : [];
+      });
     const tier = getQuizTier(completedContentIds);
     const currentTierInfo = getQuizTierInfo(tier);
-    if (!['2p1', '2p2', '4', '5', '6', '7', '8', '9', '10'].includes(requestedUnit)) return null;
+    if (!['1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10'].includes(requestedUnit)) return null;
 
     const scenarioNames = requestedUnit === '2p2' ? UNIT2_PART2_SCENARIOS : UNIT2_PART1_SCENARIOS;
     const dialectQuestions = buildDialectUnit2Quiz(scenarioNames, content, dialect, currentTierInfo);
-    const base =
+    const msaUnitId = `unit-${requestedUnit}`;
+    const msaBase = dialect !== 'msa' ? null :
+      requestedUnit === '1' ? buildWordUnitQuiz('msa-unit1', [
+        { id: 'basic', words: content.lessons.basic ?? [] },
+        { id: 'greetings', words: content.lessons.greetings ?? [] },
+        { id: 'intro', words: content.lessons.intro ?? [] },
+      ], currentTierInfo) :
+      requestedUnit === '2' ? buildScenarioUnitQuiz('msa-unit2', getScenarioNamesForUnit(dialect, msaUnitId), content, dialect, currentTierInfo) :
+      requestedUnit === '3' ? buildWordUnitQuiz('msa-unit3', [{ id: 'alphabet', words: MSA_UNIT3_QUIZ_WORDS }], currentTierInfo) :
+      ['4', '5', '7', '9'].includes(requestedUnit) ? buildWordUnitQuiz(`msa-unit${requestedUnit}`, getWordLessonsForUnit(dialect, msaUnitId), currentTierInfo) :
+      ['6', '8', '10'].includes(requestedUnit) ? buildScenarioUnitQuiz(`msa-unit${requestedUnit}`, getScenarioNamesForUnit(dialect, msaUnitId), content, dialect, currentTierInfo) :
+      [];
+    const base = msaBase ?? (
+      requestedUnit === '1' ? buildWordUnitQuiz(`${dialect}-unit1`, [
+        { id: 'basic', words: content.lessons.basic ?? [] },
+        { id: 'greetings', words: content.lessons.greetings ?? [] },
+        { id: 'intro', words: content.lessons.intro ?? [] },
+      ], currentTierInfo) :
+      requestedUnit === '2' ? buildScenarioUnitQuiz(`${dialect}-unit2`, getScenarioNamesForUnit(dialect, 'unit-2'), content, dialect, currentTierInfo) :
+      requestedUnit === '3' ? buildWordUnitQuiz(`${dialect}-unit3`, getWordLessonsForUnit(dialect, 'unit-3'), currentTierInfo) :
       requestedUnit === '4' && dialect === 'egyptian' ? buildEgyptianUnit4Quiz(getWordLessonsForUnit(dialect, 'unit-4'), content, currentTierInfo) :
-      requestedUnit === '4' ? [] :
+      requestedUnit === '4' ? buildWordUnitQuiz(`${dialect}-unit4`, getWordLessonsForUnit(dialect, 'unit-4'), currentTierInfo) :
       requestedUnit === '5' && dialect === 'egyptian' ? buildEgyptianUnit5Quiz(getWordLessonsForUnit(dialect, 'unit-5'), content, currentTierInfo) :
-      requestedUnit === '5' ? [] :
+      requestedUnit === '5' ? buildWordUnitQuiz(`${dialect}-unit5`, getWordLessonsForUnit(dialect, 'unit-5'), currentTierInfo) :
       requestedUnit === '6' && dialect === 'egyptian' ? buildEgyptianUnit6Quiz(content, currentTierInfo) :
-      requestedUnit === '6' && dialect === 'gulf' ? QUIZ_UNIT6_QUESTIONS :
+      requestedUnit === '6' && dialect === 'gulf' ? buildScenarioUnitQuiz('gulf-unit6', getScenarioNamesForUnit(dialect, 'unit-6'), content, dialect, currentTierInfo) :
       requestedUnit === '6' ? [] :
       requestedUnit === '7' && dialect === 'egyptian' ? buildEgyptianUnit7Quiz(getWordLessonsForUnit(dialect, 'unit-7'), content, currentTierInfo) :
       requestedUnit === '7' && dialect === 'gulf' ? buildWordUnitQuiz('unit7', getWordLessonsForUnit(dialect, 'unit-7'), currentTierInfo) :
@@ -1574,9 +1652,10 @@ export default function QuizUnit2Screen() {
       requestedUnit === '10' && dialect === 'egyptian' ? buildBalancedEgyptianScenarioQuiz('unit10', EGYPTIAN_UNIT10_SCENARIOS, content, currentTierInfo) :
       requestedUnit === '10' && dialect === 'gulf' ? buildScenarioUnitQuiz('unit10', UNIT10_SCENARIOS, content, dialect, currentTierInfo) :
       requestedUnit === '10' ? [] :
-      dialect === 'gulf' && requestedUnit === '2p1' && QUIZ_PART1_QUESTIONS.length > 0 ? QUIZ_PART1_QUESTIONS :
-      dialect === 'gulf' && requestedUnit === '2p2' && QUIZ_PART2_QUESTIONS.length > 0 ? QUIZ_PART2_QUESTIONS :
-      dialectQuestions;
+      dialect === 'gulf' && requestedUnit === '2p1' ? buildScenarioUnitQuiz('gulf-unit2p1', UNIT2_PART1_SCENARIOS, content, dialect, currentTierInfo) :
+      dialect === 'gulf' && requestedUnit === '2p2' ? buildScenarioUnitQuiz('gulf-unit2p2', UNIT2_PART2_SCENARIOS, content, dialect, currentTierInfo) :
+      dialectQuestions
+    );
 
     if (base.length === 0) return null;
     const prioritized = await prioritizeQuizItems(base, question => question.id);
@@ -1719,10 +1798,19 @@ export default function QuizUnit2Screen() {
             missedCount: wrongIdsRef.current.size,
           };
           setInitialResult(frozenResult);
-          if (initialPassed) {
-            saveQuizCompletion(frozenResult).then(setPersistedXpAdded).catch(console.warn);
-          }
-          setPhase('results');
+          const finishInitialAttempt = async () => {
+            if (initialPassed) {
+              setPersistedXpAdded(await saveQuizCompletion(frozenResult));
+            }
+            if (attemptSeedRef.current) {
+              await finishQuizAttempt(attemptScope, attemptSeedRef.current);
+            }
+            setPhase('results');
+          };
+          finishInitialAttempt().catch(error => {
+            console.warn('Quiz finalization error:', error);
+            setPhase('results');
+          });
         } else {
           setPhase('results');
         }
@@ -1735,54 +1823,20 @@ export default function QuizUnit2Screen() {
   // ── Save to DB ───────────────────────────────────────────────────────────
   const saveQuizCompletion = async (result: InitialAttemptResult): Promise<number> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const unitId = requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
       if (!routeContentId) return 0;
       const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);
-      const legacyCandidates = getCompletionKeyCandidates(dialect, routeContentId);
-
-      if (!session) {
-        const raw = await AsyncStorage.getItem('guest_progress');
-        const progress = raw ? JSON.parse(raw) : {};
-        const alreadyCompleted = legacyCandidates.some(key => progress[key] === true);
-        progress[scenarioKey] = true;
-        await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-        if (!alreadyCompleted && result.attemptXp > 0) {
-          await addXP(result.attemptXp);
-        }
-        await recordActivity();
-        return alreadyCompleted ? 0 : result.attemptXp;
-      }
-
-      const userId = session.user.id;
-      const { data: existing } = await supabase
-        .from('scenario_progress')
-        .select('id, attempts')
-        .eq('user_id', userId)
-        .in('scenario', legacyCandidates.length > 0 ? legacyCandidates : [scenarioKey])
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from('scenario_progress').insert({
-          user_id: userId,
-          scenario: scenarioKey,
-          dialect,
-          completed: true,
-          best_score: result.score,
-          attempts: 1,
-        });
-      } else {
-        await supabase.from('scenario_progress').update({
-          completed: true,
-          best_score: Math.max(result.score, 0),
-          attempts: (existing.attempts ?? 0) + 1,
-        }).eq('id', existing.id);
-      }
-
-      if (!existing && result.attemptXp > 0) await addXP(result.attemptXp);
-
+      const persisted = await persistQuizPass({
+        completionKey: scenarioKey,
+        dialect,
+        legacyContentId: routeContentId,
+        score: result.score,
+        xp: result.attemptXp,
+        addGuestXp: addXP,
+        refreshSignedInXp: refreshFromServer,
+      });
       await recordActivity();
-      return !existing ? result.attemptXp : 0;
+      return persisted.xpAwarded;
     } catch (err) {
       console.warn('Quiz save error:', err);
       return 0;
@@ -1805,6 +1859,7 @@ export default function QuizUnit2Screen() {
   };
 
   const handleRetryFullQuiz = async () => {
+    attemptSeedRef.current = await startFreshQuizAttempt(attemptScope);
     setPhase('intro');
     setAttemptPlan(null);
     setIsPlanningAttempt(true);
@@ -1965,6 +2020,7 @@ export default function QuizUnit2Screen() {
                 question={currentQuestion}
                 answerResult={answerResult}
                 onAnswer={handleAnswer}
+                showTranslit={tierInfo.tier === 1 && tierInfo.showTranslit}
               />
             )}
             {currentQuestion.format === 'transliteration_type' && (
@@ -2031,7 +2087,7 @@ function formatBadgeLabel(format: string): string {
     case 'scene_replay':         return '🎭 Scene Replay';
     case 'fill_conversation':    return '💬 Fill the Blank';
     case 'listening':            return '🎧 Listening';
-    case 'emoji_match':          return '🔗 Emoji Match';
+    case 'emoji_match':          return '🔗 Meaning Match';
     case 'transliteration_type': return '⌨️ Type It';
     case 'arabic_select':        return '✍️ Read Arabic';
     default:                     return '';

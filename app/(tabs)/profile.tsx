@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { BarChart2, ChevronRight, Crown, Download, Globe, LogOut, RefreshCw, Trash2 } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getLevelFromXP, getXPProgress, getXPToNextLevel, LEVELS } from '../../constants/levels';
 import { LEGAL_URLS } from '../../constants/legal';
@@ -12,6 +12,11 @@ import { useDialect } from '../../contexts/DialectContext';
 import { usePremium } from '../../contexts/PremiumContext';
 import { useXP } from '../../contexts/XPContext';
 import { version } from '../../package.json';
+import {
+  CAN_USE_INTERNAL_TESTING_ACCESS,
+  getTestingUnlockAllState,
+  setTestingUnlockAllOverride,
+} from '../../utils/access';
 import type { OfflineDialect } from '../../utils/offline-pack';
 import { supabase } from '../../utils/supabase';
 
@@ -26,6 +31,7 @@ export default function ProfileScreen() {
   const { offlinePacks, downloadStates, downloadPack, removePack, getPackAssetCount } = useConnectivity();
   const [scenariosCompleted, setScenariosCompleted] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
+  const [testingUnlockEnabled, setTestingUnlockEnabled] = useState(getTestingUnlockAllState());
 
   useFocusEffect(
     useCallback(() => {
@@ -34,6 +40,7 @@ export default function ProfileScreen() {
   );
 
   const loadProfile = async () => {
+    setTestingUnlockEnabled(getTestingUnlockAllState());
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
@@ -148,6 +155,17 @@ export default function ProfileScreen() {
     if (__DEV__) {
       setTimeout(() => DevSettings.reload(), 500);
     }
+  };
+
+  const handleTestingUnlockToggle = async (enabled: boolean) => {
+    const applied = await setTestingUnlockAllOverride(enabled);
+    setTestingUnlockEnabled(applied);
+    Alert.alert(
+      applied ? 'Internal unlock enabled' : 'Internal unlock disabled',
+      applied
+        ? 'All content is temporarily unlocked for this internal build. Remove this control before deployment.'
+        : 'Locked content now uses the normal free/premium access rules.'
+    );
   };
 
   const getDialectLabel = () => {
@@ -325,6 +343,9 @@ export default function ProfileScreen() {
                     ? 'Premium unlocks all lessons, offline packs, and premium practice.'
                     : 'Free plan includes Units 1-3 and previews in Units 4-5.'}
                 </Text>
+                {testingUnlockEnabled && (
+                  <Text style={styles.internalAccessLabel}>Internal testing access</Text>
+                )}
               </View>
             </View>
             <Text style={[styles.premiumStatus, isPremium && styles.premiumStatusActive]}>
@@ -462,16 +483,36 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {__DEV__ && (
+        {(CAN_USE_INTERNAL_TESTING_ACCESS || __DEV__) && (
           <>
             {/* TEMP DEV ONLY - remove before production */}
             <Text style={styles.sectionTitle}>Developer</Text>
             <View style={styles.settingsCard}>
-              <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleResetOnboarding}>
-                <View style={styles.settingLeft}>
-                  <Text style={styles.settingLabel}>Reset onboarding</Text>
+              {CAN_USE_INTERNAL_TESTING_ACCESS && (
+                <View style={[styles.settingRow, !__DEV__ && styles.settingRowLast]}>
+                  <View style={styles.settingLeft}>
+                    <View>
+                      <Text style={styles.settingLabel}>Unlock all content</Text>
+                      <Text style={styles.devMeta}>Temporary internal testing only. Remove before deployment.</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={testingUnlockEnabled}
+                    onValueChange={handleTestingUnlockToggle}
+                    accessibilityLabel="Unlock all content for internal testing"
+                    trackColor={{ false: theme.colors.bgElevated, true: 'rgba(61, 212, 192, 0.35)' }}
+                    thumbColor={testingUnlockEnabled ? theme.colors.accentPrimary : theme.colors.textTertiary}
+                  />
                 </View>
-              </Pressable>
+              )}
+
+              {__DEV__ && (
+                <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleResetOnboarding}>
+                  <View style={styles.settingLeft}>
+                    <Text style={styles.settingLabel}>Reset onboarding</Text>
+                  </View>
+                </Pressable>
+              )}
             </View>
           </>
         )}
@@ -510,6 +551,8 @@ const styles = StyleSheet.create({
   settingValue: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary },
   premiumStatus: { fontSize: 13, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary },
   premiumStatusActive: { color: '#F59E0B' },
+  internalAccessLabel: { fontSize: theme.fontSize.caption, color: theme.colors.accentWarm, marginTop: 4, fontWeight: theme.fontWeight.medium },
+  devMeta: { fontSize: theme.fontSize.label, color: theme.colors.accentWarm, marginTop: 3, lineHeight: 17 },
   premiumError: { color: theme.colors.accentDanger, fontSize: 13, lineHeight: 18, paddingHorizontal: 14, paddingBottom: 14 },
   offlineMeta: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 3 },
   currentDialectTag: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, marginTop: 4 },

@@ -5,8 +5,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { ListeningQuestion } from '../../data/quiz-types';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { speakArabic, playLocalAudio, stopAudio } from '../../utils/tts';
+import { playLocalAudioWithTtsFallback, stopAudio } from '../../utils/tts';
 import { theme } from '../../constants/theme';
+import { useDialect } from '../../contexts/DialectContext';
 
 const MAX_REPLAYS = 3;
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function ListeningChallenge({ question, answerResult, onAnswer, showTranslit = true }: Props) {
+  const { content } = useDialect();
   const [selected, setSelected] = useState<number | null>(null);
   const [translitRevealed, setTranslitRevealed] = useState(false);
   const [isStartingAudio, setIsStartingAudio] = useState(false);
@@ -32,8 +34,7 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
     setAudioError(null);
     btnScale.value = withSequence(withTiming(0.92, { duration: 80 }), withTiming(1, { duration: 80 }));
     try {
-      if (question.audioFile) await playLocalAudio(question.audioFile);
-      else await speakArabic(question.audioText);
+      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId);
     } catch {
       setAudioError('Audio did not start. Tap to retry.');
     } finally {

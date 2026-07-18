@@ -18,13 +18,14 @@ import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
 import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
 import type { AlphabetAudioItem } from '../data/alphabet-audio';
+import { MSA_WRITING_EXAMPLE_WORDS } from '../data/msa-alphabet-audio';
 import { stripTashkeel } from '../utils/arabic';
 import { getWritingContentId } from '../utils/access';
 import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { feedbackCorrect, feedbackWrong } from '../utils/feedback';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
-import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
+import { playLocalAudioWithTtsFallback, stopAudio } from '../utils/tts';
 
 const { width } = Dimensions.get('window');
 const CANVAS_W = width - 48;
@@ -117,6 +118,32 @@ const JEEM_FAMILY: ArabicLetter[] = [
 ];
 
 function getWritingFamilyForDialect(family: ArabicLetter[], dialect: string): ArabicLetter[] {
+  if (dialect === 'msa') {
+    const msaWordOverrides: Record<string, Partial<ArabicLetter['word']>> = {
+      jeem: { arabic: 'جميل', audioText: 'جميل', transliteration: 'jamiil' },
+      ha_j: { arabic: 'حياة', audioText: 'حياة', transliteration: 'hayaah' },
+      ra: { arabic: 'رجل', audioText: 'رجل', transliteration: 'rajul' },
+      seen: { arabic: 'سيارة', audioText: 'سيارة', transliteration: 'sayyaara' },
+      sad: { arabic: 'صباح', audioText: 'صباح', transliteration: 'sabaah' },
+      dad: { arabic: 'ضيف', audioText: 'ضيف', transliteration: 'dayf' },
+      taa: { arabic: 'طعام', audioText: 'طعام', transliteration: "ta'aam" },
+      dhaa: { arabic: 'ظريف', audioText: 'ظريف', transliteration: 'dhariif', meaning: 'charming' },
+      fa: { arabic: 'فندق', audioText: 'فندق', transliteration: 'funduq' },
+      qaf: { arabic: 'قهوة', audioText: 'قهوة', transliteration: 'qahwa' },
+      waw: { arabic: 'وقت', audioText: 'وقت', transliteration: 'waqt' },
+      meem: { arabic: 'ماء', audioText: 'ماء', transliteration: "maa'" },
+      ha_waw: { arabic: 'هنا', audioText: 'هنا', transliteration: 'hunaa' },
+      ghayn: { arabic: 'غالي', audioText: 'غالي', transliteration: 'ghaalii' },
+      ta_marbuta: { arabic: 'مدينة', audioText: 'مدينة', transliteration: 'madiina' },
+      hamza: { arabic: 'أمل', audioText: 'أمل', transliteration: 'amal', meaning: 'hope' },
+      alif_maqsura: { arabic: 'على', audioText: 'على', transliteration: "'alaa" },
+    };
+    return family.map(letter => ({
+      ...letter,
+      word: { ...letter.word, ...msaWordOverrides[letter.id] },
+    }));
+  }
+
   if (dialect !== 'egyptian') return family;
 
   const spokenWordOverrides: Record<string, Partial<ArabicLetter['word']>> = {
@@ -531,6 +558,8 @@ export default function WritingScreen() {
   const hasAlphabetPlaybackRef = useRef(false);
 
   const letter = familyRef.current[letterIdx];
+  const writingExampleIndex = ALL_LETTERS.findIndex(item => item.id === letter.id);
+  const writingExampleAudio = dialect === 'msa' ? MSA_WRITING_EXAMPLE_WORDS[writingExampleIndex] : undefined;
 
   const playLetterAudio = (
     targetLetter = letter,
@@ -569,7 +598,7 @@ export default function WritingScreen() {
       }
       if (stalePlaybackBlocked) return;
       hasAlphabetPlaybackRef.current = true;
-      playLocalAudio(targetAudio.audio);
+      playLocalAudioWithTtsFallback(targetAudio.audio, targetAudio.audioText, content.voiceId);
       return;
     }
 
@@ -590,7 +619,7 @@ export default function WritingScreen() {
     }
     if (stalePlaybackBlocked) return;
     hasAlphabetPlaybackRef.current = true;
-    speakArabic(targetAudio?.audioText ?? targetLetter.nameAudio, content.voiceId);
+    playLocalAudioWithTtsFallback(null, targetAudio?.audioText ?? targetLetter.nameAudio, content.voiceId);
   };
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -765,7 +794,11 @@ export default function WritingScreen() {
           </View>
           <Pressable
             style={styles.audioBtn}
-            onPress={() => speakArabic(letter.word.audioText ?? letter.word.arabic, content.voiceId)}
+            onPress={() => playLocalAudioWithTtsFallback(
+              writingExampleAudio?.audio,
+              writingExampleAudio?.audioText ?? letter.word.audioText ?? letter.word.arabic,
+              content.voiceId,
+            )}
           >
             <Ionicons name="volume-high" size={18} color={theme.colors.bgBase} />
           </Pressable>

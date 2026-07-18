@@ -55,8 +55,17 @@ import {
     RESTAURANT_DIALOGUE_MSA,
     SUPERMARKET_DIALOGUE_MSA,
     TAXI_DIALOGUE_MSA,
+    DIRECTIONS_DIALOGUE_MSA,
+    PHONE_CALL_DIALOGUE_MSA,
 } from './msa-dialogues';
 import { BASIC_WORDS_MSA, GREETINGS_WORDS_MSA, INTRO_WORDS_MSA } from './msa-words';
+import { MSA_UNIT4_LESSONS } from './msa-numbers';
+import { MSA_UNIT5_LESSONS } from './msa-grammar';
+import { MSA_UNIT6_SCENARIOS, MSA_UNIT6_SCENARIOS_BY_NAME } from './msa-unit6';
+import { MSA_UNIT7_LESSONS } from './msa-work';
+import { MSA_UNIT8_SCENARIOS, MSA_UNIT8_SCENARIOS_BY_NAME } from './msa-emergencies';
+import { MSA_UNIT9_LESSONS } from './msa-social';
+import { MSA_UNIT10_SCENARIOS, MSA_UNIT10_SCENARIOS_BY_NAME } from './msa-friends';
 
 export type { DialogueTurn };
 
@@ -66,6 +75,7 @@ export interface DialectContent {
     basic: Word[];
     greetings: Word[];
     intro: Word[];
+    [lessonId: string]: Word[];
   };
   scenarios: Record<string, DialogueTurn[]>;
   sceneImages: Record<string, any>;
@@ -140,7 +150,19 @@ const GULF_SCENE_IMAGES: Record<string, any> = {
   FriendsFarewellEntrance:    require('../assets/images/dubai-friends-farewell-entrance.png'),
 };
 
-const MSA_SCENE_IMAGES = GULF_SCENE_IMAGES; // reuse Dubai images for MSA
+// MSA has no single geographic setting. Only imagery is intentionally shared;
+// all text, audio metadata, quizzes, and progression remain MSA-owned.
+const MSA_SCENE_IMAGES: Record<string, any> = {
+  ...GULF_SCENE_IMAGES,
+  // Intentional neutral Gulf-image reuse until dedicated non-geographic MSA art exists.
+  Directions: GULF_SCENE_IMAGES.AskingForHelp,
+  // Temporary semantic approximation: no phone-call image currently exists.
+  PhoneCall: require('../assets/images/dubai-hotel-reception.png'),
+  ...Object.fromEntries([...MSA_UNIT6_SCENARIOS, ...MSA_UNIT8_SCENARIOS, ...MSA_UNIT10_SCENARIOS]
+    .map(item => [item.scenarioName, GULF_SCENE_IMAGES[item.imageKey]])),
+  // A generic help scene is less misleading than the lost-wallet scene.
+  MsaLostPhone: GULF_SCENE_IMAGES.AskingForHelp,
+};
 
 const COMING_SOON_CONTENT: DialectContent = {
   voiceId: 'rUaPbzcZIu8df8iNL9WZ',
@@ -157,6 +179,10 @@ const MSA_CONTENT: DialectContent = {
     basic: BASIC_WORDS_MSA,
     greetings: GREETINGS_WORDS_MSA,
     intro: INTRO_WORDS_MSA,
+    ...Object.fromEntries(MSA_UNIT4_LESSONS.map(([id, , words]) => [id, words])),
+    ...Object.fromEntries(MSA_UNIT5_LESSONS.map(([id, , words]) => [id, words])),
+    ...Object.fromEntries(MSA_UNIT7_LESSONS.map(item => [item.contentId, item.words])),
+    ...Object.fromEntries(MSA_UNIT9_LESSONS.map(item => [item.contentId, item.words])),
   },
   scenarios: {
     Cafe:        CAFE_DIALOGUE_MSA,
@@ -167,10 +193,26 @@ const MSA_CONTENT: DialectContent = {
     Pharmacy:    PHARMACY_DIALOGUE_MSA,
     Barbershop:  BARBERSHOP_DIALOGUE_MSA,
     Airport:     AIRPORT_DIALOGUE_MSA,
+    Directions:  DIRECTIONS_DIALOGUE_MSA,
+    PhoneCall:   PHONE_CALL_DIALOGUE_MSA,
+    ...MSA_UNIT6_SCENARIOS_BY_NAME,
+    ...MSA_UNIT8_SCENARIOS_BY_NAME,
+    ...MSA_UNIT10_SCENARIOS_BY_NAME,
   },
   sceneImages: MSA_SCENE_IMAGES,
-  availableLessons: ['basic', 'greetings', 'intro'],
-  availableScenarios: ['Cafe', 'Taxi', 'Hotel', 'Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop', 'Airport'],
+  availableLessons: [
+    'basic', 'greetings', 'intro',
+    ...MSA_UNIT4_LESSONS.map(([id]) => id),
+    ...MSA_UNIT5_LESSONS.map(([id]) => id),
+    ...MSA_UNIT7_LESSONS.map(item => item.contentId),
+    ...MSA_UNIT9_LESSONS.map(item => item.contentId),
+  ],
+  availableScenarios: [
+    'Cafe', 'Taxi', 'Hotel', 'Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop', 'Airport', 'Directions', 'PhoneCall',
+    ...MSA_UNIT6_SCENARIOS.map(item => item.scenarioName),
+    ...MSA_UNIT8_SCENARIOS.map(item => item.scenarioName),
+    ...MSA_UNIT10_SCENARIOS.map(item => item.scenarioName),
+  ],
 };
 
 const CONTENT_REGISTRY: Record<string, DialectContent> = {

@@ -94,6 +94,7 @@ const EGYPTIAN_UNIT_9_SOURCE_ONLY = SOURCE === 'egyptian-unit-9';
 const EGYPTIAN_UNIT_10_SOURCE_ONLY = SOURCE === 'egyptian-unit-10';
 const EGYPTIAN_UNIT_67_RISK_TEST_ONLY = SOURCE === 'egyptian-unit67-risk-test';
 const EGYPTIAN_UNIT_8_10_RISK_TEST_ONLY = SOURCE === 'egyptian-unit8-10-risk-test';
+const MSA_RISK_TEST_ONLY = SOURCE === 'msa-risk-test';
 const PROVIDER = optionValue('--provider');
 const ALPHABET_MODE = optionValue('--alphabet-mode');
 const SCENARIO = optionValue('--scenario');
@@ -130,15 +131,17 @@ const SCENARIO_CONFIG: Record<string, { exportName: string; folder: string; labe
   'friends-road-trip':   { exportName: 'FRIENDS_ROAD_TRIP_DIALOGUE',      folder: 'friends-road-trip',     label: 'FRIENDS_ROAD_TRIP_DIALOGUE' },
   'friends-birthday':    { exportName: 'FRIENDS_BIRTHDAY_DIALOGUE',       folder: 'friends-birthday',      label: 'FRIENDS_BIRTHDAY_DIALOGUE' },
   'friends-farewell':    { exportName: 'FRIENDS_FAREWELL_DIALOGUE',       folder: 'friends-farewell',      label: 'FRIENDS_FAREWELL_DIALOGUE' },
-  // MSA (Modern Standard Arabic) scenarios — output to assets/audio/msa/<scenario>/
-  'msa-cafe':        { exportName: 'CAFE_DIALOGUE_MSA',        folder: 'msa/cafe',        label: 'CAFE_DIALOGUE_MSA' },
-  'msa-taxi':        { exportName: 'TAXI_DIALOGUE_MSA',        folder: 'msa/taxi',        label: 'TAXI_DIALOGUE_MSA' },
-  'msa-hotel':       { exportName: 'HOTEL_DIALOGUE_MSA',       folder: 'msa/hotel',       label: 'HOTEL_DIALOGUE_MSA' },
-  'msa-restaurant':  { exportName: 'RESTAURANT_DIALOGUE_MSA',  folder: 'msa/restaurant',  label: 'RESTAURANT_DIALOGUE_MSA' },
-  'msa-supermarket': { exportName: 'SUPERMARKET_DIALOGUE_MSA', folder: 'msa/supermarket', label: 'SUPERMARKET_DIALOGUE_MSA' },
-  'msa-pharmacy':    { exportName: 'PHARMACY_DIALOGUE_MSA',    folder: 'msa/pharmacy',    label: 'PHARMACY_DIALOGUE_MSA' },
-  'msa-barbershop':  { exportName: 'BARBERSHOP_DIALOGUE_MSA',  folder: 'msa/barbershop',  label: 'BARBERSHOP_DIALOGUE_MSA' },
-  'msa-airport':     { exportName: 'AIRPORT_DIALOGUE_MSA',     folder: 'msa/airport',     label: 'AIRPORT_DIALOGUE_MSA' },
+  // MSA Unit 2 canonical paths. Full-curriculum generation uses --source msa.
+  'msa-cafe':        { exportName: 'CAFE_DIALOGUE_MSA',        folder: 'msa/unit-2/cafe',        label: 'CAFE_DIALOGUE_MSA' },
+  'msa-taxi':        { exportName: 'TAXI_DIALOGUE_MSA',        folder: 'msa/unit-2/taxi',        label: 'TAXI_DIALOGUE_MSA' },
+  'msa-hotel':       { exportName: 'HOTEL_DIALOGUE_MSA',       folder: 'msa/unit-2/hotel',       label: 'HOTEL_DIALOGUE_MSA' },
+  'msa-restaurant':  { exportName: 'RESTAURANT_DIALOGUE_MSA',  folder: 'msa/unit-2/restaurant',  label: 'RESTAURANT_DIALOGUE_MSA' },
+  'msa-supermarket': { exportName: 'SUPERMARKET_DIALOGUE_MSA', folder: 'msa/unit-2/supermarket', label: 'SUPERMARKET_DIALOGUE_MSA' },
+  'msa-pharmacy':    { exportName: 'PHARMACY_DIALOGUE_MSA',    folder: 'msa/unit-2/pharmacy',    label: 'PHARMACY_DIALOGUE_MSA' },
+  'msa-barbershop':  { exportName: 'BARBERSHOP_DIALOGUE_MSA',  folder: 'msa/unit-2/barbershop',  label: 'BARBERSHOP_DIALOGUE_MSA' },
+  'msa-airport':     { exportName: 'AIRPORT_DIALOGUE_MSA',     folder: 'msa/unit-2/airport',     label: 'AIRPORT_DIALOGUE_MSA' },
+  'msa-directions':  { exportName: 'DIRECTIONS_DIALOGUE_MSA',  folder: 'msa/unit-2/directions',  label: 'DIRECTIONS_DIALOGUE_MSA' },
+  'msa-phone-call':  { exportName: 'PHONE_CALL_DIALOGUE_MSA',  folder: 'msa/unit-2/phone-call',  label: 'PHONE_CALL_DIALOGUE_MSA' },
   // Egyptian scenarios — generated with the Egyptian v3 voice into assets/audio/egyptian/<scenario>/
   'egyptian-cafe':        { exportName: 'CAFE_DIALOGUE_EG',        folder: 'egyptian/cafe',        label: 'CAFE_DIALOGUE_EG',        dialect: 'egyptian' },
   'egyptian-taxi':        { exportName: 'TAXI_DIALOGUE_EG',        folder: 'egyptian/taxi',        label: 'TAXI_DIALOGUE_EG',        dialect: 'egyptian' },
@@ -166,9 +169,9 @@ if (SCENARIO && !SCENARIO_ONLY) {
   process.exit(1);
 }
 
-if (SOURCE && !ALPHABET_SOURCE_ONLY && !UNIT_4_SOURCE_ONLY && !UNIT_5_SOURCE_ONLY && !UNIT_7_SOURCE_ONLY && !UNIT_9_SOURCE_ONLY && !MSA_SOURCE_ONLY && !EGYPTIAN_SOURCE_ONLY && !EGYPTIAN_ALPHABET_SOURCE_ONLY && !EGYPTIAN_UNIT_6_SOURCE_ONLY && !EGYPTIAN_UNIT_7_SOURCE_ONLY && !EGYPTIAN_UNIT_8_SOURCE_ONLY && !EGYPTIAN_UNIT_9_SOURCE_ONLY && !EGYPTIAN_UNIT_10_SOURCE_ONLY && !EGYPTIAN_UNIT_67_RISK_TEST_ONLY && !EGYPTIAN_UNIT_8_10_RISK_TEST_ONLY) {
+if (SOURCE && !ALPHABET_SOURCE_ONLY && !UNIT_4_SOURCE_ONLY && !UNIT_5_SOURCE_ONLY && !UNIT_7_SOURCE_ONLY && !UNIT_9_SOURCE_ONLY && !MSA_SOURCE_ONLY && !EGYPTIAN_SOURCE_ONLY && !EGYPTIAN_ALPHABET_SOURCE_ONLY && !EGYPTIAN_UNIT_6_SOURCE_ONLY && !EGYPTIAN_UNIT_7_SOURCE_ONLY && !EGYPTIAN_UNIT_8_SOURCE_ONLY && !EGYPTIAN_UNIT_9_SOURCE_ONLY && !EGYPTIAN_UNIT_10_SOURCE_ONLY && !EGYPTIAN_UNIT_67_RISK_TEST_ONLY && !EGYPTIAN_UNIT_8_10_RISK_TEST_ONLY && !MSA_RISK_TEST_ONLY) {
   console.error(`✗ Unsupported --source value: ${SOURCE}`);
-  console.error('  Supported: alphabet, unit-4, unit-5, unit-7, unit-9, msa, egyptian, egyptian-alphabet, egyptian-unit-6, egyptian-unit-7, egyptian-unit-8, egyptian-unit-9, egyptian-unit-10, egyptian-unit67-risk-test, egyptian-unit8-10-risk-test');
+  console.error('  Supported: alphabet, unit-4, unit-5, unit-7, unit-9, msa, msa-risk-test, egyptian, egyptian-alphabet, egyptian-unit-6, egyptian-unit-7, egyptian-unit-8, egyptian-unit-9, egyptian-unit-10, egyptian-unit67-risk-test, egyptian-unit8-10-risk-test');
   process.exit(1);
 }
 
@@ -229,6 +232,7 @@ const VOICE_EGYPTIAN = 'LXrTqFIgiubkrMkwvOUr';   // Egyptian v3 voice
 const VOICE_MSA = 'xvhpbk8otnNHtT3fjCpr';        // Omar (MSA)
 const MODEL_DEFAULT = 'eleven_multilingual_v2';
 const MODEL_EGYPTIAN = 'eleven_v3';
+const MODEL_MSA = 'eleven_v3';
 const API_KEY = process.env.ELEVENLABS_API_KEY || '';
 const ROOT = process.cwd();
 const AUTO_DIR = resolve(ROOT, 'assets/audio/auto');
@@ -304,7 +308,7 @@ function collectTargets(): Target[] {
       if (seen.has(dedupeKey)) return;
       seen.add(dedupeKey);
     }
-    const modelId = manifestKey === 'egyptian' ? MODEL_EGYPTIAN : MODEL_DEFAULT;
+    const modelId = manifestKey === 'egyptian' ? MODEL_EGYPTIAN : manifestKey === 'msa' ? MODEL_MSA : MODEL_DEFAULT;
     const { allowDuplicate: _allowDuplicate, ...targetOptions } = options;
     out.push({ text: trimmed, bucket, manifestKey, voiceId, modelId, source, ...targetOptions });
   };
@@ -596,6 +600,28 @@ function collectTargets(): Target[] {
     return out;
   }
 
+  if (MSA_RISK_TEST_ONLY) {
+    const phrases = [
+      'مرحباً', 'جيد', 'قهوة', 'ثلاثة عشر', 'هذا كتاب', 'عفواً', 'خمسون', 'غداً', 'أين؟', 'نعم',
+      'أنتَ مهندس', 'أنتِ معلمة', 'عمري عشرون سنة', 'الساعة الثالثة والنصف', 'لست متعبا', 'سأذهب غداً',
+      'الحاسوب لا يعمل', 'أرسل الملف بالبريد الإلكتروني', 'أرسلها لي على واتساب', 'لدي ألم في بطني',
+      'نحتاج إلى سيارة إسعاف', 'هل لديك صعوبة في التنفس؟', 'كم سيستغرق الطريق؟',
+      'سأعطيك الدواء، وإذا ساءت الحالة فاتصل بالطوارئ', 'إن شاء الله نلتقي مرة أخرى',
+    ];
+    const { getAudioTargets } = require('./audio-catalog');
+    const msaTargets = getAudioTargets({ dialect: 'msa' });
+    phrases.forEach((phrase, index) => {
+      const target = msaTargets.find((item: any) => item.displayArabic === phrase);
+      const audioText = target?.audioText ?? `${phrase}.`;
+      add(audioText, 'msa', `msa-risk-test[${index + 1}]`, 'msa', {
+        outputPath: resolve(ROOT, 'tmp/msa-eleven-v3-risk-test', `${String(index + 1).padStart(2, '0')}.mp3`),
+        itemIndex: index + 1,
+        allowDuplicate: true,
+      });
+    });
+    return out;
+  }
+
   if (UNIT_9_SOURCE_ONLY) {
     const { getAudioTargets } = require('./audio-catalog');
     const unit9Targets = getAudioTargets({ sourceKey: 'unit-9' });
@@ -610,26 +636,15 @@ function collectTargets(): Target[] {
   }
 
   if (MSA_SOURCE_ONLY) {
-    // Generate lesson words for MSA track
-    const msaWords = require('../data/msa-words');
-    const msaLessonMap: Record<string, string> = {
-      BASIC_WORDS_MSA: 'msa/basic-words',
-      GREETINGS_WORDS_MSA: 'msa/greetings',
-      INTRO_WORDS_MSA: 'msa/intro',
-    };
-    for (const [exportName, folder] of Object.entries(msaLessonMap)) {
-      const arr = msaWords[exportName];
-      if (!Array.isArray(arr)) continue;
-      arr.forEach((w: any, i: number) => {
-        if (!w || typeof w.arabic !== 'string') return;
-        const text = w.audioText ?? w.displayArabic ?? w.arabic;
-        add(text, 'msa', `msa-words:${exportName}[${i}]`, 'msa', {
-          outputPath: resolve(ROOT, 'assets/audio', folder, `${i + 1}.mp3`),
-          itemIndex: i + 1,
-          allowDuplicate: true,
-        });
+    const { getAudioTargets } = require('./audio-catalog');
+    const msaTargets = getAudioTargets({ dialect: 'msa' });
+    msaTargets.forEach((target: any) => {
+      add(target.audioText, 'msa', `audio-catalog:${target.sourceKey}[${target.index}]`, 'msa', {
+        outputPath: resolve(ROOT, target.audioPath),
+        itemIndex: target.line ?? target.index + 1,
+        allowDuplicate: true,
       });
-    }
+    });
     return out;
   }
 
@@ -1079,7 +1094,7 @@ async function main() {
   const exactIdx = new Map<string, string>();
   // Secondary index: fuzzy match on (voice × tashkeel-stripped text)
   const fuzzyIdx = new Map<string, string>();
-  const reuseDisabled = NARROW_LESSON || ALPHABET_SOURCE_ONLY || EGYPTIAN_ALPHABET_SOURCE_ONLY || EGYPTIAN_UNIT_6_SOURCE_ONLY || EGYPTIAN_UNIT_7_SOURCE_ONLY || EGYPTIAN_UNIT_8_SOURCE_ONLY || EGYPTIAN_UNIT_9_SOURCE_ONLY || EGYPTIAN_UNIT_10_SOURCE_ONLY || EGYPTIAN_UNIT_67_RISK_TEST_ONLY || EGYPTIAN_UNIT_8_10_RISK_TEST_ONLY || UNIT_4_SOURCE_ONLY || UNIT_5_SOURCE_ONLY || UNIT_7_SOURCE_ONLY || UNIT_9_SOURCE_ONLY || MSA_SOURCE_ONLY || EGYPTIAN_SOURCE_ONLY || (SCENARIO_ONLY && FORCE);
+  const reuseDisabled = NARROW_LESSON || ALPHABET_SOURCE_ONLY || EGYPTIAN_ALPHABET_SOURCE_ONLY || EGYPTIAN_UNIT_6_SOURCE_ONLY || EGYPTIAN_UNIT_7_SOURCE_ONLY || EGYPTIAN_UNIT_8_SOURCE_ONLY || EGYPTIAN_UNIT_9_SOURCE_ONLY || EGYPTIAN_UNIT_10_SOURCE_ONLY || EGYPTIAN_UNIT_67_RISK_TEST_ONLY || EGYPTIAN_UNIT_8_10_RISK_TEST_ONLY || MSA_RISK_TEST_ONLY || UNIT_4_SOURCE_ONLY || UNIT_5_SOURCE_ONLY || UNIT_7_SOURCE_ONLY || UNIT_9_SOURCE_ONLY || MSA_SOURCE_ONLY || EGYPTIAN_SOURCE_ONLY || (SCENARIO_ONLY && FORCE);
   if (!reuseDisabled) {
     for (const e of [...fromWired, ...fromSiblings]) {
       const k1 = e.voiceId + '::' + normalize(e.text);
@@ -1099,6 +1114,8 @@ async function main() {
     console.log('→ Egyptian Units 6–7 risk-test mode: output is isolated under tmp/ and uses Eleven v3');
   } else if (EGYPTIAN_UNIT_8_10_RISK_TEST_ONLY) {
     console.log('→ Egyptian Units 8–10 risk-test mode: output is isolated under tmp/ and uses Eleven v3');
+  } else if (MSA_RISK_TEST_ONLY) {
+    console.log('→ MSA risk-test mode: output is isolated under tmp/ and uses Eleven v3');
   } else if (UNIT_4_SOURCE_ONLY) {
     console.log('→ unit-4 source mode: existing-file reuse disabled; targets will use catalog audioText');
   } else if (UNIT_5_SOURCE_ONLY) {

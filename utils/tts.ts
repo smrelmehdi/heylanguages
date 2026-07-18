@@ -247,7 +247,9 @@ export async function speakArabic(
 ): Promise<void> {
   // 1. Manifest lookup first — bypass ElevenLabs if we have a pre-gen asset.
   const dialect = dialectForVoice(voiceId);
-  const asset = getAudioAsset(text, dialect);
+  // Legacy MSA manifest entries predate the standardized v3 curriculum. Do
+  // not trust them by text; canonical packaged assets will be passed directly.
+  const asset = dialect === 'msa' ? undefined : getAudioAsset(text, dialect);
   if (asset) {
     const token = ++currentToken;
     await startPlayback(asset, token, opts);
@@ -287,7 +289,7 @@ export async function speakArabic(
       {
         body: {
           text,
-          voiceId: effectiveVoiceId,
+          dialect: dialectForVoice(effectiveVoiceId),
         },
       },
     );
@@ -333,6 +335,23 @@ export async function playLocalAudio(source: AudioSource, opts?: PlayOptions): P
     console.warn('Local audio play error:', err);
     await setPlaybackMode('local-audio-error');
   }
+}
+
+export async function playLocalAudioWithTtsFallback(
+  source: AudioSource | null | undefined,
+  text: string,
+  voiceId?: string,
+  opts?: PlayOptions,
+): Promise<void> {
+  if (source != null) {
+    try {
+      await playLocalAudio(source, opts);
+      return;
+    } catch (error) {
+      if (__DEV__) console.warn('[local audio fallback] Packaged playback failed; trying runtime TTS.', error);
+    }
+  }
+  await speakArabic(text, voiceId, opts);
 }
 
 export function stopAudio(): void {

@@ -39,7 +39,7 @@ import { evaluatePronunciation } from '../utils/pronunciation';
 import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
-import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
+import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 type RecordingState = 'idle' | 'recording' | 'playing' | 'feedback';
 type ScenarioEvalStatus = 'passed' | 'close' | 'failed' | 'unavailable';
@@ -479,7 +479,7 @@ export default function ScenarioScreen() {
   const isTaxi = typeStr === 'Taxi';
   const isHotel = typeStr === 'Hotel';
 
-  const { content, dialect, speakInDialect } = useDialect();
+  const { content, dialect } = useDialect();
 
   console.log('scenario type:', typeStr);
 
@@ -758,11 +758,7 @@ export default function ScenarioScreen() {
   const handleAutoPlay = async () => {
     setIsSpeaking(true);
     try {
-      if (currentTurn.audio) {
-        await playLocalAudio(currentTurn.audio);
-      } else {
-        await speakInDialect(currentTurnAudioText);
-      }
+      await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId);
     } finally {
       setIsSpeaking(false);
     }
@@ -772,11 +768,7 @@ export default function ScenarioScreen() {
     if (isSpeaking) return;
     setIsSpeaking(true);
     try {
-      if (currentTurn.audio) {
-        await playLocalAudio(currentTurn.audio);
-      } else {
-        await speakInDialect(currentTurnAudioText);
-      }
+      await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId);
     } finally {
       setIsSpeaking(false);
     }

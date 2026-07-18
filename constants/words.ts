@@ -4,10 +4,16 @@ export interface Word {
   audioText?: string;
   evalTarget?: string;
   transliteration: string;
+  acceptedTransliterations?: string[];
   english: string;
   context: string;
   example?: string;
   exampleTranslation?: string;
+  contrastNote?: string;
+  explanation?: string;
+  audioPath?: string;
+  voiceId?: string;
+  modelId?: string;
   audio?: any;
 }
 
@@ -267,7 +273,7 @@ export const NUMBERS_MINUTES_WORDS: Word[] = [
     audio: require('../assets/audio/unit-4/numbers-minutes/4.mp3') },
   { arabic: 'إِلَّا رُبُع', displayArabic: 'إلا ربع', audioText: 'إلا ربع', evalTarget: 'إلا ربع', transliteration: "illaa rub'", english: 'Quarter to',    context: '⏰ 15 before the hour',  example: 'اَلسَّاعَة سِتَّة إِلَّا رُبُع', exampleTranslation: 'Quarter to six' ,
     audio: require('../assets/audio/unit-4/numbers-minutes/5.mp3') },
-  { arabic: 'ثَانِيَة',    displayArabic: 'ثانية',  audioText: 'ثانية',  evalTarget: 'ثانية',  transliteration: 'thaaniya',   english: 'Second',        context: '⏱️ Very short time',    example: 'بَس ثَانِيَة وَاحِدَة',       exampleTranslation: 'Just one second' ,
+  { arabic: 'ثَانِيَة',    displayArabic: 'ثانية',  audioText: 'ثانية',  evalTarget: 'ثانية',  transliteration: 'thaaniya',   english: 'Second (time unit)', context: '⏱️ Very short time',    example: 'بَس ثَانِيَة وَاحِدَة',       exampleTranslation: 'Just one second' ,
     audio: require('../assets/audio/unit-4/numbers-minutes/6.mp3') },
   { arabic: 'تَقْرِيبًا',  displayArabic: 'تقريباً', audioText: 'تقريبا', evalTarget: 'تقريباً', transliteration: 'taqriiban',  english: 'Approximately', context: '⏰ About that time',     example: 'تَقْرِيبًا سَاعَة',           exampleTranslation: 'About an hour' ,
     audio: require('../assets/audio/unit-4/numbers-minutes/7.mp3') },
@@ -367,7 +373,7 @@ export const NUMBERS_DATES_WORDS: Word[] = [
 export const NUMBERS_ORDERING_WORDS: Word[] = [
   { arabic: 'أَوَّل', displayArabic: 'الأول',   audioText: 'الأول',   evalTarget: 'الأول',   transliteration: 'al-awwal',   english: 'First',       context: '🥇 First place',  example: 'أنا الأول', exampleTranslation: 'I am first' ,
     audio: require('../assets/audio/unit-4/numbers-ordering/1.mp3') },
-  { arabic: 'ثَانِي', displayArabic: 'الثاني',  audioText: 'الثاني',  evalTarget: 'الثاني',  transliteration: 'ath-thaani', english: 'Second',      context: '🥈 Second place', example: 'الدور الثاني', exampleTranslation: 'Second floor' ,
+  { arabic: 'ثَانِي', displayArabic: 'الثاني',  audioText: 'الثاني',  evalTarget: 'الثاني',  transliteration: 'ath-thaani', english: 'Second (ordinal, masculine)', context: '🥈 Second place', example: 'الدور الثاني', exampleTranslation: 'Second floor' ,
     audio: require('../assets/audio/unit-4/numbers-ordering/2.mp3') },
   { arabic: 'ثَالِث', displayArabic: 'الثالث',  audioText: 'الثالث',  evalTarget: 'الثالث',  transliteration: 'ath-thaalith', english: 'Third',      context: '🥉 Third place' ,
     audio: require('../assets/audio/unit-4/numbers-ordering/3.mp3') },
@@ -1164,4 +1170,3 @@ export const SOCIAL_MANNERS_WORDS: Word[] = [
   { arabic: 'زَيْن، شُكراً',    transliteration: 'zain, shukran',     english: 'Good, thank you',         context: '✅ Positive acknowledgement' ,
     audio: require('../assets/audio/unit-9/social-manners/12.mp3') },
 ];
-

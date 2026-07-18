@@ -5,8 +5,15 @@ export interface DialogueTurn {
   audioText?: string;
   evalTarget?: string;
   transliteration: string;
+  acceptedTransliterations?: string[];
   english: string;
   context?: string;
+  speakerRole?: string;
+  responseOptions?: string[];
+  pronunciationStep?: boolean;
+  audioPath?: string;
+  voiceId?: string;
+  modelId?: string;
   audio?: any;
 }
 

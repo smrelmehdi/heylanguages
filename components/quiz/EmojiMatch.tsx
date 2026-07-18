@@ -5,6 +5,7 @@ import Svg, { Line } from 'react-native-svg';
 import type { EmojiMatchQuestion } from '../../data/quiz-types';
 import { theme } from '../../constants/theme';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
+import { selectWithAttemptSeed } from '../../utils/quiz-selection';
 
 // Match identifier colors — intentionally distinct hues so each connection line is visually separable.
 // First two tokens align with the theme (teal + amber); purple and orange stay literal as game distinguishers.
@@ -25,23 +26,20 @@ interface Props {
   question: EmojiMatchQuestion;
   answerResult: 'none' | 'correct' | 'wrong';
   onAnswer: (result: QuizAnswerResult) => void;
+  showTranslit?: boolean;
 }
 
-export default function EmojiMatch({ question, answerResult, onAnswer }: Props) {
+export default function EmojiMatch({ question, answerResult, onAnswer, showTranslit = false }: Props) {
   const { width: screenWidth, fontScale } = useWindowDimensions();
   // Account for card padding (20px each side from quiz screen) + this component's container
   const containerWidth = Math.max(0, screenWidth - 40);
   const compactLayout = screenWidth < COMPACT_WIDTH || fontScale >= COMPACT_FONT_SCALE;
   const colWidth = (containerWidth - COL_GAP) / 2;
 
-  // Shuffle right column per question — only show emoji, not transliteration.
+  // Matching semantics come from the pair data, never from array position.
   const rightItems = useMemo(() => {
-    const arr = [...question.pairs.map((p, i) => ({ emoji: p.emoji, originalIndex: i }))];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
+    const arr = [...question.pairs.map((p, i) => ({ meaning: p.meaning, originalIndex: i }))];
+    return selectWithAttemptSeed(arr, arr.length, question.id, 'right-column', item => `${item.originalIndex}:${item.meaning}`);
   }, [question.id, question.pairs]);
 
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
@@ -74,9 +72,9 @@ export default function EmojiMatch({ question, answerResult, onAnswer }: Props) 
 
     if (newMatches.length === question.pairs.length) {
       setEvaluated(true);
-      // Correct = every left phrase's emoji matches the right item's emoji
+      // Correct = every Arabic phrase is connected to its declared meaning.
       const allCorrect = newMatches.every(m =>
-        question.pairs[m.left].emoji === rightItems[m.right].emoji
+        question.pairs[m.left].meaning === rightItems[m.right].meaning
       );
       onAnswer({ correct: allCorrect });
     }
@@ -99,13 +97,13 @@ export default function EmojiMatch({ question, answerResult, onAnswer }: Props) 
               const isSelected = selectedLeft === i;
               const matched = isLeftMatched(i);
               const pairCorrect = answerResult !== 'none'
-                ? matches.some(m => m.left === i && question.pairs[m.left].emoji === rightItems[m.right].emoji)
+                ? matches.some(m => m.left === i && question.pairs[m.left].meaning === rightItems[m.right].meaning)
                 : null;
               return (
                 <MatchItem
                   key={i}
                   primaryLabel={pair.arabic}
-                  secondaryLabel={pair.transliteration}
+                  secondaryLabel={showTranslit ? pair.transliteration : null}
                   matchColor={color}
                   isSelected={isSelected}
                   isMatched={matched}
@@ -128,12 +126,12 @@ export default function EmojiMatch({ question, answerResult, onAnswer }: Props) 
                 const color = getMatchColor('right', j);
                 const matched = isRightMatched(j);
                 const pairCorrect = answerResult !== 'none'
-                  ? matches.some(m => m.right === j && question.pairs[m.left].emoji === rightItems[m.right].emoji)
+                  ? matches.some(m => m.right === j && question.pairs[m.left].meaning === rightItems[m.right].meaning)
                   : null;
                 return (
                   <MatchItem
                     key={j}
-                    primaryLabel={item.emoji}
+                    primaryLabel={item.meaning}
                     secondaryLabel={null}
                     matchColor={color}
                     isSelected={false}
@@ -182,13 +180,13 @@ export default function EmojiMatch({ question, answerResult, onAnswer }: Props) 
               const isSelected = selectedLeft === i;
               const matched = isLeftMatched(i);
               const pairCorrect = answerResult !== 'none'
-                ? matches.some(m => m.left === i && question.pairs[m.left].emoji === rightItems[m.right].emoji)
+                ? matches.some(m => m.left === i && question.pairs[m.left].meaning === rightItems[m.right].meaning)
                 : null;
               return (
                 <MatchItem
                   key={i}
                   primaryLabel={pair.arabic}
-                  secondaryLabel={pair.transliteration}
+                  secondaryLabel={showTranslit ? pair.transliteration : null}
                   matchColor={color}
                   isSelected={isSelected}
                   isMatched={matched}
@@ -209,12 +207,12 @@ export default function EmojiMatch({ question, answerResult, onAnswer }: Props) 
               const color = getMatchColor('right', j);
               const matched = isRightMatched(j);
               const pairCorrect = answerResult !== 'none'
-                ? matches.some(m => m.right === j && question.pairs[m.left].emoji === rightItems[m.right].emoji)
+                ? matches.some(m => m.right === j && question.pairs[m.left].meaning === rightItems[m.right].meaning)
                 : null;
               return (
                 <MatchItem
                   key={j}
-                  primaryLabel={item.emoji}
+                  primaryLabel={item.meaning}
                   secondaryLabel={null}
                   matchColor={color}
                   isSelected={false}
@@ -235,7 +233,7 @@ export default function EmojiMatch({ question, answerResult, onAnswer }: Props) 
       {!evaluated && (
         <Text style={styles.hint}>
           {selectedLeft !== null
-            ? 'Now tap the matching emoji'
+            ? 'Now tap the matching meaning'
             : 'Tap an Arabic phrase to start'}
         </Text>
       )}
@@ -313,7 +311,7 @@ function MatchItem({
   }
 
   const accessibilityLabel = [
-    side === 'left' ? 'Arabic phrase' : 'Emoji meaning',
+    side === 'left' ? 'Arabic phrase' : 'Meaning',
     `${index + 1}`,
     primaryLabel,
     secondaryLabel,
@@ -339,7 +337,7 @@ function MatchItem({
           style={[
             styles.matchPrimary,
             side === 'left' && styles.arabicText,
-            side === 'right' && styles.emojiText,
+            side === 'right' && styles.meaningText,
           ]}
           numberOfLines={compact ? 3 : 2}
         >
@@ -402,9 +400,9 @@ const styles = StyleSheet.create({
   arabicText: {
     writingDirection: 'rtl',
   },
-  emojiText: {
-    fontSize: 28,
-    lineHeight: 32,
+  meaningText: {
+    fontSize: 16,
+    lineHeight: 21,
   },
   matchSecondary: {
     fontSize: theme.fontSize.caption,
