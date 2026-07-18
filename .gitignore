@@ -48,3 +48,6 @@ yarn-error.*
 # Supabase local dev
 supabase/.branches/
 supabase/.temp/
+
+# Local generated audio and audit artifacts
+tmp/
