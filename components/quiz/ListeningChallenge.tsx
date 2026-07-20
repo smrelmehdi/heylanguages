@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withSequence, withTiming,
 } from 'react-native-reanimated';
 import type { ListeningQuestion } from '../../data/quiz-types';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudioWithTtsFallback, stopAudio } from '../../utils/tts';
+import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 import { theme } from '../../constants/theme';
 import { useDialect } from '../../contexts/DialectContext';
+import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
 
 const MAX_REPLAYS = 3;
 
@@ -20,6 +21,7 @@ interface Props {
 
 export default function ListeningChallenge({ question, answerResult, onAnswer, showTranslit = true }: Props) {
   const { content } = useDialect();
+  const audioOwner = useRef(createAudioPlaybackOwner('quiz-listening')).current;
   const [selected, setSelected] = useState<number | null>(null);
   const [translitRevealed, setTranslitRevealed] = useState(false);
   const [isStartingAudio, setIsStartingAudio] = useState(false);
@@ -34,7 +36,7 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
     setAudioError(null);
     btnScale.value = withSequence(withTiming(0.92, { duration: 80 }), withTiming(1, { duration: 80 }));
     try {
-      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId);
+      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId, { owner: audioOwner });
     } catch {
       setAudioError('Audio did not start. Tap to retry.');
     } finally {
@@ -47,7 +49,7 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
     const t = setTimeout(() => doPlay(), 400);
     return () => {
       clearTimeout(t);
-      stopAudio();
+      releaseAudioPlaybackOwner(audioOwner);
     };
   }, []);
 

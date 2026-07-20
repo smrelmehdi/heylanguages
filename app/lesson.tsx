@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, Volume2 } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
@@ -13,13 +13,14 @@ import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { getUnit4Audio, isUnit4AudioLesson } from '../data/unit4-audio';
 import { stripTashkeel } from '../utils/arabic';
+import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
 import { getLessonContentId } from '../utils/access';
 import { resolveContent } from '../utils/content-resolver';
 import { buildCompletionKey } from '../utils/progression';
 import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
-import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
+import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 export default function LessonScreen() {
   const router = useRouter();
@@ -35,7 +36,8 @@ export default function LessonScreen() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const { content, dialect, speakInDialect } = useDialect();
+  const audioOwner = useRef(createAudioPlaybackOwner('lesson')).current;
+  const { content, dialect } = useDialect();
   const { addXP, refreshFromServer } = useXP();
 
   // All hooks above — derived values below
@@ -202,8 +204,8 @@ export default function LessonScreen() {
       if (!granted) setMicPermissionDenied(true);
     });
     return () => {
-      stopAudio();
-      restorePlaybackAudioMode('lesson-unmount').catch(() => {});
+      releaseAudioPlaybackOwner(audioOwner);
+      restorePlaybackAudioMode('lesson-unmount', audioOwner).catch(() => {});
     };
   }, []);
 
@@ -225,13 +227,13 @@ export default function LessonScreen() {
     }
 
     if (unit4Audio) {
-      await playLocalAudioWithTtsFallback(unit4Audio.audio, currentAudioText, content.voiceId);
+      await playLocalAudioWithTtsFallback(unit4Audio.audio, currentAudioText, content.voiceId, { owner: audioOwner });
       return;
     }
 
     // Use audioText when available; raw Arabic is only a legacy fallback.
     const ttsText = (isUnit4AudioLesson(typeStr) || currentWord.audioText) ? currentAudioText : currentWord.arabic;
-    await playLocalAudioWithTtsFallback(currentWord.audio, ttsText, content.voiceId);
+    await playLocalAudioWithTtsFallback(currentWord.audio, ttsText, content.voiceId, { owner: audioOwner });
   };
 
   useEffect(() => {
@@ -240,7 +242,7 @@ export default function LessonScreen() {
     const timer = setTimeout(() => { playWordAudio().catch(console.warn); }, 300);
     return () => {
       clearTimeout(timer);
-      stopAudio();
+      stopAudio(audioOwner);
     };
   }, [currentIndex, dialect, currentAudioText, currentWord.audio, typeStr, isComingSoon]);
 
@@ -260,12 +262,12 @@ export default function LessonScreen() {
         setMicPermissionDenied(true);
         return;
       }
-      await prepareRecordingAudioMode('lesson');
+      await prepareRecordingAudioMode('lesson', audioOwner);
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
     } catch (e) {
       console.warn('Lesson recording start error:', e);
-      await restorePlaybackAudioMode('lesson-record-start-error');
+      await restorePlaybackAudioMode('lesson-record-start-error', audioOwner);
       setIsRecording(false);
     }
   };
@@ -278,7 +280,7 @@ export default function LessonScreen() {
 	    let stableUri: string | null = null;
 	    try {
 	      await audioRecorder.stop();
-	      await restorePlaybackAudioMode('lesson-stop');
+	      await restorePlaybackAudioMode('lesson-stop', audioOwner);
 	      // Poll until the recording file is ready
       const startedAt = Date.now();
       let uri: string | null = null;
@@ -306,7 +308,7 @@ export default function LessonScreen() {
 	    } catch (err) {
 	      console.warn('Lesson eval error:', err);
 	    } finally {
-      await restorePlaybackAudioMode('lesson-finally');
+      await restorePlaybackAudioMode('lesson-finally', audioOwner);
       setIsEvaluating(false);
       if (stableUri) FileSystem.deleteAsync(stableUri, { idempotent: true }).catch(() => {});
     }

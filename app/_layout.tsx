@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { setAudioModeAsync } from 'expo-audio';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as ExpoSplash from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import 'react-native-reanimated';
 import SplashScreen from '../components/SplashScreen';
 import { DialectProvider } from '../contexts/DialectContext';
@@ -15,6 +15,7 @@ import '../global.css';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Session } from '@supabase/supabase-js';
 import { hydrateTestingUnlockAllOverride } from '../utils/access';
+import { handleAudioAppStateChange, initializeAudioPlayback } from '../utils/tts';
 import { supabase } from '../utils/supabase';
 
 export { ErrorBoundary } from 'expo-router';
@@ -50,13 +51,17 @@ function RootLayoutNav() {
     ExpoSplash.hideAsync().catch(() => {});
   }, []);
 
-  // Ensure audio plays even when iOS is in silent mode, and ducks background audio.
+  // Keep the native session recoverable across backgrounding and interruptions.
   useEffect(() => {
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      interruptionMode: 'duckOthers',
-      shouldPlayInBackground: false,
-    }).catch(() => {});
+    initializeAudioPlayback().catch(error => {
+      if (__DEV__) console.warn('[audio] Initial session setup failed:', error);
+    });
+    const subscription = AppState.addEventListener('change', state => {
+      handleAudioAppStateChange(state).catch(error => {
+        if (__DEV__) console.warn('[audio] App-state recovery failed:', error);
+      });
+    });
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {

@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSequence,
 } from 'react-native-reanimated';
 import type { SceneReplayQuestion } from '../../data/quiz-types';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudioWithTtsFallback, stopAudio } from '../../utils/tts';
+import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 import { theme } from '../../constants/theme';
 import { useDialect } from '../../contexts/DialectContext';
+import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
 
 interface Props {
   question: SceneReplayQuestion;
@@ -18,6 +19,7 @@ interface Props {
 
 export default function SceneReplay({ question, answerResult, onAnswer, showTranslit = true }: Props) {
   const { content } = useDialect();
+  const audioOwner = useRef(createAudioPlaybackOwner('quiz-scene-replay')).current;
   const [selected, setSelected] = useState<number | null>(null);
   const [translitRevealed, setTranslitRevealed] = useState(false);
   const [isStartingAudio, setIsStartingAudio] = useState(false);
@@ -28,7 +30,7 @@ export default function SceneReplay({ question, answerResult, onAnswer, showTran
     setIsStartingAudio(true);
     setAudioError(null);
     try {
-      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId);
+      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId, { owner: audioOwner });
     } catch {
       setAudioError('Audio did not start. Tap to retry.');
     } finally {
@@ -43,7 +45,7 @@ export default function SceneReplay({ question, answerResult, onAnswer, showTran
     }, 400);
     return () => {
       clearTimeout(t);
-      stopAudio();
+      releaseAudioPlaybackOwner(audioOwner);
     };
   }, []);
 

@@ -15,10 +15,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { theme } from '../../constants/theme';
 import { useDialect } from '../../contexts/DialectContext';
+import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
 import type { TransliterationTypeQuestion } from '../../data/quiz-types';
 import { gradeTransliteration, type TransliterationGradeStatus } from '../../utils/quiz-level';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudioWithTtsFallback, stopAudio } from '../../utils/tts';
+import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 
 interface Props {
   question: TransliterationTypeQuestion;
@@ -36,6 +37,7 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isStartingAudio, setIsStartingAudio] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const audioOwner = useRef(createAudioPlaybackOwner('quiz-transliteration')).current;
 
   // Shake animation for wrong answers
   const shakeX = useSharedValue(0);
@@ -49,7 +51,7 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
     setIsStartingAudio(true);
     setAudioError(null);
     try {
-      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId);
+      await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId, { owner: audioOwner });
     } catch {
       setAudioError('Audio did not start. Tap to retry.');
     } finally {
@@ -63,7 +65,7 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
     }, 350);
     return () => {
       clearTimeout(t);
-      stopAudio();
+      releaseAudioPlaybackOwner(audioOwner);
     };
   }, []);
 

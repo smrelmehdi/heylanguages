@@ -10,6 +10,7 @@ import type { Word } from '../constants/words';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { stripTashkeel } from '../utils/arabic';
+import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { getQuizContentId } from '../utils/access';
 import { getDialectCurriculumItems } from '../utils/content-resolver';
 import { feedbackCorrect, feedbackStreak, feedbackWrong } from '../utils/feedback';
@@ -20,7 +21,7 @@ import { getQuizPassed } from '../utils/quiz-scoring';
 import { selectWithAttemptSeed } from '../utils/quiz-selection';
 import { getQuizSrsSummary, recordQuizSrsResult, selectQuizItems, type QuizSrsSummary } from '../utils/srs';
 import { recordActivity } from '../utils/streak';
-import { playLocalAudio, speakArabic, stopAudio } from '../utils/tts';
+import { playLocalAudio, releaseAudioPlaybackOwner, speakArabic } from '../utils/tts';
 
 type QuestionType = 'mc_ar_to_en' | 'mc_en_to_ar' | 'audio';
 const SUPPORTED_WORD_QUIZ_UNITS = new Set(['1', '4', '5']);
@@ -126,8 +127,20 @@ export default function QuizScreen() {
   const [isPersistingPass, setIsPersistingPass] = useState(false);
   const [generation, setGeneration] = useState(0);
   const savedAttemptRef = useRef(false);
+  const audioOwner = useRef(createAudioPlaybackOwner('quiz')).current;
   const attemptSeedRef = useRef<string | null>(null);
   const attemptScope = `${dialect}:legacy:${unit ?? '1'}`;
+
+  const playQuestionAudio = () => {
+    const request = currentQuestion?.audio
+      ? playLocalAudio(currentQuestion.audio, { owner: audioOwner })
+      : currentQuestion
+        ? speakArabic(currentQuestion.audioText, content.voiceId, { owner: audioOwner })
+        : Promise.resolve();
+    request.catch(error => {
+      if (__DEV__) console.warn('[quiz audio] Playback failed:', error);
+    });
+  };
 
   const currentQuestion = questions[currentIndex];
   const arabicPromptLength = currentQuestion ? stripTashkeel(currentQuestion.arabic).length : 0;
@@ -231,17 +244,13 @@ export default function QuizScreen() {
   useEffect(() => {
     if (currentQuestion?.type === 'audio') {
       const t = setTimeout(() => {
-        if (currentQuestion.audio) {
-          playLocalAudio(currentQuestion.audio);
-        } else {
-          speakArabic(currentQuestion.audioText, content.voiceId);
-        }
+        playQuestionAudio();
       }, 400);
       return () => clearTimeout(t);
     }
   }, [currentIndex]);
 
-  useEffect(() => () => { stopAudio(); }, []);
+  useEffect(() => () => { releaseAudioPlaybackOwner(audioOwner); }, []);
 
   useEffect(() => {
     if (!completed || !attemptPassed) return;
@@ -320,11 +329,7 @@ export default function QuizScreen() {
   };
 
   const handlePlayAudio = () => {
-    if (currentQuestion.audio) {
-      playLocalAudio(currentQuestion.audio);
-    } else {
-      speakArabic(currentQuestion.audioText, content.voiceId);
-    }
+    playQuestionAudio();
   };
 
   const handleRetry = async () => {

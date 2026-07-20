@@ -18,8 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Yusuf, { type Mood } from '../components/Yusuf';
 import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
+import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
-import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
+import { playLocalAudio, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode } from '../utils/tts';
 
 function useTypewriter(text: string, speed = 30) {
   const [displayedText, setDisplayedText] = useState('');
@@ -105,6 +106,7 @@ export default function OnboardingWizard() {
   const hasNavigatedRef = useRef(false);
   const recordingStartPromiseRef = useRef<Promise<boolean> | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const audioOwner = useRef(createAudioPlaybackOwner('onboarding')).current;
   const glow = useSharedValue(0);
 
   const getOnboardingYusufMood = (): Mood => {
@@ -123,8 +125,8 @@ export default function OnboardingWizard() {
       await restorePlaybackAudioMode('onboarding-init');
     })();
     return () => {
-      stopAudio();
-      restorePlaybackAudioMode('onboarding-unmount').catch(() => {});
+      releaseAudioPlaybackOwner(audioOwner);
+      restorePlaybackAudioMode('onboarding-unmount', audioOwner).catch(() => {});
     };
   }, []);
 
@@ -222,6 +224,7 @@ export default function OnboardingWizard() {
     setIsPlaying(true);
     try {
       await playLocalAudio({ uri: recordingUri }, {
+        owner: audioOwner,
         onComplete: () => setIsPlaying(false),
       });
     } catch (e) {
@@ -242,13 +245,13 @@ export default function OnboardingWizard() {
           setIsListening(false);
           return false;
         }
-        await prepareRecordingAudioMode('onboarding');
+        await prepareRecordingAudioMode('onboarding', audioOwner);
         await audioRecorder.prepareToRecordAsync();
         audioRecorder.record();
         return true;
       } catch (err) {
         console.error('Failed to start recording', err);
-        await restorePlaybackAudioMode('onboarding-record-start-error');
+        await restorePlaybackAudioMode('onboarding-record-start-error', audioOwner);
         setIsListening(false);
         return false;
       }
@@ -287,12 +290,12 @@ export default function OnboardingWizard() {
         return;
       }
       await audioRecorder.stop();
-      await restorePlaybackAudioMode('onboarding-stop');
+      await restorePlaybackAudioMode('onboarding-stop', audioOwner);
       uri = await waitForRecordingUri();
       if (uri) setRecordingUri(uri);
     } catch (e) {
       console.warn('Stop error:', e);
-      await restorePlaybackAudioMode('onboarding-stop-error');
+      await restorePlaybackAudioMode('onboarding-stop-error', audioOwner);
     }
     setShowSelfAssess(true);
 
@@ -317,7 +320,7 @@ export default function OnboardingWizard() {
       setPronScore(45);
       setFeedback("Nice first try - welcome to HeyYusuf.");
     } finally {
-      await restorePlaybackAudioMode('onboarding-finally');
+      await restorePlaybackAudioMode('onboarding-finally', audioOwner);
       setIsEvaluatingSpeech(false);
     }
   };

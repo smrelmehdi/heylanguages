@@ -23,7 +23,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DIALECT_LABELS } from '../data/content-registry';
 import { useDialect } from '../contexts/DialectContext';
-import { playLocalAudio, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
+import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
+import { playLocalAudio, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode } from '../utils/tts';
 import { supabase } from '../utils/supabase';
 import { buildMemoryPrompt, fetchMemory, saveMemory, type UserMemory } from '../utils/memory';
 import SignUpPrompt from '../components/SignUpPrompt';
@@ -117,8 +118,16 @@ function isGibberishName(raw: string): boolean {
 
 export default function ChatConversationScreen() {
   const router = useRouter();
+  const audioOwner = useRef(createAudioPlaybackOwner('chat')).current;
+  const isChatMountedRef = useRef(true);
   const { mode, type } = useLocalSearchParams<{ mode: string; type?: string }>();
   const { dialect, speakInDialect } = useDialect();
+  const speakChatAudio = (text: string) => {
+    if (!isChatMountedRef.current) return;
+    speakInDialect(text, { owner: audioOwner }).catch(error => {
+      if (__DEV__) console.warn('[chat audio] Playback failed:', error);
+    });
+  };
 
   const isScenario = mode === 'scenario';
   const scenarioConfig = type ? SCENARIO_CONFIG[type] : null;
@@ -218,9 +227,11 @@ Rules:
 
   // ── Initialization ─────────────────────────────────────────────────────────
   useEffect(() => {
+    isChatMountedRef.current = true;
     return () => {
-      stopAudio();
-      restorePlaybackAudioMode('chat-unmount').catch(() => {});
+      isChatMountedRef.current = false;
+      releaseAudioPlaybackOwner(audioOwner);
+      restorePlaybackAudioMode('chat-unmount', audioOwner).catch(() => {});
     };
   }, []);
 
@@ -373,7 +384,7 @@ Rules:
     ];
     setMessages([msg]);
     setFirstSessionStep(0);
-    setTimeout(() => speakInDialect(HARDCODED_MSG_1.arabic), 700);
+    setTimeout(() => speakChatAudio(HARDCODED_MSG_1.arabic), 700);
   };
 
   const handleNameStep = async (name: string) => {
@@ -390,7 +401,7 @@ Rules:
 
       setMessages(prev => [...prev, userMsg, aiMsg]);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-      setTimeout(() => speakInDialect(HARDCODED_MSG_GIBBERISH.arabic), 700);
+      setTimeout(() => speakChatAudio(HARDCODED_MSG_GIBBERISH.arabic), 700);
 
       if (conversationId) {
         supabase.from('messages').insert([
@@ -417,7 +428,7 @@ Rules:
     setMessages(prev => [...prev, userMsg, aiMsg]);
     setFirstSessionStep(null);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    setTimeout(() => speakInDialect(HARDCODED_MSG_2.arabic), 700);
+    setTimeout(() => speakChatAudio(HARDCODED_MSG_2.arabic), 700);
 
     if (conversationId) {
       supabase.from('messages').insert([
@@ -451,7 +462,7 @@ Rules:
       ];
       setMessages([msg]);
       if (parsed.suggestions.length > 0) setSuggestions(parsed.suggestions);
-      setTimeout(() => speakInDialect(parsed.arabic), 700);
+      setTimeout(() => speakChatAudio(parsed.arabic), 700);
     } catch (err: any) {
       const isTimeout = err?.name === 'AbortError';
       const fallback: ChatMessage = isTimeout
@@ -575,7 +586,7 @@ Rules:
         await AsyncStorage.setItem('guest_chat_count', String(n));
       }
 
-      if (parsed.arabic) setTimeout(() => speakInDialect(parsed.arabic), 700);
+      if (parsed.arabic) setTimeout(() => speakChatAudio(parsed.arabic), 700);
 
       // Persist to Supabase (fire and forget)
       if (conversationId) {
@@ -605,12 +616,12 @@ Rules:
     setIsRecording(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await prepareRecordingAudioMode('chat');
+      await prepareRecordingAudioMode('chat', audioOwner);
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
     } catch (e) {
       console.warn('Record start error:', e);
-      await restorePlaybackAudioMode('chat-record-start-error');
+      await restorePlaybackAudioMode('chat-record-start-error', audioOwner);
       setIsRecording(false);
     }
   };
@@ -620,7 +631,7 @@ Rules:
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
       await audioRecorder.stop();
-      await restorePlaybackAudioMode('chat-stop');
+      await restorePlaybackAudioMode('chat-stop', audioOwner);
       await new Promise(r => setTimeout(r, 200));
       const uri = audioRecorder.uri;
       if (!uri) return;
@@ -636,13 +647,13 @@ Rules:
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     } catch (e) {
       console.warn('Record stop error:', e);
-      await restorePlaybackAudioMode('chat-stop-error');
+      await restorePlaybackAudioMode('chat-stop-error', audioOwner);
     }
   };
 
   const playVoice = async (uri: string) => {
     try {
-      await playLocalAudio({ uri });
+      await playLocalAudio({ uri }, { owner: audioOwner });
     } catch (e) { console.warn('Playback error:', e); }
   };
 
@@ -735,7 +746,7 @@ Rules:
                 {msg.role === 'assistant' && (
                   <Pressable
                     style={styles.yusufBubble}
-                    onPress={() => msg.arabic && speakInDialect(msg.arabic)}
+                    onPress={() => msg.arabic && speakChatAudio(msg.arabic)}
                   >
                     <View style={styles.tapHint}>
                       <Volume2 color={theme.colors.textTertiary} size={10} />

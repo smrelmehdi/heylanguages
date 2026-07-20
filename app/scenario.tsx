@@ -34,13 +34,14 @@ import { DIALECT_LABELS } from '../data/content-registry';
 import { stripTashkeel } from '../utils/arabic';
 import { getScenarioContentId } from '../utils/access';
 import { resolveContent } from '../utils/content-resolver';
+import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { feedbackLevelUp } from '../utils/feedback';
 import { evaluatePronunciation } from '../utils/pronunciation';
 import { buildCompletionKey } from '../utils/progression';
 import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
-import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
+import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 type RecordingState = 'idle' | 'recording' | 'playing' | 'feedback';
 type ScenarioEvalStatus = 'passed' | 'close' | 'failed' | 'unavailable';
@@ -550,6 +551,7 @@ export default function ScenarioScreen() {
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
+  const audioOwner = useRef(createAudioPlaybackOwner('scenario')).current;
 
   const { addXP, refreshFromServer } = useXP();
   const isComingSoon = DIALOGUE.length === 0;
@@ -638,7 +640,7 @@ export default function ScenarioScreen() {
     }, 300);
     return () => {
       clearTimeout(timer);
-      stopAudio();
+      stopAudio(audioOwner);
     };
   }, [currentIndex, dialect, currentTurnAudioText, currentTurn.audio, isComingSoon]);
 
@@ -714,8 +716,8 @@ export default function ScenarioScreen() {
   }, [completed, scenarioProgressStorageKey]);
 
   useEffect(() => () => {
-    stopAudio();
-    restorePlaybackAudioMode('scenario-unmount').catch(() => {});
+    releaseAudioPlaybackOwner(audioOwner);
+    restorePlaybackAudioMode('scenario-unmount', audioOwner).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -759,7 +761,7 @@ export default function ScenarioScreen() {
   const handleAutoPlay = async () => {
     setIsSpeaking(true);
     try {
-      await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId);
+      await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId, { owner: audioOwner });
     } finally {
       setIsSpeaking(false);
     }
@@ -769,7 +771,7 @@ export default function ScenarioScreen() {
     if (isSpeaking) return;
     setIsSpeaking(true);
     try {
-      await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId);
+      await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId, { owner: audioOwner });
     } finally {
       setIsSpeaking(false);
     }
@@ -794,13 +796,13 @@ export default function ScenarioScreen() {
           return false;
         }
 
-        await prepareRecordingAudioMode('scenario');
+        await prepareRecordingAudioMode('scenario', audioOwner);
         await audioRecorder.prepareToRecordAsync();
         audioRecorder.record();
         return true;
       } catch (err) {
         console.warn('Scenario recording start error:', err);
-        await restorePlaybackAudioMode('scenario-record-start-error');
+        await restorePlaybackAudioMode('scenario-record-start-error', audioOwner);
         setRecordingState('idle');
         return false;
       }
@@ -850,7 +852,7 @@ export default function ScenarioScreen() {
       }
 
 	      await audioRecorder.stop();
-	      await restorePlaybackAudioMode('scenario-stop');
+	      await restorePlaybackAudioMode('scenario-stop', audioOwner);
 	      const recordingFile = await waitForRecordingFile();
       uri = recordingFile?.uri ?? audioRecorder.uri ?? null;
 
@@ -1019,7 +1021,7 @@ export default function ScenarioScreen() {
         feedback: 'Could not check pronunciation. You can continue.',
       });
     } finally {
-      await restorePlaybackAudioMode('scenario-finally');
+      await restorePlaybackAudioMode('scenario-finally', audioOwner);
       if (stableUri) {
         FileSystem.deleteAsync(stableUri, { idempotent: true }).catch(() => {});
       }

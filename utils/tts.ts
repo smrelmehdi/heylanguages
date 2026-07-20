@@ -1,19 +1,21 @@
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAudioAsset, type AudioDialect } from '../constants/audio-manifest';
+import { AudioPlaybackLifecycle, type AudioPlaybackOwner } from './audio-lifecycle';
 import { supabase } from './supabase';
 
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';
 const VOICE_EGYPTIAN = 'LXrTqFIgiubkrMkwvOUr';
 const VOICE_MSA = 'xvhpbk8otnNHtT3fjCpr';       // Omar (MSA)
 
-// Central playback state. Every call bumps `currentToken`; in-flight fetches
-// and not-yet-started players check it and bail if superseded. Prevents
-// overlap when the user taps rapidly.
+// One native player and one request owner for every playback path.
 let currentPlayer: any = null;
-let currentToken = 0;
 let currentSubscription: { remove?: () => void } | null = null;
-let audioModeResetInFlight: Promise<void> | null = null;
+let playbackWatchdog: ReturnType<typeof setTimeout> | null = null;
+let audioModeQueue: Promise<void> = Promise.resolve();
+let requestedAudioMode: 'playback' | 'recording' | null = null;
+let recordingModeOwner: AudioPlaybackOwner | null = null;
+const playbackLifecycle = new AudioPlaybackLifecycle();
 
 const audioCache = new Map<string, string>();
 const TTS_CACHE_PREFIX = 'tts_';
@@ -32,6 +34,7 @@ type OptionalNetworkModule = {
 
 export interface PlayOptions {
   onComplete?: () => void;
+  owner?: AudioPlaybackOwner;
 }
 
 type GenerateSpeechResponse = {
@@ -75,6 +78,11 @@ function audioLog(event: string, details?: Record<string, unknown>) {
   else console.log(`[audio:${event}]`);
 }
 
+function audioWarn(event: string, details?: unknown) {
+  if (!__DEV__) return;
+  console.warn(`[audio:${event}]`, details ?? '');
+}
+
 function hashCode(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -86,7 +94,12 @@ function hashCode(str: string): number {
 }
 
 function disposeCurrent(reason = 'dispose') {
-  audioLog('dispose', { reason, token: currentToken });
+  const { token, owner } = playbackLifecycle.snapshot();
+  audioLog('dispose', { reason, token, owner: owner?.label });
+  if (playbackWatchdog) {
+    clearTimeout(playbackWatchdog);
+    playbackWatchdog = null;
+  }
   if (currentSubscription) {
     try { currentSubscription.remove?.(); } catch {}
     currentSubscription = null;
@@ -98,53 +111,82 @@ function disposeCurrent(reason = 'dispose') {
   }
 }
 
-function clearCurrentPlayer(player: any) {
+function clearCurrentPlayer(player: any, token: number) {
   if (currentPlayer !== player) return;
+  if (playbackWatchdog) {
+    clearTimeout(playbackWatchdog);
+    playbackWatchdog = null;
+  }
   if (currentSubscription) {
     try { currentSubscription.remove?.(); } catch {}
     currentSubscription = null;
   }
   try { player.remove(); } catch {}
   currentPlayer = null;
+  playbackLifecycle.finish(token);
 }
 
-async function setPlaybackMode(reason: string) {
-  if (!audioModeResetInFlight) {
-    audioLog('mode:playback', { reason });
-    audioModeResetInFlight = setAudioModeAsync({
+function queueAudioMode(
+  mode: Parameters<typeof setAudioModeAsync>[0],
+  modeName: 'playback' | 'recording',
+  reason: string,
+  force = false,
+) {
+  if (!force && requestedAudioMode === modeName) return audioModeQueue;
+  requestedAudioMode = modeName;
+  audioModeQueue = audioModeQueue
+    .catch(() => {})
+    .then(async () => {
+      audioLog('mode:apply', { reason, mode: modeName });
+      try {
+        await setAudioModeAsync(mode);
+      } catch (error) {
+        if (requestedAudioMode === modeName) requestedAudioMode = null;
+        throw error;
+      }
+    });
+  return audioModeQueue;
+}
+
+async function setPlaybackMode(reason: string, force = false) {
+  await queueAudioMode({
       allowsRecording: false,
       playsInSilentMode: true,
       interruptionMode: 'duckOthers',
       shouldPlayInBackground: false,
-    })
-      .catch(error => {
-        console.warn('[audio mode playback error]', error);
-      })
-      .finally(() => {
-        audioModeResetInFlight = null;
-      });
-  }
-  await audioModeResetInFlight;
+    }, 'playback', reason, force);
 }
 
-export async function prepareRecordingAudioMode(reason = 'recording'): Promise<void> {
-  currentToken++;
+export async function prepareRecordingAudioMode(reason = 'recording', owner?: AudioPlaybackOwner): Promise<void> {
+  playbackLifecycle.stop();
   disposeCurrent(`recording:${reason}`);
+  recordingModeOwner = owner ?? null;
   audioLog('mode:recording', { reason });
-  await setAudioModeAsync({
+  await queueAudioMode({
     allowsRecording: true,
     playsInSilentMode: true,
-  });
+    interruptionMode: 'duckOthers',
+    shouldPlayInBackground: false,
+  }, 'recording', `recording:${reason}`);
 }
 
-export async function restorePlaybackAudioMode(reason = 'recording-finished'): Promise<void> {
-  await setPlaybackMode(reason);
+export async function restorePlaybackAudioMode(reason = 'recording-finished', owner?: AudioPlaybackOwner): Promise<void> {
+  if (owner && recordingModeOwner && recordingModeOwner.id !== owner.id) {
+    audioLog('mode:restore-ignored-stale-owner', {
+      reason,
+      owner: owner.label,
+      recordingOwner: recordingModeOwner.label,
+    });
+    return;
+  }
+  recordingModeOwner = null;
+  await setPlaybackMode(reason, true);
 }
 
 export async function resetAudioPlayback(reason = 'manual-reset'): Promise<void> {
-  currentToken++;
+  playbackLifecycle.stop();
   disposeCurrent(reason);
-  await setPlaybackMode(reason);
+  await setPlaybackMode(reason, true);
 }
 
 function trimMemoryCache() {
@@ -198,45 +240,68 @@ async function trimTtsFileCache() {
 }
 
 async function startPlayback(source: AudioSource, token: number, opts?: PlayOptions): Promise<void> {
-  if (token !== currentToken) return;
+  if (!playbackLifecycle.isCurrent(token)) return;
   disposeCurrent('before-play');
   await setPlaybackMode('before-play');
-  if (token !== currentToken) return;
+  if (!playbackLifecycle.isCurrent(token)) return;
 
   let player: any = null;
   try {
-    audioLog('play:start', { token, sourceType: typeof source });
+    audioLog('play:start', { token, owner: opts?.owner?.label, sourceType: typeof source });
     player = createAudioPlayer(source as any, {
       keepAudioSessionActive: true,
       updateInterval: 100,
     });
-    if (token !== currentToken) {
+    if (!playbackLifecycle.isCurrent(token)) {
       try { player.remove(); } catch {}
       return;
     }
     currentPlayer = player;
 
     currentSubscription = player.addListener?.('playbackStatusUpdate', (status: any) => {
-      if (token !== currentToken) return;
+      if (!playbackLifecycle.isCurrent(token)) return;
       if (status?.error) {
-        console.warn('[audio playback error]', status.error);
-        setPlaybackMode('playback-error').catch(() => {});
-        clearCurrentPlayer(player);
+        audioWarn('play:error', { token, owner: opts?.owner?.label, error: status.error });
+        playbackLifecycle.stop();
+        setPlaybackMode('playback-error', true).catch(() => {});
+        clearCurrentPlayer(player, token);
         return;
       }
       if (status?.didJustFinish) {
         audioLog('play:finish', { token });
         opts?.onComplete?.();
-        clearCurrentPlayer(player);
+        clearCurrentPlayer(player, token);
       }
     });
 
     player.play();
+    playbackWatchdog = setTimeout(() => {
+      if (!playbackLifecycle.isCurrent(token) || currentPlayer !== player) return;
+      const loaded = Boolean(player.isLoaded);
+      const playing = Boolean(player.playing);
+      if (playing) return;
+      const duration = Number(player.duration ?? 0);
+      const currentTime = Number(player.currentTime ?? 0);
+      const reachedEnd = loaded && duration > 0 && currentTime >= duration - 0.05;
+      audioWarn('play:timeout', {
+        token,
+        owner: opts?.owner?.label,
+        loaded,
+        currentTime,
+        duration,
+        reachedEnd,
+      });
+      if (reachedEnd) opts?.onComplete?.();
+      playbackLifecycle.stop();
+      disposeCurrent('play-start-timeout');
+      setPlaybackMode('play-start-timeout', true).catch(() => {});
+    }, 5000);
   } catch (err) {
-    console.warn('[audio playback start error]', err);
-    if (player) clearCurrentPlayer(player);
+    audioWarn('play:start-error', err);
+    if (player) clearCurrentPlayer(player, token);
     else disposeCurrent('play-start-error');
-    await setPlaybackMode('play-start-error');
+    await setPlaybackMode('play-start-error', true);
+    throw err;
   }
 }
 
@@ -251,7 +316,7 @@ export async function speakArabic(
   // not trust them by text; canonical packaged assets will be passed directly.
   const asset = dialect === 'msa' ? undefined : getAudioAsset(text, dialect);
   if (asset) {
-    const token = ++currentToken;
+    const token = playbackLifecycle.begin(opts?.owner ?? null);
     await startPlayback(asset, token, opts);
     return;
   }
@@ -261,7 +326,7 @@ export async function speakArabic(
   // land here — that's expected.)
   console.warn(`[TTS fallback] No manifest entry for: ${text.slice(0, 80)}`);
 
-  const token = ++currentToken;
+  const token = playbackLifecycle.begin(opts?.owner ?? null);
   disposeCurrent('before-tts-fetch');
   await setPlaybackMode('before-tts-fetch');
 
@@ -271,7 +336,7 @@ export async function speakArabic(
     const cachedUri = audioCache.get(cacheKey);
     if (cachedUri) {
       const info = await FileSystem.getInfoAsync(cachedUri);
-      if (token !== currentToken) return;
+      if (!playbackLifecycle.isCurrent(token)) return;
       if (info.exists) {
         await startPlayback({ uri: cachedUri }, token, opts);
         return;
@@ -294,28 +359,28 @@ export async function speakArabic(
       },
     );
 
-    if (token !== currentToken) return;
+    if (!playbackLifecycle.isCurrent(token)) return;
 
     if (error) {
       console.warn('ElevenLabs error:', error.message);
-      return;
+      throw new Error(error.message);
     }
 
     if (data?.error) {
       console.warn('ElevenLabs error:', data.error);
-      return;
+      throw new Error(String(data.error));
     }
 
     if (typeof data?.audioBase64 !== 'string') {
       console.warn('ElevenLabs error: missing audio data');
-      return;
+      throw new Error('Speech generation returned no audio data.');
     }
 
     const fileName = 'tts_' + effectiveVoiceId.slice(-8) + '_' + Math.abs(hashCode(text)) + '.mp3';
     const fileUri = FileSystem.cacheDirectory + fileName;
 
     await FileSystem.writeAsStringAsync(fileUri, data.audioBase64, { encoding: 'base64' });
-    if (token !== currentToken) return;
+    if (!playbackLifecycle.isCurrent(token)) return;
 
     audioCache.set(cacheKey, fileUri);
     trimMemoryCache();
@@ -323,17 +388,19 @@ export async function speakArabic(
     await startPlayback({ uri: fileUri }, token, opts);
   } catch (err) {
     console.warn('TTS error:', err);
-    await setPlaybackMode('tts-error');
+    await setPlaybackMode('tts-error', true);
+    throw err;
   }
 }
 
 export async function playLocalAudio(source: AudioSource, opts?: PlayOptions): Promise<void> {
-  const token = ++currentToken;
+  const token = playbackLifecycle.begin(opts?.owner ?? null);
   try {
     await startPlayback(source, token, opts);
   } catch (err) {
-    console.warn('Local audio play error:', err);
-    await setPlaybackMode('local-audio-error');
+    audioWarn('local:error', err);
+    await setPlaybackMode('local-audio-error', true);
+    throw err;
   }
 }
 
@@ -354,7 +421,30 @@ export async function playLocalAudioWithTtsFallback(
   await speakArabic(text, voiceId, opts);
 }
 
-export function stopAudio(): void {
-  currentToken++;
+export function stopAudio(owner?: AudioPlaybackOwner): void {
+  if (!playbackLifecycle.stop(owner)) {
+    audioLog('stop:ignored-stale-owner', { owner: owner?.label });
+    return;
+  }
   disposeCurrent('stopAudio');
 }
+
+export function releaseAudioPlaybackOwner(owner: AudioPlaybackOwner): void {
+  stopAudio(owner);
+  audioLog('owner:released', { owner: owner.label });
+}
+
+export async function initializeAudioPlayback(): Promise<void> {
+  await setPlaybackMode('app-initialize', true);
+}
+
+export async function handleAudioAppStateChange(state: string): Promise<void> {
+  if (state === 'active') {
+    recordingModeOwner = null;
+    await setPlaybackMode('app-foreground', true);
+    return;
+  }
+  stopAudio();
+}
+
+export type { AudioPlaybackOwner } from './audio-lifecycle';

@@ -20,12 +20,13 @@ import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
 import type { AlphabetAudioItem } from '../data/alphabet-audio';
 import { MSA_WRITING_EXAMPLE_WORDS } from '../data/msa-alphabet-audio';
 import { stripTashkeel } from '../utils/arabic';
+import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { getWritingContentId } from '../utils/access';
 import { buildCompletionKey } from '../utils/progression';
 import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { feedbackCorrect, feedbackWrong } from '../utils/feedback';
 import { recordActivity } from '../utils/streak';
-import { playLocalAudioWithTtsFallback, stopAudio } from '../utils/tts';
+import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner, stopAudio } from '../utils/tts';
 
 const { width } = Dimensions.get('window');
 const CANVAS_W = width - 48;
@@ -433,6 +434,7 @@ export default function WritingScreen() {
   const { family } = useLocalSearchParams<{ family?: string }>();
   const { dialect, content, isDialectHydrated } = useDialect();
   const { addXP, refreshFromServer } = useXP();
+  const audioOwner = useRef(createAudioPlaybackOwner('writing')).current;
   const alphabetAudio = getAlphabetAudioForDialect(dialect);
 
   const familyStr = Array.isArray(family) ? family[0] : (family ?? 'ba');
@@ -549,7 +551,7 @@ export default function WritingScreen() {
     const targetAudio = match.item;
     const stoppedPrevious = shouldStopPrevious && hasAlphabetPlaybackRef.current;
     if (shouldStopPrevious) {
-      stopAudio();
+      stopAudio(audioOwner);
     }
 
     const isStale = () =>
@@ -575,7 +577,8 @@ export default function WritingScreen() {
       }
       if (stalePlaybackBlocked) return;
       hasAlphabetPlaybackRef.current = true;
-      playLocalAudioWithTtsFallback(targetAudio.audio, targetAudio.audioText, content.voiceId);
+      playLocalAudioWithTtsFallback(targetAudio.audio, targetAudio.audioText, content.voiceId, { owner: audioOwner })
+        .catch(error => { if (__DEV__) console.warn('[writing audio] Playback failed:', error); });
       return;
     }
 
@@ -596,14 +599,15 @@ export default function WritingScreen() {
     }
     if (stalePlaybackBlocked) return;
     hasAlphabetPlaybackRef.current = true;
-    playLocalAudioWithTtsFallback(null, targetAudio?.audioText ?? targetLetter.nameAudio, content.voiceId);
+    playLocalAudioWithTtsFallback(null, targetAudio?.audioText ?? targetLetter.nameAudio, content.voiceId, { owner: audioOwner })
+      .catch(error => { if (__DEV__) console.warn('[writing audio] Playback failed:', error); });
   };
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   useEffect(() => () => {
     alphabetPlaybackTokenRef.current++;
-    stopAudio();
+    releaseAudioPlaybackOwner(audioOwner);
     hasAlphabetPlaybackRef.current = false;
   }, []);
 
@@ -637,7 +641,7 @@ export default function WritingScreen() {
   // ── Letter advance → next letter or quiz ──────────────────────────────────
   const advanceLetter = () => {
     alphabetPlaybackTokenRef.current++;
-    stopAudio();
+    stopAudio(audioOwner);
     feedbackCorrect();
     const newDL = [...dlRef.current, letter.id];
     dlRef.current = newDL;
@@ -771,11 +775,14 @@ export default function WritingScreen() {
           </View>
           <Pressable
             style={styles.audioBtn}
-            onPress={() => playLocalAudioWithTtsFallback(
-              writingExampleAudio?.audio,
-              writingExampleAudio?.audioText ?? letter.word.audioText ?? letter.word.arabic,
-              content.voiceId,
-            )}
+            onPress={() => {
+              playLocalAudioWithTtsFallback(
+                writingExampleAudio?.audio,
+                writingExampleAudio?.audioText ?? letter.word.audioText ?? letter.word.arabic,
+                content.voiceId,
+                { owner: audioOwner },
+              ).catch(error => { if (__DEV__) console.warn('[writing audio] Playback failed:', error); });
+            }}
           >
             <Ionicons name="volume-high" size={18} color={theme.colors.bgBase} />
           </Pressable>

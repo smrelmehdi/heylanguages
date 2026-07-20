@@ -12,8 +12,9 @@
  * If a file is absent the call silently falls back to haptics only.
  */
 
-import { createAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
+import { createAudioPlaybackOwner } from './audio-lifecycle';
+import { playLocalAudio } from './tts';
 
 // ─── Sound assets ─────────────────────────────────────────────────────────────
 // Swap null → require('../assets/audio/fx/correct.mp3') once files are added.
@@ -26,16 +27,13 @@ const SFX = {
 };
 
 // ─── Internal helper ──────────────────────────────────────────────────────────
+const feedbackAudioOwner = createAudioPlaybackOwner('feedback');
+
 function playFx(asset: number | null): void {
   if (!asset) return;
-  try {
-    const player = createAudioPlayer(asset);
-    player.play();
-    // Dispose after 4 s (well past any UI sound)
-    setTimeout(() => { try { player.remove(); } catch {} }, 4000);
-  } catch {
-    // Never crash the UI over a sound
-  }
+  playLocalAudio(asset, { owner: feedbackAudioOwner }).catch(() => {
+    // Never crash the UI over a sound.
+  });
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

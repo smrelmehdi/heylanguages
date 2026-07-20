@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { getDialectContent, type DialectContent } from '../data/content-registry';
-import { speakArabic, stopAudio } from '../utils/tts';
+import { speakArabic, stopAudio, type PlayOptions } from '../utils/tts';
 
 const DEFAULT_DIALECT = 'gulf';
 const HYDRATION_TIMEOUT_MS = 1500;
@@ -32,7 +32,7 @@ interface DialectContextValue {
   content: DialectContent;
   isDialectHydrated: boolean;
   setDialect: (d: string) => Promise<void>;
-  speakInDialect: (text: string) => Promise<void>;
+  speakInDialect: (text: string, options?: PlayOptions) => Promise<void>;
 }
 
 const DialectContext = createContext<DialectContextValue>({
@@ -93,9 +93,9 @@ export function DialectProvider({ children }: { children: React.ReactNode }) {
   const content = getDialectContent(dialect);
 
   const speakInDialect = useCallback(
-    (text: string) => {
+    (text: string, options?: PlayOptions) => {
       if (!isDialectHydrated) return Promise.resolve();
-      return speakArabic(text, content.voiceId);
+      return speakArabic(text, content.voiceId, options);
     },
     [content.voiceId, isDialectHydrated]
   );
