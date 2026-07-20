@@ -1,26 +1,22 @@
-import { useState, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
-import Svg, { Line } from 'react-native-svg';
-import type { EmojiMatchQuestion } from '../../data/quiz-types';
+import { Check, X } from 'lucide-react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { theme } from '../../constants/theme';
+import type { EmojiMatchQuestion } from '../../data/quiz-types';
+import {
+  buildMatchingColumns,
+  selectMatchingItem,
+  type MatchingColumnItem,
+  type MatchingSelection,
+  type MatchingState,
+} from '../../utils/matching';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { selectWithAttemptSeed } from '../../utils/quiz-selection';
-
-// Match identifier colors — intentionally distinct hues so each connection line is visually separable.
-// First two tokens align with the theme (teal + amber); purple and orange stay literal as game distinguishers.
-const MATCH_COLORS = [theme.colors.accentPrimary, theme.colors.accentWarm, '#9C27B0', '#FF9800'];
-const ITEM_HEIGHT = 72;
-const ITEM_GAP = 10;
-const COL_GAP = 16;
-const COMPACT_WIDTH = 390;
-const COMPACT_FONT_SCALE = 1.12;
-
-// Center Y of item at given index in column
-const getItemCenterY = (index: number) =>
-  index * (ITEM_HEIGHT + ITEM_GAP) + ITEM_HEIGHT / 2;
-
-interface Match { left: number; right: number; colorIndex: number }
 
 interface Props {
   question: EmojiMatchQuestion;
@@ -29,328 +25,183 @@ interface Props {
   showTranslit?: boolean;
 }
 
+const INITIAL_STATE: MatchingState = { selected: null, matchedPairIds: [] };
+const WRONG_FEEDBACK_MS = 650;
+
 export default function EmojiMatch({ question, answerResult, onAnswer, showTranslit = false }: Props) {
-  const { width: screenWidth, fontScale } = useWindowDimensions();
-  // Account for card padding (20px each side from quiz screen) + this component's container
-  const containerWidth = Math.max(0, screenWidth - 40);
-  const compactLayout = screenWidth < COMPACT_WIDTH || fontScale >= COMPACT_FONT_SCALE;
-  const colWidth = (containerWidth - COL_GAP) / 2;
+  const columns = useMemo(
+    () => buildMatchingColumns(question.pairs, question.id),
+    [question.id, question.pairs],
+  );
+  const [matchingState, setMatchingState] = useState<MatchingState>(INITIAL_STATE);
+  const matchingStateRef = useRef<MatchingState>(INITIAL_STATE);
+  const hadWrongAttemptRef = useRef(false);
+  const [wrongPairIds, setWrongPairIds] = useState<string[]>([]);
+  const wrongTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Matching semantics come from the pair data, never from array position.
-  const rightItems = useMemo(() => {
-    const arr = [...question.pairs.map((p, i) => ({ meaning: p.meaning, originalIndex: i }))];
-    return selectWithAttemptSeed(arr, arr.length, question.id, 'right-column', item => `${item.originalIndex}:${item.meaning}`);
-  }, [question.id, question.pairs]);
+  useEffect(() => () => {
+    if (wrongTimerRef.current) clearTimeout(wrongTimerRef.current);
+  }, []);
 
-  const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [evaluated, setEvaluated] = useState(false);
+  const handleSelection = (selection: MatchingSelection) => {
+    if (answerResult !== 'none' || wrongPairIds.length > 0) return;
+    const transition = selectMatchingItem(matchingStateRef.current, selection, question.pairs.length);
+    matchingStateRef.current = transition.state;
+    setMatchingState(transition.state);
 
-  const isLeftMatched = (i: number) => matches.some(m => m.left === i);
-  const isRightMatched = (j: number) => matches.some(m => m.right === j);
-  const getMatchColor = (side: 'left' | 'right', i: number) => {
-    const m = matches.find(m => side === 'left' ? m.left === i : m.right === i);
-    return m ? MATCH_COLORS[m.colorIndex] : null;
-  };
+    if (transition.outcome === 'wrong' && transition.attemptedPairIds) {
+      hadWrongAttemptRef.current = true;
+      setWrongPairIds(transition.attemptedPairIds);
+      if (wrongTimerRef.current) clearTimeout(wrongTimerRef.current);
+      wrongTimerRef.current = setTimeout(() => setWrongPairIds([]), WRONG_FEEDBACK_MS);
+    } else {
+      setWrongPairIds([]);
+    }
 
-  const containerHeight = question.pairs.length * ITEM_HEIGHT + (question.pairs.length - 1) * ITEM_GAP;
-
-  const handleLeftTap = (i: number) => {
-    if (evaluated || answerResult !== 'none') return;
-    if (isLeftMatched(i)) return;
-    setSelectedLeft(prev => prev === i ? null : i);
-  };
-
-  const handleRightTap = (j: number) => {
-    if (evaluated || answerResult !== 'none') return;
-    if (isRightMatched(j) || selectedLeft === null) return;
-
-    const newMatch: Match = { left: selectedLeft, right: j, colorIndex: matches.length };
-    const newMatches = [...matches, newMatch];
-    setMatches(newMatches);
-    setSelectedLeft(null);
-
-    if (newMatches.length === question.pairs.length) {
-      setEvaluated(true);
-      // Correct = every Arabic phrase is connected to its declared meaning.
-      const allCorrect = newMatches.every(m =>
-        question.pairs[m.left].meaning === rightItems[m.right].meaning
-      );
-      onAnswer({ correct: allCorrect });
+    if (transition.outcome === 'complete') {
+      onAnswer({ correct: !hadWrongAttemptRef.current });
     }
   };
 
-  // SVG line endpoints — right edge of left col to left edge of right col
-  const lineX1 = colWidth;
-  const lineX2 = colWidth + COL_GAP;
+  const selectedSide = matchingState.selected?.side;
+  const hint = selectedSide === 'arabic'
+    ? 'Now choose the English meaning'
+    : selectedSide === 'english'
+      ? 'Now choose the Arabic phrase'
+      : wrongPairIds.length > 0
+        ? 'Those do not match. Try again.'
+        : 'Tap an item in either column';
 
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>Match each phrase to its meaning</Text>
+      <Text style={styles.prompt}>Match each Arabic phrase to its meaning</Text>
 
-      {compactLayout ? (
-        <View style={styles.compactStack}>
-          <View style={styles.compactGroup}>
-            <Text style={styles.columnLabel}>Arabic phrases</Text>
-            {question.pairs.map((pair, i) => {
-              const color = getMatchColor('left', i);
-              const isSelected = selectedLeft === i;
-              const matched = isLeftMatched(i);
-              const pairCorrect = answerResult !== 'none'
-                ? matches.some(m => m.left === i && question.pairs[m.left].meaning === rightItems[m.right].meaning)
-                : null;
-              return (
-                <MatchItem
-                  key={i}
-                  primaryLabel={pair.arabic}
-                  secondaryLabel={showTranslit ? pair.transliteration : null}
-                  matchColor={color}
-                  isSelected={isSelected}
-                  isMatched={matched}
-                  onPress={() => handleLeftTap(i)}
-                  disabled={matched || evaluated}
-                  answerResult={answerResult}
-                  isCorrect={pairCorrect}
-                  side="left"
-                  index={i}
-                  compact
-                />
-              );
-            })}
-          </View>
+      <View style={styles.columnHeaders}>
+        <Text style={[styles.columnHeader, styles.englishHeader]}>English</Text>
+        <View style={styles.headerDivider} />
+        <Text style={[styles.columnHeader, styles.arabicHeader]}>العربية</Text>
+      </View>
 
-          <View style={styles.compactGroup}>
-            <Text style={styles.columnLabel}>Meanings</Text>
-            <View style={styles.emojiGrid}>
-              {rightItems.map((item, j) => {
-                const color = getMatchColor('right', j);
-                const matched = isRightMatched(j);
-                const pairCorrect = answerResult !== 'none'
-                  ? matches.some(m => m.right === j && question.pairs[m.left].meaning === rightItems[m.right].meaning)
-                  : null;
-                return (
-                  <MatchItem
-                    key={j}
-                    primaryLabel={item.meaning}
-                    secondaryLabel={null}
-                    matchColor={color}
-                    isSelected={false}
-                    isMatched={matched}
-                    onPress={() => handleRightTap(j)}
-                    disabled={matched || selectedLeft === null || evaluated}
-                    answerResult={answerResult}
-                    isCorrect={pairCorrect}
-                    side="right"
-                    index={j}
-                    compact
-                    containerStyle={styles.emojiGridItem}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      ) : (
-        <View style={[styles.grid, { width: containerWidth, height: containerHeight }]}>
-          {/* SVG connection lines */}
-          <Svg
-            width={containerWidth}
-            height={containerHeight}
-            style={StyleSheet.absoluteFillObject}
-            pointerEvents="none"
-          >
-            {matches.map((m) => (
-              <Line
-                key={`${m.left}-${m.right}`}
-                x1={lineX1}
-                y1={getItemCenterY(m.left)}
-                x2={lineX2}
-                y2={getItemCenterY(m.right)}
-                stroke={MATCH_COLORS[m.colorIndex % MATCH_COLORS.length]}
-                strokeWidth={2.5}
-                strokeOpacity={0.85}
+      <View style={styles.rows}>
+        {columns.english.map((englishItem, index) => {
+          const arabicItem = columns.arabic[index];
+          return (
+            <View style={styles.row} key={`matching-row-${index}`}>
+              <MatchCard
+                item={englishItem}
+                side="english"
+                selected={matchingState.selected?.side === 'english' && matchingState.selected.pairId === englishItem.pairId}
+                matched={matchingState.matchedPairIds.includes(englishItem.pairId)}
+                matchNumber={matchingState.matchedPairIds.indexOf(englishItem.pairId) + 1}
+                wrong={wrongPairIds.includes(englishItem.pairId)}
+                disabled={matchingState.matchedPairIds.includes(englishItem.pairId)}
+                onPress={() => handleSelection({ side: 'english', pairId: englishItem.pairId })}
               />
-            ))}
-          </Svg>
+              <View style={styles.rowDivider} />
+              <MatchCard
+                item={arabicItem}
+                side="arabic"
+                showSecondary={showTranslit}
+                selected={matchingState.selected?.side === 'arabic' && matchingState.selected.pairId === arabicItem.pairId}
+                matched={matchingState.matchedPairIds.includes(arabicItem.pairId)}
+                matchNumber={matchingState.matchedPairIds.indexOf(arabicItem.pairId) + 1}
+                wrong={wrongPairIds.includes(arabicItem.pairId)}
+                disabled={matchingState.matchedPairIds.includes(arabicItem.pairId)}
+                onPress={() => handleSelection({ side: 'arabic', pairId: arabicItem.pairId })}
+              />
+            </View>
+          );
+        })}
+      </View>
 
-          {/* Left column — Arabic phrases with transliteration */}
-          <View style={[styles.column, { width: colWidth }]}>
-            {question.pairs.map((pair, i) => {
-              const color = getMatchColor('left', i);
-              const isSelected = selectedLeft === i;
-              const matched = isLeftMatched(i);
-              const pairCorrect = answerResult !== 'none'
-                ? matches.some(m => m.left === i && question.pairs[m.left].meaning === rightItems[m.right].meaning)
-                : null;
-              return (
-                <MatchItem
-                  key={i}
-                  primaryLabel={pair.arabic}
-                  secondaryLabel={showTranslit ? pair.transliteration : null}
-                  matchColor={color}
-                  isSelected={isSelected}
-                  isMatched={matched}
-                  onPress={() => handleLeftTap(i)}
-                  disabled={matched || evaluated}
-                  answerResult={answerResult}
-                  isCorrect={pairCorrect}
-                  side="left"
-                  index={i}
-                />
-              );
-            })}
-          </View>
-
-          {/* Right column — Emoji only (no transliteration revealed) */}
-          <View style={[styles.column, { width: colWidth }]}>
-            {rightItems.map((item, j) => {
-              const color = getMatchColor('right', j);
-              const matched = isRightMatched(j);
-              const pairCorrect = answerResult !== 'none'
-                ? matches.some(m => m.right === j && question.pairs[m.left].meaning === rightItems[m.right].meaning)
-                : null;
-              return (
-                <MatchItem
-                  key={j}
-                  primaryLabel={item.meaning}
-                  secondaryLabel={null}
-                  matchColor={color}
-                  isSelected={false}
-                  isMatched={matched}
-                  onPress={() => handleRightTap(j)}
-                  disabled={matched || selectedLeft === null || evaluated}
-                  answerResult={answerResult}
-                  isCorrect={pairCorrect}
-                  side="right"
-                  index={j}
-                />
-              );
-            })}
-          </View>
-        </View>
-      )}
-
-      {!evaluated && (
-        <Text style={styles.hint}>
-          {selectedLeft !== null
-            ? 'Now tap the matching meaning'
-            : 'Tap an Arabic phrase to start'}
-        </Text>
-      )}
-
+      <Text
+        style={[styles.hint, wrongPairIds.length > 0 && styles.wrongHint]}
+        accessibilityLiveRegion="polite"
+      >
+        {hint}
+      </Text>
       <Text style={styles.progressHint}>
-        {matches.length} of {question.pairs.length} matched
+        {matchingState.matchedPairIds.length} of {question.pairs.length} matched
       </Text>
     </View>
   );
 }
 
-function MatchItem({
-  primaryLabel,
-  secondaryLabel,
-  matchColor,
-  isSelected,
-  isMatched,
-  onPress,
-  disabled,
-  answerResult,
-  isCorrect,
+function MatchCard({
+  item,
   side,
-  index,
-  compact = false,
-  containerStyle,
+  showSecondary = false,
+  selected,
+  matched,
+  matchNumber,
+  wrong,
+  disabled,
+  onPress,
 }: {
-  primaryLabel: string;
-  secondaryLabel: string | null;
-  matchColor: string | null;
-  isSelected: boolean;
-  isMatched: boolean;
-  onPress: () => void;
+  item: MatchingColumnItem;
+  side: 'arabic' | 'english';
+  showSecondary?: boolean;
+  selected: boolean;
+  matched: boolean;
+  matchNumber: number;
+  wrong: boolean;
   disabled: boolean;
-  answerResult: 'none' | 'correct' | 'wrong';
-  isCorrect: boolean | null;
-  side: 'left' | 'right';
-  index: number;
-  compact?: boolean;
-  containerStyle?: ViewStyle;
+  onPress: () => void;
 }) {
-  const scale = useSharedValue(1);
+  const translateX = useSharedValue(0);
 
-  if (answerResult !== 'none' && isCorrect === true) {
-    scale.value = withSequence(
-      withTiming(1.06, { duration: 120 }),
-      withTiming(1, { duration: 120 }),
+  useEffect(() => {
+    if (!wrong) return;
+    translateX.value = withSequence(
+      withTiming(-4, { duration: 60 }),
+      withTiming(4, { duration: 60 }),
+      withTiming(0, { duration: 60 }),
     );
-  }
+  }, [wrong, translateX]);
 
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  let borderColor: string = theme.colors.borderDefault;
-  let bg: string = theme.colors.bgSurface;
-  let stateLabel = '';
-
-  if (isSelected) {
-    borderColor = theme.colors.borderAccent;
-    bg = 'rgba(61, 212, 192, 0.12)';
-    stateLabel = 'Selected';
-  }
-  if (matchColor) {
-    borderColor = matchColor;
-    bg = `${matchColor}18`;
-    stateLabel = 'Matched';
-  }
-  if (answerResult !== 'none' && isCorrect === true) {
-    borderColor = theme.colors.accentSuccess;
-    bg = 'rgba(125, 217, 154, 0.15)';
-    stateLabel = 'Correct';
-  }
-  if (answerResult !== 'none' && isCorrect === false && matchColor) {
-    borderColor = theme.colors.accentDanger;
-    bg = 'rgba(229, 107, 111, 0.15)';
-    stateLabel = 'Try again';
-  }
-
-  const accessibilityLabel = [
-    side === 'left' ? 'Arabic phrase' : 'Meaning',
-    `${index + 1}`,
-    primaryLabel,
-    secondaryLabel,
-    stateLabel,
-  ].filter(Boolean).join(', ');
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+  const stateText = matched ? 'Matched' : wrong ? 'Not a match' : selected ? 'Selected' : '';
 
   return (
     <Pressable
+      style={styles.cardPressable}
       onPress={onPress}
       disabled={disabled}
-      style={containerStyle}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ selected: isSelected || isMatched, disabled }}
+      accessibilityLabel={`${side === 'arabic' ? 'Arabic phrase' : 'English meaning'}: ${item.label}${stateText ? `, ${stateText}` : ''}`}
+      accessibilityState={{ selected, disabled }}
     >
-      <Animated.View style={[
-        styles.matchItem,
-        compact ? styles.matchItemCompact : { height: ITEM_HEIGHT },
-        { borderColor, backgroundColor: bg },
-        animStyle,
-      ]}>
-        <Text
-          style={[
-            styles.matchPrimary,
-            side === 'left' && styles.arabicText,
-            side === 'right' && styles.meaningText,
-          ]}
-          numberOfLines={compact ? 3 : 2}
-        >
-          {primaryLabel}
-        </Text>
-        {secondaryLabel ? (
-          <Text style={styles.matchSecondary} numberOfLines={compact ? 2 : 1}>
-            {secondaryLabel}
+      <Animated.View
+        style={[
+          styles.card,
+          selected && styles.cardSelected,
+          matched && styles.cardMatched,
+          wrong && styles.cardWrong,
+          animatedStyle,
+        ]}
+      >
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardText, side === 'arabic' ? styles.arabicText : styles.englishText]}>
+            {item.label}
           </Text>
-        ) : null}
-        <Text style={[styles.matchState, !stateLabel && styles.matchStateHidden]}>
-          {stateLabel || ' '}
-        </Text>
+          {showSecondary && item.secondaryLabel ? (
+            <Text style={styles.transliterationText}>{item.secondaryLabel}</Text>
+          ) : null}
+        </View>
+        <View style={styles.stateMarker} accessible={false}>
+          {matched ? (
+            <View style={styles.matchBadge}>
+              <Check size={13} color={theme.colors.accentSuccess} strokeWidth={3} />
+              <Text style={styles.matchNumber}>{matchNumber}</Text>
+            </View>
+          ) : wrong ? (
+            <X size={18} color={theme.colors.accentDanger} strokeWidth={3} />
+          ) : selected ? (
+            <View style={styles.selectedDot} />
+          ) : null}
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -358,74 +209,121 @@ function MatchItem({
 
 const styles = StyleSheet.create({
   container: { alignSelf: 'stretch', gap: 12 },
-  prompt: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
-  grid: { alignSelf: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  column: { gap: ITEM_GAP },
-  compactStack: { alignSelf: 'stretch', gap: 14 },
-  compactGroup: { alignSelf: 'stretch', gap: 8 },
-  columnLabel: {
+  prompt: {
+    fontSize: theme.fontSize.heading,
+    fontWeight: theme.fontWeight.medium,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 25,
+  },
+  columnHeaders: { direction: 'ltr', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  columnHeader: {
+    flex: 1,
     fontSize: theme.fontSize.caption,
     fontWeight: theme.fontWeight.medium,
     color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  emojiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: ITEM_GAP,
-  },
-  emojiGridItem: {
-    flexBasis: '47%',
-    flexGrow: 1,
-  },
-  matchItem: {
+  englishHeader: { textAlign: 'left', writingDirection: 'ltr' },
+  arabicHeader: { textAlign: 'right', writingDirection: 'rtl', textTransform: 'none' },
+  headerDivider: { width: 1, height: 16, backgroundColor: theme.colors.borderDefault },
+  rows: { gap: 10 },
+  row: { direction: 'ltr', flexDirection: 'row', alignItems: 'stretch', gap: 8 },
+  rowDivider: { width: 1, backgroundColor: theme.colors.borderDefault },
+  cardPressable: { flex: 1, minWidth: 0 },
+  card: {
+    minHeight: 72,
+    height: '100%',
     borderRadius: theme.radii.sm,
     borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    backgroundColor: theme.colors.bgElevated,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    gap: 6,
   },
-  matchItemCompact: {
-    minHeight: 64,
+  cardSelected: {
+    borderWidth: 2,
+    borderColor: theme.colors.borderAccent,
+    backgroundColor: 'rgba(61, 212, 192, 0.12)',
   },
-  matchPrimary: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: theme.fontWeight.medium,
+  cardMatched: {
+    borderColor: theme.colors.accentSuccess,
+    backgroundColor: 'rgba(125, 217, 154, 0.14)',
+  },
+  cardWrong: {
+    borderColor: theme.colors.accentDanger,
+    backgroundColor: 'rgba(229, 107, 111, 0.14)',
+  },
+  cardContent: { flex: 1, minWidth: 0 },
+  cardText: {
     color: theme.colors.textPrimary,
-    textAlign: 'center',
+    fontWeight: theme.fontWeight.medium,
   },
-  arabicText: {
-    writingDirection: 'rtl',
-  },
-  meaningText: {
-    fontSize: 16,
-    lineHeight: 21,
-  },
-  matchSecondary: {
-    fontSize: theme.fontSize.caption,
-    lineHeight: 16,
-    color: theme.colors.textTertiary,
-    fontStyle: 'italic',
-    marginTop: 2,
-    textAlign: 'center',
+  englishText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'left',
     writingDirection: 'ltr',
   },
-  matchState: {
-    minHeight: 14,
+  arabicText: {
+    fontSize: 18,
+    lineHeight: 27,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  transliterationText: {
     marginTop: 3,
-    fontSize: 10,
-    lineHeight: 12,
+    color: theme.colors.textTertiary,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'right',
+    writingDirection: 'ltr',
+  },
+  stateMarker: {
+    width: 30,
+    minWidth: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.borderAccent,
+  },
+  matchBadge: {
+    minWidth: 28,
+    height: 24,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderColor: theme.colors.accentSuccess,
+  },
+  matchNumber: {
+    color: theme.colors.accentSuccess,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: theme.fontWeight.medium,
+  },
+  hint: {
+    minHeight: 18,
+    fontSize: theme.fontSize.caption,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
-  matchStateHidden: {
-    opacity: 0,
+  wrongHint: { color: theme.colors.accentDanger, fontWeight: theme.fontWeight.medium },
+  progressHint: {
+    fontSize: theme.fontSize.caption,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
   },
-  hint: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'center', fontStyle: 'italic' },
-  progressHint: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'center' },
 });

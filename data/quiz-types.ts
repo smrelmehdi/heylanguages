@@ -45,7 +45,7 @@ export interface EmojiMatchQuestion extends BaseQuestion {
   pairs: {
     arabic: string;
     transliteration: string;
-    /** Exact English meaning or an explicitly curated semantic symbol. */
+    /** Exact English meaning shown as text. */
     meaning: string;
   }[];
 }

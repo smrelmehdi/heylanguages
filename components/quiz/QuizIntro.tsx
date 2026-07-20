@@ -16,7 +16,7 @@ const FORMAT_PILLS: Record<string, string> = {
   scene_replay:         '🎭 Scene Replay',
   fill_conversation:    '💬 Fill the Blank',
   listening:            '🎧 Listening',
-  emoji_match:          '🔗 Emoji Match',
+  emoji_match:          '🔗 Meaning Match',
   transliteration_type: '⌨️ Type It',
   arabic_select:        '✍️ Read Arabic',
 };
