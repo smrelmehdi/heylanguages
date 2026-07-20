@@ -21,6 +21,7 @@ import { useDialect } from '../contexts/DialectContext';
 import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
 import { playLocalAudio, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode } from '../utils/tts';
+import { isEnabledOnboardingDialect, resolveOnboardingDialect } from '../utils/onboarding-dialect';
 
 function useTypewriter(text: string, speed = 30) {
   const [displayedText, setDisplayedText] = useState('');
@@ -200,7 +201,7 @@ export default function OnboardingWizard() {
   };
 
   const handleDialectSelect = (d: typeof DIALECTS[0]) => {
-    if (d.disabled) return;
+    if (d.disabled || !isEnabledOnboardingDialect(d.value)) return;
     setDialect(d.value);
     setContextDialect(d.value);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -308,7 +309,12 @@ export default function OnboardingWizard() {
 
     setIsEvaluatingSpeech(true);
     try {
-      const result = await evaluatePronunciation(uri, 'سلام', 'gulf', 'onboarding');
+      const result = await evaluatePronunciation(
+        uri,
+        'سلام',
+        resolveOnboardingDialect(dialect),
+        'onboarding',
+      );
       setPronScore(result.score ?? scoreForResult(result.result));
       setFeedback(
         result.result === 'fail' && result.score === undefined
@@ -326,9 +332,10 @@ export default function OnboardingWizard() {
   };
 
   const saveWizardData = async () => {
+    const onboardingDialect = resolveOnboardingDialect(dialect);
     await AsyncStorage.setItem('wizard_complete', 'true');
     await AsyncStorage.setItem('wizard_name', name);
-    await AsyncStorage.setItem('wizard_dialect', dialect);
+    await AsyncStorage.setItem('wizard_dialect', onboardingDialect);
     await AsyncStorage.setItem('wizard_level', level.toLowerCase());
   };
 
