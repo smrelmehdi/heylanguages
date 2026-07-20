@@ -45,6 +45,14 @@ export function hasCompletedContent(dialect: string, contentId: string | null | 
   return getCompletionKeyCandidates(dialect, contentId).some(key => completed.has(key));
 }
 
+export function isFirstContentCompletion(
+  dialect: string,
+  contentId: string | null | undefined,
+  completedContentIds: Iterable<string>,
+) {
+  return !hasCompletedContent(dialect, contentId, completedContentIds);
+}
+
 export function getPreviousProgressionContentId(dialect: string, contentId: string | null | undefined) {
   const normalized = normalizePublicContentId(contentId);
   if (!normalized) return null;

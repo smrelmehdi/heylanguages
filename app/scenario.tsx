@@ -36,7 +36,8 @@ import { getScenarioContentId } from '../utils/access';
 import { resolveContent } from '../utils/content-resolver';
 import { feedbackLevelUp } from '../utils/feedback';
 import { evaluatePronunciation } from '../utils/pronunciation';
-import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
+import { buildCompletionKey } from '../utils/progression';
+import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
 import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
@@ -550,7 +551,7 @@ export default function ScenarioScreen() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
 
-  const { addXP } = useXP();
+  const { addXP, refreshFromServer } = useXP();
   const isComingSoon = DIALOGUE.length === 0;
 
   const currentTurn = isComingSoon ? { type: 'waiter' as const, arabic: '', transliteration: '', english: '' } : DIALOGUE[currentIndex];
@@ -1039,99 +1040,57 @@ export default function ScenarioScreen() {
         });
       }
 
-      if (!session) {
-      const legacyCandidates = getCompletionKeyCandidates(dialect, publicScenarioId);
-      const raw = await AsyncStorage.getItem('guest_progress');
-      const progress = raw ? JSON.parse(raw) : {};
-      const alreadyCompleted = legacyCandidates.some(key => progress[key] === true);
-      progress[scenarioKey] = true;
-        await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-        if (!alreadyCompleted) {
-          const levelUp = await addXP(xpEarned);
-          if (levelUp) {
-            setLevelUpData(levelUp);
-            setShowLevelUp(true);
-          }
-        }
-        if (__DEV__) {
-          console.log('[completion write:done]', {
-            completionType: 'scenario',
-            unitId,
-            scenarioKey,
-            completionKey: scenarioKey,
-            totalCompleted: Object.values(progress).filter(Boolean).length,
-          });
-        }
-        await recordActivity();
-        return;
-      }
-
-      const userId = session.user.id;
-
-      await supabase.from('conversations').insert({
-        user_id: userId,
-        scenario: scenarioKey,
-        dialect: dialect,
-        level: 'beginner',
-        status: 'completed',
+      let guestLevelUp: Awaited<ReturnType<typeof addXP>> = null;
+      const result = await persistCurriculumCompletion({
+        completionKey: scenarioKey,
+        dialect,
+        legacyContentId: publicScenarioId,
         score: scenarioScore,
-        xp_earned: xpEarned,
-        completed_at: new Date().toISOString(),
-        phrases_completed: userTurnCount,
-        phrases_total: userTurnCount,
+        xp: xpEarned,
+        addGuestXp: async amount => {
+          guestLevelUp = await addXP(amount);
+        },
+        refreshSignedInXp: refreshFromServer,
       });
 
-      const { data: existing } = await supabase
-        .from('scenario_progress')
-        .select('id, attempts, best_score')
-        .eq('user_id', userId)
-        .in('scenario', getCompletionKeyCandidates(dialect, publicScenarioId))
-        .maybeSingle();
-
-      if (existing) {
-        await supabase.from('scenario_progress').update({
-          completed: true,
-          best_score: Math.max(existing.best_score ?? 0, scenarioScore),
-          attempts: (existing.attempts ?? 0) + 1,
-        }).eq('id', existing.id);
-      } else {
-        await supabase.from('scenario_progress').insert({
-          user_id: userId,
-          scenario: scenarioKey,
-          dialect: dialect,
-          completed: true,
-          best_score: scenarioScore,
-          attempts: 1,
-        });
+      if (guestLevelUp) {
+        setLevelUpData(guestLevelUp);
+        setShowLevelUp(true);
       }
 
-      if (!existing) {
-        const levelUp = await addXP(xpEarned);
-        if (levelUp) {
-          setLevelUpData(levelUp);
-          setShowLevelUp(true);
-        }
+      if (session) {
+        const { error: conversationError } = await supabase.from('conversations').insert({
+          user_id: session.user.id,
+          scenario: scenarioKey,
+          dialect,
+          level: 'beginner',
+          status: 'completed',
+          score: scenarioScore,
+          xp_earned: result.xpAwarded,
+          completed_at: new Date().toISOString(),
+          phrases_completed: userTurnCount,
+          phrases_total: userTurnCount,
+        });
+        if (conversationError) console.warn('Conversation history save error:', conversationError);
       }
 
       if (__DEV__) {
-        const { count } = await supabase
-          .from('scenario_progress')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('completed', true);
         console.log('[completion write:done]', {
           completionType: 'scenario',
           unitId,
           scenarioKey,
           completionKey: scenarioKey,
-          totalCompleted: count ?? undefined,
+          firstCompletion: result.firstCompletion,
+          xpAwarded: result.xpAwarded,
         });
       }
 
       // Delegate streak tracking to recordActivity()
       await recordActivity();
+      return true;
     } catch (err) {
       console.warn('Save completion error:', err);
+      return false;
     }
   };
 
@@ -1140,8 +1099,8 @@ export default function ScenarioScreen() {
       if (isSavingCompletion) return;
       setIsSavingCompletion(true);
       try {
-        await saveCompletion();
-        setCompleted(true);
+        const saved = await saveCompletion();
+        if (saved) setCompleted(true);
       } finally {
         setIsSavingCompletion(false);
       }

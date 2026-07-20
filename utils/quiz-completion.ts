@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getCompletionKeyCandidates } from './progression';
+import { getCompletionKeyCandidates, isFirstContentCompletion } from './progression';
 import { supabase } from './supabase';
 
 const GUEST_PROGRESS_KEY = 'guest_progress';
 let guestCompletionQueue = Promise.resolve();
 
-export type QuizPassPersistenceInput = {
+export type CurriculumCompletionInput = {
   completionKey: string;
   dialect: string;
   legacyContentId: string;
@@ -15,17 +15,17 @@ export type QuizPassPersistenceInput = {
   refreshSignedInXp: () => Promise<void>;
 };
 
-export type QuizPassPersistenceResult = {
+export type CurriculumCompletionResult = {
   firstCompletion: boolean;
   xpAwarded: number;
 };
 
-async function persistGuestPass(input: QuizPassPersistenceInput): Promise<QuizPassPersistenceResult> {
+async function persistGuestCompletion(input: CurriculumCompletionInput): Promise<CurriculumCompletionResult> {
   const operation = guestCompletionQueue.then(async () => {
     const raw = await AsyncStorage.getItem(GUEST_PROGRESS_KEY);
     const progress: Record<string, boolean> = raw ? JSON.parse(raw) : {};
-    const candidates = getCompletionKeyCandidates(input.dialect, input.legacyContentId);
-    const firstCompletion = !candidates.some(key => progress[key] === true);
+    const completedIds = Object.keys(progress).filter(key => progress[key]);
+    const firstCompletion = isFirstContentCompletion(input.dialect, input.legacyContentId, completedIds);
 
     progress[input.completionKey] = true;
     await AsyncStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(progress));
@@ -39,13 +39,13 @@ async function persistGuestPass(input: QuizPassPersistenceInput): Promise<QuizPa
 }
 
 /**
- * Persists a passed quiz exactly once. Signed-in writes use a database RPC that
- * locks the completion identity and awards XP in the same transaction. Guest
- * writes are serialized and re-check progress inside the critical section.
+ * Persists a completed curriculum item. Signed-in writes use a database RPC
+ * that locks the completion identity and awards XP in the same transaction.
+ * Guest writes are serialized and re-check progress inside the critical section.
  */
-export async function persistQuizPass(input: QuizPassPersistenceInput): Promise<QuizPassPersistenceResult> {
+export async function persistCurriculumCompletion(input: CurriculumCompletionInput): Promise<CurriculumCompletionResult> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return persistGuestPass(input);
+  if (!session) return persistGuestCompletion(input);
 
   const { data, error } = await supabase.rpc('complete_quiz_once', {
     p_scenario: input.completionKey,
@@ -64,3 +64,5 @@ export async function persistQuizPass(input: QuizPassPersistenceInput): Promise<
   await input.refreshSignedInXp();
   return result;
 }
+
+export const persistQuizPass = persistCurriculumCompletion;

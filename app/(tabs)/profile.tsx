@@ -63,11 +63,11 @@ export default function ProfileScreen() {
       // XP comes from XPContext (reads users.xp, includes both lessons and scenarios)
       const { data: progress } = await supabase
         .from('scenario_progress')
-        .select('id, completed')
+        .select('id, completed_count')
         .eq('user_id', session.user.id);
 
       if (progress) {
-        const completed = progress.filter(p => p.completed === true);
+        const completed = progress.filter(p => (p.completed_count ?? 0) > 0);
         setScenariosCompleted(completed.length);
       }
     } else {

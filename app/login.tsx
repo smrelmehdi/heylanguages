@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
-import { getCanonicalCompletionKey, parseCompletionKey } from '../utils/progression';
+import { getCanonicalCompletionKey, getCompletionKeyCandidates, parseCompletionKey } from '../utils/progression';
 import { supabase } from '../utils/supabase';
 
 async function mergeGuestProgress(userId: string) {
@@ -22,22 +22,15 @@ async function mergeGuestProgress(userId: string) {
     const canonicalScenario = parsed ? scenario : getCanonicalCompletionKey('gulf', scenario);
     if (!canonicalScenario) continue;
     const dialect = parsed?.dialect ?? 'gulf';
-    const { data: existing } = await supabase
-      .from('scenario_progress')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('scenario', canonicalScenario)
-      .maybeSingle();
-    if (!existing) {
-      await supabase.from('scenario_progress').insert({
-        user_id: userId,
-        scenario: canonicalScenario,
-        dialect,
-        completed: true,
-        best_score: 100,
-        attempts: 1,
-      });
-    }
+    const contentId = parsed?.contentId ?? scenario;
+    const { error } = await supabase.rpc('complete_quiz_once', {
+      p_scenario: canonicalScenario,
+      p_dialect: dialect,
+      p_score: 100,
+      p_xp: 0,
+      p_completion_candidates: getCompletionKeyCandidates(dialect, contentId),
+    });
+    if (error) throw error;
   }
 
   const completedCount = Object.values(progressMap).filter(Boolean).length;

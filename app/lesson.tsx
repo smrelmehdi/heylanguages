@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
@@ -17,9 +16,9 @@ import { stripTashkeel } from '../utils/arabic';
 import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
 import { getLessonContentId } from '../utils/access';
 import { resolveContent } from '../utils/content-resolver';
-import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
+import { buildCompletionKey } from '../utils/progression';
+import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
-import { supabase } from '../utils/supabase';
 import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 export default function LessonScreen() {
@@ -37,7 +36,7 @@ export default function LessonScreen() {
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const { content, dialect, speakInDialect } = useDialect();
-  const { addXP } = useXP();
+  const { addXP, refreshFromServer } = useXP();
 
   // All hooks above — derived values below
   const type = params.type;
@@ -315,7 +314,6 @@ export default function LessonScreen() {
 
   const saveCompletion = async () => {
     const scenarioKey = completionKey;
-    const legacyCandidates = getCompletionKeyCandidates(dialect, publicCompletionId);
     if (__DEV__) {
       console.log('[completion write:start]', {
         completionType: 'lesson',
@@ -325,75 +323,33 @@ export default function LessonScreen() {
       });
     }
     const xpEarned = 60;
-    const { data: { session } } = await supabase.auth.getSession();
+    let guestLevelUp: Awaited<ReturnType<typeof addXP>> = null;
+    const result = await persistCurriculumCompletion({
+      completionKey: scenarioKey,
+      dialect,
+      legacyContentId: publicCompletionId,
+      score: 100,
+      xp: xpEarned,
+      addGuestXp: async amount => {
+        guestLevelUp = await addXP(amount);
+      },
+      refreshSignedInXp: refreshFromServer,
+    });
 
-    if (session) {
-      const { data: existing } = await supabase
-        .from('scenario_progress')
-        .select('id, attempts')
-        .eq('user_id', session.user.id)
-        .in('scenario', legacyCandidates.length > 0 ? legacyCandidates : [scenarioKey])
-        .maybeSingle();
+    if (guestLevelUp) {
+      setLevelUpData(guestLevelUp);
+      setShowLevelUp(true);
+    }
 
-      if (existing) {
-        await supabase.from('scenario_progress').update({
-          completed: true,
-          best_score: 100,
-          attempts: (existing.attempts ?? 0) + 1,
-        }).eq('id', existing.id);
-      } else {
-        await supabase.from('scenario_progress').insert({
-          user_id: session.user.id,
-          scenario: scenarioKey,
-          dialect: dialect,
-          completed: true,
-          best_score: 100,
-          attempts: 1,
-        });
-        // Only award XP the first time a lesson is completed
-        const levelUp = await addXP(xpEarned);
-        if (levelUp) {
-          setLevelUpData(levelUp);
-          setShowLevelUp(true);
-        }
-      }
-
-      if (__DEV__) {
-        const { count } = await supabase
-          .from('scenario_progress')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', session.user.id)
-          .eq('completed', true);
-        console.log('[completion write:done]', {
-          completionType: 'lesson',
-          unitId,
-          lessonKey: publicCompletionId,
-          completionKey: scenarioKey,
-          totalCompleted: count ?? undefined,
-        });
-      }
-    } else {
-      const guestProgress = await AsyncStorage.getItem('guest_progress');
-      const progress = guestProgress ? JSON.parse(guestProgress) : {};
-      const alreadyCompleted = legacyCandidates.some(key => progress[key] === true);
-      progress[scenarioKey] = true;
-      await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-      if (!alreadyCompleted) {
-        const levelUp = await addXP(xpEarned);
-        if (levelUp) {
-          setLevelUpData(levelUp);
-          setShowLevelUp(true);
-        }
-      }
-      if (__DEV__) {
-        console.log('[completion write:done]', {
-          completionType: 'lesson',
-          unitId,
-          lessonKey: publicCompletionId,
-          completionKey: scenarioKey,
-          totalCompleted: Object.values(progress).filter(Boolean).length,
-        });
-      }
+    if (__DEV__) {
+      console.log('[completion write:done]', {
+        completionType: 'lesson',
+        unitId,
+        lessonKey: publicCompletionId,
+        completionKey: scenarioKey,
+        firstCompletion: result.firstCompletion,
+        xpAwarded: result.xpAwarded,
+      });
     }
 
     // Record activity for streak (works for both guests and signed-in users)

@@ -48,13 +48,15 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
           const { data: { session } } = await supabase.auth.getSession();
 
           if (session) {
-            const { data: progress } = await supabase
+            const { data: progress, error } = await supabase
               .from('scenario_progress')
-              .select('scenario, completed')
+              .select('scenario_id, completed_count')
               .eq('user_id', session.user.id);
 
+            if (error) throw error;
+
             progress?.forEach(item => {
-              if (item.completed) ids.add(item.scenario);
+              if ((item.completed_count ?? 0) > 0) ids.add(item.scenario_id);
             });
           }
 

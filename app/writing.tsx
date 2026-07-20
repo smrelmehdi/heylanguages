@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -16,15 +15,16 @@ import PremiumRouteGate from '../components/PremiumRouteGate';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
+import { useXP } from '../contexts/XPContext';
 import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
 import type { AlphabetAudioItem } from '../data/alphabet-audio';
 import { MSA_WRITING_EXAMPLE_WORDS } from '../data/msa-alphabet-audio';
 import { stripTashkeel } from '../utils/arabic';
 import { getWritingContentId } from '../utils/access';
-import { buildCompletionKey, getCompletionKeyCandidates } from '../utils/progression';
+import { buildCompletionKey } from '../utils/progression';
+import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { feedbackCorrect, feedbackWrong } from '../utils/feedback';
 import { recordActivity } from '../utils/streak';
-import { supabase } from '../utils/supabase';
 import { playLocalAudioWithTtsFallback, stopAudio } from '../utils/tts';
 
 const { width } = Dimensions.get('window');
@@ -432,6 +432,7 @@ export default function WritingScreen() {
   const router    = useRouter();
   const { family } = useLocalSearchParams<{ family?: string }>();
   const { dialect, content, isDialectHydrated } = useDialect();
+  const { addXP, refreshFromServer } = useXP();
   const alphabetAudio = getAlphabetAudioForDialect(dialect);
 
   const familyStr = Array.isArray(family) ? family[0] : (family ?? 'ba');
@@ -497,39 +498,15 @@ export default function WritingScreen() {
 
   const saveCompletion = async () => {
     const xpEarned = 40;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: existing } = await supabase
-        .from('scenario_progress')
-        .select('id, attempts')
-        .eq('user_id', session.user.id)
-        .in('scenario', getCompletionKeyCandidates(dialectRef.current, publicScenarioKey))
-        .maybeSingle();
-      if (existing) {
-        await supabase.from('scenario_progress').update({
-          completed: true, best_score: 100,
-          attempts: (existing.attempts ?? 0) + 1,
-        }).eq('id', existing.id);
-      } else {
-        await supabase.from('scenario_progress').insert({
-          user_id: session.user.id, scenario: scenarioKey,
-          dialect: dialectRef.current, completed: true, best_score: 100, attempts: 1,
-        });
-        const { data: userData } = await supabase
-          .from('users').select('xp').eq('id', session.user.id).maybeSingle();
-        await supabase.from('users').update({
-          xp: (userData?.xp ?? 0) + xpEarned,
-        }).eq('id', session.user.id);
-      }
-    } else {
-      const raw = await AsyncStorage.getItem('guest_progress');
-      const progress = raw ? JSON.parse(raw) : {};
-      const alreadyCompleted = getCompletionKeyCandidates(dialectRef.current, publicScenarioKey)
-        .some(key => progress[key] === true);
-      progress[scenarioKey] = true;
-      await AsyncStorage.setItem('guest_progress', JSON.stringify(progress));
-      if (alreadyCompleted) return;
-    }
+    await persistCurriculumCompletion({
+      completionKey: scenarioKey,
+      dialect: dialectRef.current,
+      legacyContentId: publicScenarioKey,
+      score: 100,
+      xp: xpEarned,
+      addGuestXp: addXP,
+      refreshSignedInXp: refreshFromServer,
+    });
     await recordActivity();
   };
 

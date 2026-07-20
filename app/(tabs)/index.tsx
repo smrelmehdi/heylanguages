@@ -239,20 +239,23 @@ export default function HomeScreen() {
           const storedName = await AsyncStorage.getItem('wizard_name');
           if (storedName) setUserName(storedName.split(' ')[0]);
 
-          const { data: progress } = await supabase
+          const { data: progress, error: progressError } = await supabase
             .from('scenario_progress')
-            .select('scenario, completed')
+            .select('scenario_id, completed_count')
             .eq('user_id', session.user.id);
 
           const map: Record<string, boolean> = {};
           if (progress) {
-            progress.forEach(p => { map[p.scenario] = p.completed; });
+            progress.forEach(p => {
+              if ((p.completed_count ?? 0) > 0) map[p.scenario_id] = true;
+            });
           }
+          if (progressError) console.warn('[progress] Failed to load signed-in completions:', progressError);
           const guestProgress = await AsyncStorage.getItem('guest_progress');
           if (guestProgress) {
             Object.assign(map, JSON.parse(guestProgress));
           }
-          console.log('Loaded progress:', map);
+          if (__DEV__) console.log('[progress] Loaded completions:', map);
           setScenarioProgress(map);
 
           const todayStr = new Date().toISOString().split('T')[0];
@@ -260,7 +263,8 @@ export default function HomeScreen() {
             .from('scenario_progress')
             .select('id')
             .eq('user_id', session.user.id)
-            .gte('updated_at', todayStr);
+            .gt('completed_count', 0)
+            .gte('last_completed', todayStr);
 
           setLessonsToday(todayProgress?.length ?? 0);
         } else {

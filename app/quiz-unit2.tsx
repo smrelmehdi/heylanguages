@@ -1594,9 +1594,11 @@ export default function QuizUnit2Screen() {
       if (session) {
         const { data: prog } = await supabase
           .from('scenario_progress')
-          .select('scenario, completed')
+          .select('scenario_id, completed_count')
           .eq('user_id', session.user.id);
-        if (prog) prog.forEach(p => { if (p.completed) completedMap[p.scenario] = true; });
+        if (prog) prog.forEach(p => {
+          if ((p.completed_count ?? 0) > 0) completedMap[p.scenario_id] = true;
+        });
       }
     } catch { /* non-fatal */ }
 
