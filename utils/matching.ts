@@ -28,6 +28,14 @@ export type MatchingTransition = {
   attemptedPairIds?: [string, string];
 };
 
+// Keep matching cards content-sized inside independently scrolling quiz layouts.
+export const MATCHING_ITEM_LAYOUT = Object.freeze({
+  width: '100%' as const,
+  minHeight: 58,
+  flexGrow: 0,
+  flexShrink: 0,
+});
+
 function rotate<T>(items: T[], offset: number) {
   return [...items.slice(offset), ...items.slice(0, offset)];
 }

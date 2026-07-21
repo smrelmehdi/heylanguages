@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   buildMatchingColumns,
+  MATCHING_ITEM_LAYOUT,
   selectMatchingItem,
   type MatchingPairInput,
   type MatchingState,
@@ -72,21 +73,35 @@ function testDuplicateLabelsUsePairIdentity() {
   assert.equal(wrong.outcome, 'wrong', 'Duplicate visible labels must still match by pair identity');
 }
 
-function testLongTextIsPreserved() {
-  const longArabic = 'لو سمحت، ممكن تقول لي أقرب محطة مترو فين؟';
-  const longEnglish = 'Excuse me, could you tell me where the nearest metro station is?';
-  const columns = buildMatchingColumns([
-    { arabic: longArabic, transliteration: 'law samaht', meaning: longEnglish },
-    { arabic: 'شكرا', transliteration: 'shukran', meaning: 'Thank you' },
-  ], 'long-text-test');
-  assert(columns.arabic.some(item => item.label === longArabic));
-  assert(columns.english.some(item => item.label === longEnglish));
+function testMobileLayoutContract() {
+  const longPairs: MatchingPairInput[] = [
+    {
+      arabic: 'لو سمحت، ممكن تقول لي أقرب محطة مترو فين؟',
+      transliteration: 'law samaht',
+      meaning: 'Excuse me, could you tell me where the nearest metro station is?',
+    },
+    { arabic: 'شكرا على مساعدتك', transliteration: 'shukran', meaning: 'Thank you for your help' },
+    { arabic: 'الحساب لو سمحت', transliteration: 'el-hisaab', meaning: 'The bill, please' },
+    { arabic: 'مع السلامة', transliteration: 'maa es-salaama', meaning: 'Goodbye and take care' },
+  ];
+  const columns = buildMatchingColumns(longPairs, 'mobile-layout-test');
+  assert.equal(columns.arabic.length, 4, 'Four Arabic cards must render');
+  assert.equal(columns.english.length, 4, 'Four English cards must render');
+  longPairs.forEach(pair => {
+    assert(columns.arabic.some(item => item.label === pair.arabic), 'Arabic text must remain visible');
+    assert(columns.english.some(item => item.label === pair.meaning), 'English text must remain visible');
+  });
+  assert.equal(MATCHING_ITEM_LAYOUT.flexGrow, 0, 'Cards must not grow to fill vertical space');
+  assert.equal(MATCHING_ITEM_LAYOUT.flexShrink, 0, 'Cards must keep stable content-sized touch targets');
+  assert.equal(MATCHING_ITEM_LAYOUT.width, '100%', 'Cards should fill only their column width');
+  assert(MATCHING_ITEM_LAYOUT.minHeight >= 44, 'Cards need an accessible minimum touch height');
+  assert(!('height' in MATCHING_ITEM_LAYOUT), 'Cards must not use fixed or screen-height sizing');
 }
 
 testIndependentColumns();
 testExactPairCorrectness();
 testWrongPairReset();
 testDuplicateLabelsUsePairIdentity();
-testLongTextIsPreserved();
+testMobileLayoutContract();
 
 console.log('Matching interaction tests passed.');

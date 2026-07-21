@@ -11,6 +11,7 @@ import { theme } from '../../constants/theme';
 import type { EmojiMatchQuestion } from '../../data/quiz-types';
 import {
   buildMatchingColumns,
+  MATCHING_ITEM_LAYOUT,
   selectMatchingItem,
   type MatchingColumnItem,
   type MatchingSelection,
@@ -82,36 +83,39 @@ export default function EmojiMatch({ question, answerResult, onAnswer, showTrans
         <Text style={[styles.columnHeader, styles.arabicHeader]}>العربية</Text>
       </View>
 
-      <View style={styles.rows}>
-        {columns.english.map((englishItem, index) => {
-          const arabicItem = columns.arabic[index];
-          return (
-            <View style={styles.row} key={`matching-row-${index}`}>
-              <MatchCard
-                item={englishItem}
-                side="english"
-                selected={matchingState.selected?.side === 'english' && matchingState.selected.pairId === englishItem.pairId}
-                matched={matchingState.matchedPairIds.includes(englishItem.pairId)}
-                matchNumber={matchingState.matchedPairIds.indexOf(englishItem.pairId) + 1}
-                wrong={wrongPairIds.includes(englishItem.pairId)}
-                disabled={matchingState.matchedPairIds.includes(englishItem.pairId)}
-                onPress={() => handleSelection({ side: 'english', pairId: englishItem.pairId })}
-              />
-              <View style={styles.rowDivider} />
-              <MatchCard
-                item={arabicItem}
-                side="arabic"
-                showSecondary={showTranslit}
-                selected={matchingState.selected?.side === 'arabic' && matchingState.selected.pairId === arabicItem.pairId}
-                matched={matchingState.matchedPairIds.includes(arabicItem.pairId)}
-                matchNumber={matchingState.matchedPairIds.indexOf(arabicItem.pairId) + 1}
-                wrong={wrongPairIds.includes(arabicItem.pairId)}
-                disabled={matchingState.matchedPairIds.includes(arabicItem.pairId)}
-                onPress={() => handleSelection({ side: 'arabic', pairId: arabicItem.pairId })}
-              />
-            </View>
-          );
-        })}
+      <View style={styles.columns}>
+        <View style={styles.column}>
+          {columns.english.map(englishItem => (
+            <MatchCard
+              key={`english-${englishItem.pairId}`}
+              item={englishItem}
+              side="english"
+              selected={matchingState.selected?.side === 'english' && matchingState.selected.pairId === englishItem.pairId}
+              matched={matchingState.matchedPairIds.includes(englishItem.pairId)}
+              matchNumber={matchingState.matchedPairIds.indexOf(englishItem.pairId) + 1}
+              wrong={wrongPairIds.includes(englishItem.pairId)}
+              disabled={matchingState.matchedPairIds.includes(englishItem.pairId)}
+              onPress={() => handleSelection({ side: 'english', pairId: englishItem.pairId })}
+            />
+          ))}
+        </View>
+        <View style={styles.columnDivider} />
+        <View style={styles.column}>
+          {columns.arabic.map(arabicItem => (
+            <MatchCard
+              key={`arabic-${arabicItem.pairId}`}
+              item={arabicItem}
+              side="arabic"
+              showSecondary={showTranslit}
+              selected={matchingState.selected?.side === 'arabic' && matchingState.selected.pairId === arabicItem.pairId}
+              matched={matchingState.matchedPairIds.includes(arabicItem.pairId)}
+              matchNumber={matchingState.matchedPairIds.indexOf(arabicItem.pairId) + 1}
+              wrong={wrongPairIds.includes(arabicItem.pairId)}
+              disabled={matchingState.matchedPairIds.includes(arabicItem.pairId)}
+              onPress={() => handleSelection({ side: 'arabic', pairId: arabicItem.pairId })}
+            />
+          ))}
+        </View>
       </View>
 
       <Text
@@ -228,13 +232,13 @@ const styles = StyleSheet.create({
   englishHeader: { textAlign: 'left', writingDirection: 'ltr' },
   arabicHeader: { textAlign: 'right', writingDirection: 'rtl', textTransform: 'none' },
   headerDivider: { width: 1, height: 16, backgroundColor: theme.colors.borderDefault },
-  rows: { gap: 10 },
-  row: { direction: 'ltr', flexDirection: 'row', alignItems: 'stretch', gap: 8 },
-  rowDivider: { width: 1, backgroundColor: theme.colors.borderDefault },
-  cardPressable: { flex: 1, minWidth: 0 },
+  columns: { direction: 'ltr', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  column: { flex: 1, minWidth: 0, gap: 10 },
+  columnDivider: { width: 1, alignSelf: 'stretch', backgroundColor: theme.colors.borderDefault },
+  cardPressable: { ...MATCHING_ITEM_LAYOUT, minWidth: 0 },
   card: {
-    minHeight: 72,
-    height: '100%',
+    width: '100%',
+    minHeight: MATCHING_ITEM_LAYOUT.minHeight,
     borderRadius: theme.radii.sm,
     borderWidth: 1,
     borderColor: theme.colors.borderDefault,
@@ -259,7 +263,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.accentDanger,
     backgroundColor: 'rgba(229, 107, 111, 0.14)',
   },
-  cardContent: { flex: 1, minWidth: 0 },
+  cardContent: { flexShrink: 1, minWidth: 0 },
   cardText: {
     color: theme.colors.textPrimary,
     fontWeight: theme.fontWeight.medium,
