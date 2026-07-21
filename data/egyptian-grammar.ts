@@ -131,15 +131,15 @@ export const GRAMMAR_PRONOUNS_WORDS_EG = lesson('grammar-pronouns', [
   ['إنت', 'inta', 'You masculine', '👥 Pronouns', 'إنت كويس؟', 'Are you okay?', 'Use إنت for one male listener.', 'Egyptian uses إنت instead of MSA أنتَ.', 'إنت.', ['inta', 'enta']],
   ['إنتي', 'inti', 'You feminine', '👥 Pronouns', 'إنتي كويسة؟', 'Are you okay? (to a woman)', 'Use إنتي for one female listener.', 'The final ي marks feminine address.', 'إنتي.', ['inti', 'enti']],
   ['هو', 'huwwa', 'He', '👤 Pronouns', 'هو شغال', 'He is working', 'Use هو for he.', undefined, 'هو.', ['huwwa', 'howwa']],
-  ['هي', 'hiyya', 'She', '👤 Pronouns', 'هي ساكنة هنا', 'She lives here', 'Use هي for she.', undefined, 'هي.', ['hiyya', 'heyya']],
-  ['إحنا', 'ihna', 'We', '👥 Pronouns', 'إحنا جاهزين', 'We are ready', 'Use إحنا for we.', 'Egyptian commonly says إحنا, not نحن.', 'إحنا.', ['ihna', 'eHna', 'ehna']],
+  ['هي', 'hiyya', 'She', '👤 Pronouns', 'هي ساكنة هنا', 'She lives here', 'Use هي for she.', undefined, 'هِيَّ...', ['hiyya', 'heyya']],
+  ['إحنا', 'ihna', 'We', '👥 Pronouns', 'إحنا جاهزين', 'We are ready', 'Use إحنا for we.', 'Egyptian commonly says إحنا, not نحن.', 'إحنا...', ['ihna', 'eHna', 'ehna']],
   ['إنتوا', 'intu', 'You plural', '👥 Pronouns', 'إنتوا منين؟', 'Where are you all from?', 'Use إنتوا for more than one listener.', undefined, 'إنتوا.', ['intu', 'entoo']],
   ['هما', 'humma', 'They', '👥 Pronouns', 'هما في البيت', 'They are at home', 'Use هما for they in beginner Egyptian.', 'This keeps the written form close to everyday Egyptian pronunciation.', 'هما.', ['humma', 'homma']],
 ]);
 
 export const GRAMMAR_THIS_THAT_WORDS_EG = lesson('grammar-this-that', [
-  ['ده', 'da', 'This / that masculine', '👉 Demonstratives', 'ده كتاب', 'This is a book', 'Use ده for masculine nouns and many general things.', 'Egyptian uses ده instead of Gulf هذا or MSA هذا.', 'ده.', ['da', 'deh']],
-  ['دي', 'di', 'This / that feminine', '👉 Demonstratives', 'دي عربية', 'This is a car', 'Use دي for feminine nouns.', 'Egyptian دي replaces MSA هذه in speech.', 'دي.', ['di', 'dee']],
+  ['ده', 'da', 'This / that masculine', '👉 Demonstratives', 'ده كتاب', 'This is a book', 'Use ده for masculine nouns and many general things.', 'Egyptian uses ده instead of Gulf هذا or MSA هذا.', 'دَه...', ['da', 'deh']],
+  ['دي', 'di', 'This / that feminine', '👉 Demonstratives', 'دي عربية', 'This is a car', 'Use دي for feminine nouns.', 'Egyptian دي replaces MSA هذه in speech.', 'دِي...', ['di', 'dee']],
   ['دول', 'dool', 'These / those', '👉 Demonstratives', 'دول صحابي', 'These are my friends', 'Use دول for plural nouns.', undefined, 'دول.', ['dool', 'dol']],
   ['ده كويس', 'da kwayyis', 'This is good', '✅ Useful sentence', 'ده كويس جداً', 'This is very good', 'A simple sentence with ده plus adjective.', undefined],
   ['دي غالية', 'di ghaalia', 'This is expensive', '💸 Useful sentence', 'دي غالية شوية', 'This is a bit expensive', 'Use feminine adjective with دي when natural.', undefined],
@@ -206,16 +206,16 @@ export const GRAMMAR_ADJECTIVES_WORDS_EG = lesson('grammar-adjectives', [
 ]);
 
 export const GRAMMAR_PREPOSITIONS_WORDS_EG = lesson('grammar-prepositions', [
-  ['في', 'fi', 'In / at', '📍 Prepositions', 'أنا في البيت', 'I am at home', 'Use في for in or at.', undefined, 'في.', ['fi', 'fee']],
+  ['في', 'fi', 'In / at', '📍 Prepositions', 'أنا في البيت', 'I am at home', 'Use في for in or at.', undefined, 'فِي...', ['fi', 'fee']],
   ['على', 'ala', 'On / on top of', '📍 Prepositions', 'الكتاب على الترابيزة', 'The book is on the table', 'Use على for on.', undefined, 'على.', ['ala']],
-  ['من', 'min', 'From', '📍 Prepositions', 'أنا من مصر', 'I am from Egypt', 'Use من for from.', undefined, 'من.', ['min']],
-  ['لـ', 'li', 'To / for', '📍 Prepositions', 'رايح للقاهرة', 'Going to Cairo', 'Often attached to the next word.', 'Egyptian often says لـ where English says to/for.', 'لِـ.', ['li', 'le']],
+  ['من', 'min', 'From', '📍 Prepositions', 'أنا من مصر', 'I am from Egypt', 'Use من for from.', undefined, 'مِن...', ['min']],
+  ['لـ', 'li', 'To / for', '📍 Prepositions', 'رايح للقاهرة', 'Going to Cairo', 'Often attached to the next word.', 'Egyptian often says لـ where English says to/for.', 'لِـ...', ['li', 'le']],
   ['مع', 'ma’a', 'With', '📍 Prepositions', 'أنا مع صاحبي', 'I am with my friend', 'Use مع for with.', undefined, 'مع.', ['maa', 'ma’a']],
   ['جنب', 'ganb', 'Next to', '📍 Prepositions', 'جنب البنك', 'Next to the bank', 'Very common location word.', undefined, 'جنب.', ['ganb', 'gamb']],
 ]);
 
 export const GRAMMAR_SENTENCES_WORDS_EG = lesson('grammar-sentences', [
-  ['أنا عايز قهوة', 'ana aayiz ahwa', 'I want coffee', '🧱 Sentences', 'أنا عايز قهوة لو سمحت', 'I want coffee please', 'Simple order: subject + want + noun.', 'Egyptian uses عايز for masculine/default speaker.', undefined, ['ana aayiz ahwa', 'ana ayiz ahwa']],
+  ['أنا عايز قهوة', 'ana aayiz ahwa', 'I want coffee', '🧱 Sentences', 'أنا عايز قهوة لو سمحت', 'I want coffee please', 'Simple order: subject + want + noun.', 'Egyptian uses عايز for masculine/default speaker.', 'أنا عايز قهوة.', ['ana aayiz ahwa', 'ana ayiz ahwa']],
   ['أنا عايزة قهوة', 'ana aayza ahwa', 'I want coffee (female speaker)', '🧱 Sentences', 'أنا عايزة قهوة لو سمحت', 'I want coffee please', 'Use عايزة for female speaker.', undefined],
   ['هو في البيت', 'huwwa fi el-beit', 'He is at home', '🧱 Sentences', 'هو في البيت دلوقتي', 'He is at home now', 'No verb “to be” is needed in present simple sentences.', undefined],
   ['العربية دي كبيرة شوية', 'el-arabeyya di kibiira shwayya', 'This car is a bit big', '🧱 Sentences', 'العربية دي كبيرة شوية', 'This car is a bit big.', 'Noun + demonstrative + adjective sounds natural in Egyptian.', undefined],

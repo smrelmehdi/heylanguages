@@ -68,7 +68,7 @@ export const INVITATIONS_WORDS_EG = lesson('invitations', [
 export const ACCEPTING_REFUSING_WORDS_EG = lesson('accepting-and-refusing', [
   ['ماشي', 'maashi', 'Okay', 'Accepting casually', 'ماشي، هاجي معاكم', 'Okay, I will come with you', 'A very common casual acceptance.'],
   ['تمام، موافق', "tamaam, muwaafi'", 'Great, I agree', 'Accepting a plan', 'تمام، موافق على الخطة', 'Great, I agree with the plan', 'موافق is useful when agreeing to a suggestion.'],
-  ['أكيد، هاجي', 'akiid, haagi', 'Of course, I will come', 'Accepting warmly', 'أكيد، هاجي الساعة سبعة', 'Of course, I will come at seven', 'The future marker هـ appears in هاجي.'],
+  ['أكيد، هاجي', 'akiid, haagi', 'Of course, I will come', 'Accepting warmly', 'أكيد، هاجي الساعة سبعة', 'Of course, I will come at seven', 'The future marker هـ appears in هاجي.', undefined, 'أكيد، هَاجي...'],
   ['للأسف مش هقدر', "lil-asaf mish ha'dar", 'Unfortunately, I cannot', 'Refusing politely', 'للأسف مش هقدر أجي بكرة', 'Unfortunately, I cannot come tomorrow', 'A polite refusal without sounding abrupt.'],
   ['معلش، مرة تانية', 'maalish, marra tanya', 'Sorry, another time', 'Postponing an invitation', 'معلش، مرة تانية عشان أنا مشغول', 'Sorry, another time because I am busy', 'A natural soft refusal.'],
   ['ينفع يوم تاني؟', "yinfa' yoom taani?", 'Would another day work?', 'Suggesting an alternative', 'مش فاضي الخميس، ينفع يوم تاني؟', 'I am not free Thursday; would another day work?', 'Use this to keep the invitation open.'],
@@ -105,7 +105,7 @@ export const FOOTBALL_WORDS_EG = lesson('football', [
   ['هنشوف الماتش', 'hanshuuf el-maatsh', 'We will watch the match', 'Making a football plan', 'هنشوف الماتش عندي', 'We will watch the match at my place', 'ماتش is the natural Egyptian loanword.'],
   ['بتشجع مين؟', "bitshagga' meen?", 'Which team do you support?', 'Talking about football', 'إنت بتشجع مين؟', 'Which team do you support?', 'شجع has Egyptian hard-g pronunciation.'],
   ['الماتش الساعة كام؟', 'el-maatsh es-saa kam?', 'What time is the match?', 'Checking match time', 'الماتش الساعة كام النهارده؟', 'What time is the match today?', 'A practical time question.'],
-  ['بلعب كورة', "bal'ab koora", 'I play football', 'Talking about hobbies', 'بلعب كورة كل أسبوع', 'I play football every week', 'كورة is the everyday Egyptian word for football.'],
+  ['بلعب كورة', "bal'ab koora", 'I play football', 'Talking about hobbies', 'بلعب كورة كل أسبوع', 'I play football every week', 'كورة is the everyday Egyptian word for football.', undefined, 'بلعب كورة.'],
   ['الجون كان حلو', 'el-goon kaan helw', 'The goal was good', 'Reacting to a match', 'الجون الأخير كان حلو أوي', 'The last goal was very good', 'جون is a common football loanword and uses hard g.'],
   ['كسبنا الماتش', 'kisibna el-maatsh', 'We won the match', 'After a match', 'كسبنا الماتش اتنين صفر', 'We won the match two-nil', 'كسبنا means “we won.”'],
 ]);

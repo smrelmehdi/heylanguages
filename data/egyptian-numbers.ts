@@ -162,7 +162,7 @@ export const NUMBERS_TENS_WORDS_EG = lesson('numbers-tens', [
 
 export const NUMBERS_100_1000_WORDS_EG = lesson('numbers-100-1000', [
   ['مية', 'miyya', 'One hundred', '🔢 Big numbers', 'مية جنيه', 'One hundred pounds', 'مية.', ['miyya', 'miya']],
-  ['ميتين', 'miteen', 'Two hundred', '🔢 Big numbers', 'ميتين جنيه', 'Two hundred pounds', 'ميتين.', ['miteen', 'miiteen']],
+  ['ميتين', 'miteen', 'Two hundred', '🔢 Big numbers', 'ميتين جنيه', 'Two hundred pounds', 'مِيتين.', ['miteen', 'miiteen']],
   ['تلتمية', 'tultumiyya', 'Three hundred', '🔢 Big numbers', 'تلتمية جنيه', 'Three hundred pounds', 'تلتمية.', ['tultumiyya', 'tultumiya']],
   ['خمسمية', 'khumsumiyya', 'Five hundred', '🔢 Big numbers', 'خمسمية جنيه', 'Five hundred pounds', 'خمسمية.', ['khumsumiyya', 'khomsomiya']],
   ['ألف', 'alf', 'One thousand', '🔢 Big numbers', 'ألف جنيه', 'One thousand pounds', 'ألف.', ['alf']],

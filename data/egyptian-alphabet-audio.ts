@@ -37,6 +37,7 @@ const EGYPTIAN_ALPHABET_AUDIO_FILES = [
 export const ALPHABET_AUDIO_EG: AlphabetAudioItem[] = ALPHABET_AUDIO.map((item, index) => ({
   ...item,
   ...(item.id === 'jim' ? { transliteration: 'Giim', english: 'Giim' } : {}),
+  ...(item.id === 'ya' ? { audioText: 'يَاءْ.' } : {}),
   audioPath: `assets/audio/egyptian/alphabet-v2/${item.index}.mp3`,
   audio: EGYPTIAN_ALPHABET_AUDIO_FILES[index],
 }));

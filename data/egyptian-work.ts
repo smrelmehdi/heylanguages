@@ -64,7 +64,7 @@ export const JOB_TITLES_WORDS_EG = lesson('job-titles', [
   ['مهندس', 'mohandes', 'Engineer (male)', '🧑‍💻 Jobs', 'هو مهندس كمبيوتر', 'He is a computer engineer', 'The feminine form is مهندسة.'],
   ['مهندسة', 'mohandesa', 'Engineer (female)', '🧑‍💻 Jobs', 'هي مهندسة معمارية', 'She is an architect', 'Use مهندسة for a female engineer.'],
   ['مدرس', 'mudarres', 'Teacher (male)', '🧑‍🏫 Jobs', 'هو مدرس عربي', 'He is an Arabic teacher', 'The feminine form is مدرسة.'],
-  ['دكتور', 'doktoor', 'Doctor (male)', '🩺 Jobs', 'هو دكتور في المستشفى', 'He is a doctor at the hospital', 'دكتور is common in Egyptian daily speech.'],
+  ['دكتور', 'doktoor', 'Doctor (male)', '🩺 Jobs', 'هو دكتور في المستشفى', 'He is a doctor at the hospital', 'دكتور is common in Egyptian daily speech.', undefined, 'دكتور...'],
   ['محاسب', 'mohaaseb', 'Accountant (male)', '🧾 Jobs', 'أنا محاسب في بنك', 'I am an accountant at a bank', 'The feminine form is محاسبة.'],
   ['مدير', 'mudiir', 'Manager (male)', '👔 Jobs', 'مديري في اجتماع', 'My manager is in a meeting', 'مديري means “my manager” when ي is added.'],
   ['زميلي', 'zimiili', 'My male colleague', '🤝 Colleagues', 'زميلي اسمه أحمد', 'My colleague is called Ahmed', 'Use زميلي for a male colleague.'],
