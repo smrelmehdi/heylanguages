@@ -20,6 +20,16 @@ export function getQuizPassed(correctCount: number, totalQuestions: number) {
   return totalQuestions > 0 && correctCount >= getPassingScore(totalQuestions);
 }
 
+export function getPersistableQuizXp(
+  correctCount: number,
+  totalQuestions: number,
+  attemptXp: number,
+  isReview = false,
+) {
+  if (isReview || !getQuizPassed(correctCount, totalQuestions)) return 0;
+  return Math.max(0, Math.round(attemptXp));
+}
+
 export function getQuizMaxXp(questions: QuizQuestion[]) {
   return questions.reduce((total, question) => total + question.xpValue, 0);
 }

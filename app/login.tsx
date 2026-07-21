@@ -6,46 +6,13 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
-import { getCanonicalCompletionKey, getCompletionKeyCandidates, parseCompletionKey } from '../utils/progression';
+import { useXP } from '../contexts/XPContext';
+import { mergeGuestProgress } from '../utils/guest-xp-migration';
 import { supabase } from '../utils/supabase';
-
-async function mergeGuestProgress(userId: string) {
-  const guestProgress = await AsyncStorage.getItem('guest_progress');
-  const guestXpRaw = await AsyncStorage.getItem('guest_xp_cache');
-  if (!guestProgress) return;
-
-  const progressMap: Record<string, boolean> = JSON.parse(guestProgress);
-
-  for (const [scenario, completed] of Object.entries(progressMap)) {
-    if (!completed) continue;
-    const parsed = parseCompletionKey(scenario);
-    const canonicalScenario = parsed ? scenario : getCanonicalCompletionKey('gulf', scenario);
-    if (!canonicalScenario) continue;
-    const dialect = parsed?.dialect ?? 'gulf';
-    const contentId = parsed?.contentId ?? scenario;
-    const { error } = await supabase.rpc('complete_quiz_once', {
-      p_scenario: canonicalScenario,
-      p_dialect: dialect,
-      p_score: 100,
-      p_xp: 0,
-      p_completion_candidates: getCompletionKeyCandidates(dialect, contentId),
-    });
-    if (error) throw error;
-  }
-
-  const completedCount = Object.values(progressMap).filter(Boolean).length;
-  const guestXp = guestXpRaw ? parseInt(guestXpRaw, 10) : NaN;
-  const xpEarned = Number.isFinite(guestXp) ? guestXp : completedCount * 60;
-  const { data: existingUser } = await supabase.from('users').select('xp').eq('id', userId).single();
-  await supabase.from('users').update({ xp: (existingUser?.xp ?? 0) + xpEarned }).eq('id', userId);
-
-  await AsyncStorage.removeItem('guest_progress');
-  await AsyncStorage.removeItem('guest_xp_cache');
-  await AsyncStorage.removeItem('guest_chat_count');
-}
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { refreshFromServer } = useXP();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,7 +20,7 @@ export default function LoginScreen() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [awaitingVerification, setAwaitingVerification] = useState(false);
 
-    async function handleAuth() {
+  async function handleAuth() {
     if (!email || !password) {
       Alert.alert("Hold up", "Please enter both your email and password.");
       return;
@@ -62,53 +29,60 @@ export default function LoginScreen() {
     setLoading(true);
     Keyboard.dismiss();
 
-    const wizardDialect = await AsyncStorage.getItem('wizard_dialect');
-    const wizardLevel = await AsyncStorage.getItem('wizard_level');
+    try {
+      const wizardDialect = await AsyncStorage.getItem('wizard_dialect');
+      const wizardLevel = await AsyncStorage.getItem('wizard_level');
 
-    if (isLoginMode) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        Alert.alert("Login Error", error.message);
-      } else if (data.session) {
-        await supabase.from('users').update({
-          onboarding_completed: true,
-          dialect: wizardDialect ?? 'gulf',
-          level: wizardLevel ?? 'beginner',
-          last_active: new Date().toISOString(),
-        }).eq('id', data.session.user.id);
-        await mergeGuestProgress(data.session.user.id);
-        router.replace('/(tabs)');
-      }
-    } else {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        Alert.alert("Sign Up Error", error.message);
-      } else if (data.user) {
-        const { error: insertError } = await supabase.from('users').insert({
-          id: data.user.id,
-          email: data.user.email,
-          level: wizardLevel ?? 'beginner',
-          dialect: wizardDialect ?? 'gulf',
-          onboarding_completed: true,
-          streak_count: 0,
-          last_active: new Date().toISOString(),
-        });
-
-        if (insertError) {
-          // Row may already exist (e.g. re-signup) — not fatal, continue
-          console.warn('users insert:', insertError.message);
-        }
-
-        if (data.session) {
-          await mergeGuestProgress(data.session.user.id);
+      if (isLoginMode) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          Alert.alert("Login Error", error.message);
+        } else if (data.session) {
+          await supabase.from('users').update({
+            onboarding_completed: true,
+            dialect: wizardDialect ?? 'gulf',
+            level: wizardLevel ?? 'beginner',
+            last_active: new Date().toISOString(),
+          }).eq('id', data.session.user.id);
+          await mergeGuestProgress();
+          await refreshFromServer().catch(error => console.warn('XP refresh after login failed:', error));
           router.replace('/(tabs)');
-        } else {
-          setAwaitingVerification(true);
+        }
+      } else {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          Alert.alert("Sign Up Error", error.message);
+        } else if (data.user) {
+          const { error: insertError } = await supabase.from('users').insert({
+            id: data.user.id,
+            email: data.user.email,
+            level: wizardLevel ?? 'beginner',
+            dialect: wizardDialect ?? 'gulf',
+            onboarding_completed: true,
+            streak_count: 0,
+            last_active: new Date().toISOString(),
+          });
+
+          if (insertError) {
+            // Row may already exist (e.g. re-signup) — not fatal, continue
+            console.warn('users insert:', insertError.message);
+          }
+
+          if (data.session) {
+            await mergeGuestProgress();
+            await refreshFromServer().catch(error => console.warn('XP refresh after sign-up failed:', error));
+            router.replace('/(tabs)');
+          } else {
+            setAwaitingVerification(true);
+          }
         }
       }
+    } catch (error) {
+      console.warn('Authentication or progress sync failed:', error);
+      Alert.alert('Could not finish signing in', 'Your account opened, but progress could not be synced. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   const handleSocialMock = (provider: string) => {

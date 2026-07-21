@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
+import { COMPLETION_XP } from '../constants/xp';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { getUnit4Audio, isUnit4AudioLesson } from '../data/unit4-audio';
@@ -27,6 +28,7 @@ export default function LessonScreen() {
   const params = useLocalSearchParams();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [completionXpAwarded, setCompletionXpAwarded] = useState(0);
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
@@ -38,7 +40,7 @@ export default function LessonScreen() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const audioOwner = useRef(createAudioPlaybackOwner('lesson')).current;
   const { content, dialect } = useDialect();
-  const { addXP, refreshFromServer } = useXP();
+  const { applyGuestXpSnapshot, refreshFromServer } = useXP();
 
   // All hooks above — derived values below
   const type = params.type;
@@ -324,16 +326,15 @@ export default function LessonScreen() {
         completionKey: scenarioKey,
       });
     }
-    const xpEarned = 60;
-    let guestLevelUp: Awaited<ReturnType<typeof addXP>> = null;
+    let guestLevelUp: ReturnType<typeof applyGuestXpSnapshot> = null;
     const result = await persistCurriculumCompletion({
       completionKey: scenarioKey,
       dialect,
       legacyContentId: publicCompletionId,
       score: 100,
-      xp: xpEarned,
-      addGuestXp: async amount => {
-        guestLevelUp = await addXP(amount);
+      xp: COMPLETION_XP.lesson,
+      applyGuestXpSnapshot: (previousXp, nextXp) => {
+        guestLevelUp = applyGuestXpSnapshot(previousXp, nextXp);
       },
       refreshSignedInXp: refreshFromServer,
     });
@@ -356,6 +357,7 @@ export default function LessonScreen() {
 
     // Record activity for streak (works for both guests and signed-in users)
     await recordActivity();
+    return result.xpAwarded;
   };
 
   const handleNext = async () => {
@@ -368,7 +370,7 @@ export default function LessonScreen() {
       if (isSavingCompletion) return;
       setIsSavingCompletion(true);
       try {
-        await saveCompletion();
+        setCompletionXpAwarded(await saveCompletion());
         setCompleted(true);
       } finally {
         setIsSavingCompletion(false);
@@ -412,7 +414,7 @@ export default function LessonScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statVal}>+60</Text>
+              <Text style={styles.statVal}>+{completionXpAwarded}</Text>
               <Text style={styles.statLabel}>XP</Text>
             </View>
           </View>
@@ -465,7 +467,7 @@ export default function LessonScreen() {
           <Text style={styles.lessonSub}>{lessonSubtitle}</Text>
         </View>
         <View style={styles.xpPill}>
-          <Text style={styles.xpText}>+60 XP</Text>
+          <Text style={styles.xpText}>First +{COMPLETION_XP.lesson} XP</Text>
         </View>
       </View>
 

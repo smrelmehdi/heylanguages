@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
+import { getPersistableQuizXp } from '../../utils/quiz-scoring';
 import type { QuizSrsSummary } from '../../utils/srs';
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
   xpEarned: number;
   maxXp: number;
   persistedXpAdded: number;
+  persistenceFailed?: boolean;
+  isReview?: boolean;
   hasMissed: boolean;
   correctedCount?: number;
   missedCount?: number;
@@ -28,6 +31,8 @@ export default function QuizResults({
   xpEarned,
   maxXp,
   persistedXpAdded,
+  persistenceFailed = false,
+  isReview = false,
   hasMissed,
   correctedCount = 0,
   missedCount = 0,
@@ -45,6 +50,7 @@ export default function QuizResults({
     'Keep practicing 💪';
 
   const circleColor = passed ? theme.colors.accentPrimary : theme.colors.accentDanger;
+  const awardedAttemptXp = getPersistableQuizXp(correct, total, xpEarned, isReview);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,7 +76,7 @@ export default function QuizResults({
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statVal}>+{xpEarned}</Text>
+            <Text style={styles.statVal}>+{awardedAttemptXp}</Text>
             <Text style={styles.statLabel}>Attempt XP</Text>
           </View>
           <View style={styles.statDivider} />
@@ -85,8 +91,12 @@ export default function QuizResults({
           </View>
         </View>
 
-        {passed ? (
+        {isReview ? (
+          <Text style={styles.passMsg}>✓ Practice complete.</Text>
+        ) : passed && !persistenceFailed ? (
           <Text style={styles.passMsg}>✓ Quiz passed! Next lesson unlocked.</Text>
+        ) : passed ? (
+          <Text style={styles.failMsg}>Quiz passed, but progress could not be saved.</Text>
         ) : (
           <Text style={styles.failMsg}>Need {passingScore}/{total} to pass. You can do it!</Text>
         )}
@@ -94,7 +104,7 @@ export default function QuizResults({
         <Text style={styles.initialScoreNote}>Initial score: {correct} / {total}</Text>
 
         <Text style={styles.xpNote}>
-          Max possible: +{maxXp} XP · Saved this time: +{persistedXpAdded} XP
+          Max possible: +{isReview ? 0 : maxXp} XP · Saved this time: +{persistedXpAdded} XP
         </Text>
 
         {missedCount > 0 && (

@@ -28,6 +28,7 @@ import CafeScene from '../components/CafeScene';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import ScenarioCompletionCelebration from '../components/ScenarioCompletionCelebration';
 import { theme } from '../constants/theme';
+import { COMPLETION_XP } from '../constants/xp';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { DIALECT_LABELS } from '../data/content-registry';
@@ -548,12 +549,13 @@ export default function ScenarioScreen() {
   const [scenarioEvalResult, setScenarioEvalResult] = useState<ScenarioEvalResult | null>(null);
   const [scenarioScores, setScenarioScores] = useState<Record<number, number>>({});
   const [completed, setCompleted] = useState(false);
+  const [completionXpAwarded, setCompletionXpAwarded] = useState(0);
   const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: string; icon: string; color: string } | null>(null);
   const audioOwner = useRef(createAudioPlaybackOwner('scenario')).current;
 
-  const { addXP, refreshFromServer } = useXP();
+  const { applyGuestXpSnapshot, refreshFromServer } = useXP();
   const isComingSoon = DIALOGUE.length === 0;
 
   const currentTurn = isComingSoon ? { type: 'waiter' as const, arabic: '', transliteration: '', english: '' } : DIALOGUE[currentIndex];
@@ -1031,8 +1033,6 @@ export default function ScenarioScreen() {
   const saveCompletion = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const xpEarned = 120;
-
       if (__DEV__) {
         console.log('[completion write:start]', {
           completionType: 'scenario',
@@ -1042,15 +1042,15 @@ export default function ScenarioScreen() {
         });
       }
 
-      let guestLevelUp: Awaited<ReturnType<typeof addXP>> = null;
+      let guestLevelUp: ReturnType<typeof applyGuestXpSnapshot> = null;
       const result = await persistCurriculumCompletion({
         completionKey: scenarioKey,
         dialect,
         legacyContentId: publicScenarioId,
         score: scenarioScore,
-        xp: xpEarned,
-        addGuestXp: async amount => {
-          guestLevelUp = await addXP(amount);
+        xp: COMPLETION_XP.scenario,
+        applyGuestXpSnapshot: (previousXp, nextXp) => {
+          guestLevelUp = applyGuestXpSnapshot(previousXp, nextXp);
         },
         refreshSignedInXp: refreshFromServer,
       });
@@ -1089,10 +1089,10 @@ export default function ScenarioScreen() {
 
       // Delegate streak tracking to recordActivity()
       await recordActivity();
-      return true;
+      return result.xpAwarded;
     } catch (err) {
       console.warn('Save completion error:', err);
-      return false;
+      return null;
     }
   };
 
@@ -1101,8 +1101,11 @@ export default function ScenarioScreen() {
       if (isSavingCompletion) return;
       setIsSavingCompletion(true);
       try {
-        const saved = await saveCompletion();
-        if (saved) setCompleted(true);
+        const xpAwarded = await saveCompletion();
+        if (xpAwarded !== null) {
+          setCompletionXpAwarded(xpAwarded);
+          setCompleted(true);
+        }
       } finally {
         setIsSavingCompletion(false);
       }
@@ -1172,7 +1175,7 @@ export default function ScenarioScreen() {
           headline={completionCopy.headline}
           subtitle={completionCopy.subtitle}
           phrasesSpoken={userTurnCount}
-          xpEarned={120}
+          xpEarned={completionXpAwarded}
           score={scenarioScore}
           onBackHome={() => {
             clearSavedScenarioProgress().then(goHomeAfterCompletion).catch(goHomeAfterCompletion);

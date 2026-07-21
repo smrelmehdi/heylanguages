@@ -1502,7 +1502,7 @@ export default function QuizUnit2Screen() {
   const insets = useSafeAreaInsets();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
   const { dialect, content } = useDialect();
-  const { addXP, refreshFromServer } = useXP();
+  const { applyGuestXpSnapshot, refreshFromServer } = useXP();
   const requestedUnit = unit ?? '2p1';
   const attemptScope = `${dialect}:${requestedUnit}`;
   const routeContentId = getQuizContentId(requestedUnit);
@@ -1523,6 +1523,7 @@ export default function QuizUnit2Screen() {
   const [isPlanningAttempt, setIsPlanningAttempt] = useState(true);
   const [maxXp, setMaxXp] = useState(0);
   const [persistedXpAdded, setPersistedXpAdded] = useState(0);
+  const [persistenceFailed, setPersistenceFailed] = useState(false);
   const [initialResult, setInitialResult] = useState<InitialAttemptResult | null>(null);
   const [correctedPracticeCount, setCorrectedPracticeCount] = useState(0);
   const isRedrillRef = useRef(false);
@@ -1583,7 +1584,7 @@ export default function QuizUnit2Screen() {
         questions: selected,
         tierInfo: getQuizTierInfo(1),
         srsSummary: await getQuizSrsSummary(selected.map(q => q.id)),
-        maxXp: getQuizMaxXp(selected),
+        maxXp: 0,
       };
     }
 
@@ -1708,6 +1709,7 @@ export default function QuizUnit2Screen() {
     setInitialResult(null);
     setCorrectedPracticeCount(0);
     setPersistedXpAdded(0);
+    setPersistenceFailed(false);
     setLastAwardedXp(0);
     setShowXpFloat(false);
     setXpEarned(0);
@@ -1754,7 +1756,7 @@ export default function QuizUnit2Screen() {
     }
 
     if (normalizedAnswer.correct) {
-      const questionXp = awardedQuestionIdsRef.current.has(q.id)
+      const questionXp = requestedUnit === 'review' || awardedQuestionIdsRef.current.has(q.id)
         ? 0
         : getQuestionAttemptXp(q, normalizedAnswer, { isRemediation });
       if (questionXp > 0) {
@@ -1801,8 +1803,13 @@ export default function QuizUnit2Screen() {
           };
           setInitialResult(frozenResult);
           const finishInitialAttempt = async () => {
-            if (initialPassed) {
-              setPersistedXpAdded(await saveQuizCompletion(frozenResult));
+            if (initialPassed && requestedUnit !== 'review') {
+              try {
+                setPersistedXpAdded(await saveQuizCompletion(frozenResult));
+              } catch (error) {
+                setPersistenceFailed(true);
+                console.warn('Quiz save error:', error);
+              }
             }
             if (attemptSeedRef.current) {
               await finishQuizAttempt(attemptScope, attemptSeedRef.current);
@@ -1824,25 +1831,20 @@ export default function QuizUnit2Screen() {
 
   // ── Save to DB ───────────────────────────────────────────────────────────
   const saveQuizCompletion = async (result: InitialAttemptResult): Promise<number> => {
-    try {
-      const unitId = requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
-      if (!routeContentId) return 0;
-      const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);
-      const persisted = await persistQuizPass({
-        completionKey: scenarioKey,
-        dialect,
-        legacyContentId: routeContentId,
-        score: result.score,
-        xp: result.attemptXp,
-        addGuestXp: addXP,
-        refreshSignedInXp: refreshFromServer,
-      });
-      await recordActivity();
-      return persisted.xpAwarded;
-    } catch (err) {
-      console.warn('Quiz save error:', err);
-      return 0;
-    }
+    const unitId = requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
+    if (!routeContentId) return 0;
+    const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);
+    const persisted = await persistQuizPass({
+      completionKey: scenarioKey,
+      dialect,
+      legacyContentId: routeContentId,
+      score: result.score,
+      xp: result.attemptXp,
+      applyGuestXpSnapshot,
+      refreshSignedInXp: refreshFromServer,
+    });
+    await recordActivity();
+    return persisted.xpAwarded;
   };
 
   // ── Retry missed questions ───────────────────────────────────────────────
@@ -1911,6 +1913,8 @@ export default function QuizUnit2Screen() {
           xpEarned={initialResult?.attemptXp ?? 0}
           maxXp={maxXp}
           persistedXpAdded={persistedXpAdded}
+          persistenceFailed={persistenceFailed}
+          isReview={requestedUnit === 'review'}
           hasMissed={(initialResult?.missedCount ?? 0) > 0}
           missedCount={initialResult?.missedCount ?? 0}
           correctedCount={correctedPracticeCount}

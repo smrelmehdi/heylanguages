@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     PanResponder,
     Pressable,
@@ -14,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../constants/theme';
+import { COMPLETION_XP } from '../constants/xp';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
@@ -433,7 +435,8 @@ export default function WritingScreen() {
   const router    = useRouter();
   const { family } = useLocalSearchParams<{ family?: string }>();
   const { dialect, content, isDialectHydrated } = useDialect();
-  const { addXP, refreshFromServer } = useXP();
+  const { applyGuestXpSnapshot, refreshFromServer } = useXP();
+  const [completionXpAwarded, setCompletionXpAwarded] = useState(0);
   const audioOwner = useRef(createAudioPlaybackOwner('writing')).current;
   const alphabetAudio = getAlphabetAudioForDialect(dialect);
 
@@ -499,17 +502,17 @@ export default function WritingScreen() {
   };
 
   const saveCompletion = async () => {
-    const xpEarned = 40;
-    await persistCurriculumCompletion({
+    const result = await persistCurriculumCompletion({
       completionKey: scenarioKey,
       dialect: dialectRef.current,
       legacyContentId: publicScenarioKey,
       score: 100,
-      xp: xpEarned,
-      addGuestXp: addXP,
+      xp: COMPLETION_XP.writing,
+      applyGuestXpSnapshot,
       refreshSignedInXp: refreshFromServer,
     });
     await recordActivity();
+    return result.xpAwarded;
   };
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -683,11 +686,20 @@ export default function WritingScreen() {
     setTimeout(() => {
       const nextQIdx = quizIdxRef.current + 1;
       if (nextQIdx >= quizQsRef.current.length) {
-        setQuizDone(true);
         if (quizScoreRef.current >= 6) {
           saveCompletion()
-            .catch(console.warn)
-            .finally(() => setTimeout(() => router.replace('/(tabs)'), 3000));
+            .then(xpAwarded => {
+              setCompletionXpAwarded(xpAwarded);
+              setQuizDone(true);
+              setTimeout(() => router.replace('/(tabs)'), 3000);
+            })
+            .catch(error => {
+              console.warn('Writing completion save error:', error);
+              Alert.alert('Could not save progress', 'Please check your connection and submit the final answer again.');
+              setSelectedAns(null);
+            });
+        } else {
+          setQuizDone(true);
         }
       } else {
         quizIdxRef.current = nextQIdx;
@@ -845,7 +857,7 @@ export default function WritingScreen() {
             <>
               <Text style={styles.quizPassText}>Family Complete! 🎉</Text>
               <View style={styles.xpBadge}>
-                <Text style={styles.xpBadgeText}>+40 XP</Text>
+                <Text style={styles.xpBadgeText}>+{completionXpAwarded} XP</Text>
               </View>
               <Text style={styles.quizReturnText}>Returning to home…</Text>
             </>

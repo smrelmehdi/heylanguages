@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
+import { BASE_QUIZ_QUESTION_XP } from '../constants/xp';
 import { useDialect } from '../contexts/DialectContext';
 import { useXP } from '../contexts/XPContext';
 import { stripTashkeel } from '../utils/arabic';
@@ -108,7 +109,7 @@ export default function QuizScreen() {
   const router = useRouter();
   const { unit } = useLocalSearchParams<{ unit?: string }>();
   const { dialect, content } = useDialect();
-  const { addXP, refreshFromServer } = useXP();
+  const { applyGuestXpSnapshot, refreshFromServer } = useXP();
   const routeContentId = getQuizContentId(unit);
   const routeLabel = unit ? `Unit ${unit} Quiz` : 'Unit 1 Quiz';
   const isSupportedQuizUnit = SUPPORTED_WORD_QUIZ_UNITS.has(unit ?? '1');
@@ -275,7 +276,7 @@ export default function QuizScreen() {
           legacyContentId: routeContentId,
           score: finalPercentage,
           xp: xpEarned,
-          addGuestXp: addXP,
+          applyGuestXpSnapshot,
           refreshSignedInXp: refreshFromServer,
         });
         setPersistedXpAdded(result.xpAwarded);
@@ -287,7 +288,7 @@ export default function QuizScreen() {
       }
     };
     saveQuizCompletion();
-  }, [addXP, attemptPassed, completed, dialect, finalPercentage, refreshFromServer, routeContentId, unit, xpEarned]);
+  }, [applyGuestXpSnapshot, attemptPassed, completed, dialect, finalPercentage, refreshFromServer, routeContentId, unit, xpEarned]);
 
   const handleAnswer = (answer: string) => {
     if (selectedAnswer) return;
@@ -299,7 +300,7 @@ export default function QuizScreen() {
     setIsCorrect(correct);
 
     if (correct) {
-      setXpEarned(xp => xp + 10);
+      setXpEarned(xp => xp + BASE_QUIZ_QUESTION_XP);
       setCorrectCount(c => c + 1);
       setCurrentStreak(s => {
         const next = s + 1;

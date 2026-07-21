@@ -3,11 +3,13 @@
  *
  * - Loads from AsyncStorage instantly on mount (optimistic, no flicker)
  * - Syncs from Supabase once user session is available
- * - addXP(): updates state + AsyncStorage immediately, Supabase in background
+ * - Signed-in XP is read from Supabase and awarded only by atomic RPCs
+ * - Guest XP snapshots are applied after serialized AsyncStorage persistence
  * - getAccess(): synchronous access result — callers provide dialect/progress state
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { getLevelFromXP } from '../constants/levels';
 import { usePremium } from './PremiumContext';
@@ -24,9 +26,8 @@ interface XPContextValue {
   xp: number;
   isPremium: boolean;
   isLoaded: boolean;
-  /** Immediately adds XP to local state and syncs to Supabase in background.
-   *  Returns LevelUpInfo if the user crossed a level boundary, null otherwise. */
-  addXP: (amount: number) => Promise<LevelUpInfo | null>;
+  /** Applies a guest XP snapshot after progress and XP were persisted together. */
+  applyGuestXpSnapshot: (previousXp: number, nextXp: number) => LevelUpInfo | null;
   /** Synchronous dialect-aware access check — no await needed in render or event handlers. */
   getAccess: (input: Omit<ContentAccessInput, 'isPremium' | 'isTestingUnlocked'>) => ContentAccessResult;
   /** Re-fetch XP from Supabase and premium entitlement from RevenueCat. */
@@ -37,7 +38,7 @@ const XPContext = createContext<XPContextValue>({
   xp: 0,
   isPremium: false,
   isLoaded: false,
-  addXP: async () => null,
+  applyGuestXpSnapshot: () => null,
   getAccess: () => ({ allowed: false, reason: 'unavailable' }),
   refreshFromServer: async () => {},
 });
@@ -51,79 +52,75 @@ export function XPProvider({ children }: { children: React.ReactNode }) {
   const { isPremium, refreshCustomerInfo } = usePremium();
   // Ref mirrors xp state — needed for synchronous reads inside callbacks
   const xpRef = useRef(0);
+  const hydrationGenerationRef = useRef(0);
+  const activeIdentityRef = useRef<string | null>(null);
 
-  // ── Load from AsyncStorage first (instant), then sync from Supabase ────────
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  const loadXpForSession = useCallback(async (session: Session | null) => {
+    const generation = ++hydrationGenerationRef.current;
+    const identity = session?.user.id ?? 'guest';
+    if (activeIdentityRef.current !== identity) {
+      activeIdentityRef.current = identity;
+      xpRef.current = 0;
+      setXP(0);
+      setIsLoaded(false);
+    }
+    const cacheKey = session ? `${XP_CACHE_KEY}:${session.user.id}` : GUEST_XP_CACHE_KEY;
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (generation !== hydrationGenerationRef.current) return;
+    const parsed = cached == null ? 0 : Number.parseInt(cached, 10);
+    const cachedXp = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    xpRef.current = cachedXp;
+    setXP(cachedXp);
+    setIsLoaded(true);
 
-      // 1. Optimistic load from cache
-      const cached = await AsyncStorage.getItem(session ? XP_CACHE_KEY : GUEST_XP_CACHE_KEY);
-      if (cached) {
-        const parsed = parseInt(cached, 10);
-        if (!isNaN(parsed)) {
-          xpRef.current = parsed;
-          setXP(parsed);
-        }
-      }
-      setIsLoaded(true);
-
-      // 2. Sync from Supabase
-      await syncFromServer();
-    };
-    init();
-  }, []);
-
-  const syncFromServer = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-
-    const { data: user } = await supabase.from('users')
+    const { data: user, error } = await supabase.from('users')
       .select('xp')
       .eq('id', session.user.id)
       .maybeSingle();
+    if (error) throw error;
+    if (!user) return;
+    if (generation !== hydrationGenerationRef.current) return;
 
-    if (user) {
-      const serverXP = user.xp ?? 0;
-      // Use server value (source of truth — avoids drift from multi-device)
-      xpRef.current = serverXP;
-      setXP(serverXP);
-      await AsyncStorage.setItem(XP_CACHE_KEY, String(serverXP));
-    }
-  };
+    const serverXP = Math.max(0, Number(user.xp ?? 0));
+    xpRef.current = serverXP;
+    setXP(serverXP);
+    await AsyncStorage.setItem(cacheKey, String(serverXP));
+  }, []);
 
-  // ── addXP ──────────────────────────────────────────────────────────────────
-  const addXP = useCallback(async (amount: number): Promise<LevelUpInfo | null> => {
-    const prev = xpRef.current;
-    const next = prev + amount;
-    xpRef.current = next;
-    setXP(next);
+  // Hydrate initially and whenever authentication changes. This prevents a
+  // previous account's cached XP remaining visible after login or logout.
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (active) return loadXpForSession(session);
+      })
+      .catch(error => {
+        console.warn('XP hydration error:', error);
+        if (active) setIsLoaded(true);
+      });
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const cacheKey = session ? XP_CACHE_KEY : GUEST_XP_CACHE_KEY;
-    await AsyncStorage.setItem(cacheKey, String(next));
-    if (!session) {
-      // Keep the legacy cache in sync so any older reads still see the guest XP.
-      await AsyncStorage.setItem(XP_CACHE_KEY, String(next));
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setTimeout(() => {
+        if (!active) return;
+        loadXpForSession(session).catch(error => console.warn('XP auth refresh error:', error));
+      }, 0);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [loadXpForSession]);
 
-    // Level-up check
-    const oldLevel = getLevelFromXP(prev);
-    const newLevel = getLevelFromXP(next);
-    const levelUpInfo: LevelUpInfo | null =
-      oldLevel.name !== newLevel.name
-        ? { newLevel: newLevel.name, icon: newLevel.icon, color: newLevel.color }
-        : null;
-
-    // Background Supabase sync (don't await — don't block the UI)
-    if (session) {
-      supabase.from('users')
-        .update({ xp: next })
-        .eq('id', session.user.id)
-        .then(() => {});
-    }
-
-    return levelUpInfo;
+  const applyGuestXpSnapshot = useCallback((previousXp: number, nextXp: number): LevelUpInfo | null => {
+    xpRef.current = nextXp;
+    setXP(nextXp);
+    const oldLevel = getLevelFromXP(previousXp);
+    const newLevel = getLevelFromXP(nextXp);
+    return oldLevel.name !== newLevel.name
+      ? { newLevel: newLevel.name, icon: newLevel.icon, color: newLevel.color }
+      : null;
   }, []);
 
   // ── access ────────────────────────────────────────────────────────────────
@@ -136,11 +133,12 @@ export function XPProvider({ children }: { children: React.ReactNode }) {
   }, [isPremium]);
 
   const refreshFromServer = useCallback(async () => {
-    await Promise.all([syncFromServer(), refreshCustomerInfo()]);
-  }, [refreshCustomerInfo]);
+    const { data: { session } } = await supabase.auth.getSession();
+    await Promise.all([loadXpForSession(session), refreshCustomerInfo()]);
+  }, [loadXpForSession, refreshCustomerInfo]);
 
   return (
-    <XPContext.Provider value={{ xp, isPremium, isLoaded, addXP, getAccess, refreshFromServer }}>
+    <XPContext.Provider value={{ xp, isPremium, isLoaded, applyGuestXpSnapshot, getAccess, refreshFromServer }}>
       {children}
     </XPContext.Provider>
   );

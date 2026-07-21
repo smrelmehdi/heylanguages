@@ -9,18 +9,22 @@ export const LEVELS = [
 ];
 
 export function getLevelFromXP(xp: number) {
-  return LEVELS.find(l => xp >= l.minXP && xp < l.maxXP) ?? LEVELS[0];
+  const normalizedXp = Math.max(0, xp);
+  return LEVELS.find(l => normalizedXp >= l.minXP && normalizedXp < l.maxXP) ?? LEVELS[0];
 }
 
 export function getXPProgress(xp: number) {
-  const level = getLevelFromXP(xp);
+  const normalizedXp = Math.max(0, xp);
+  const level = getLevelFromXP(normalizedXp);
   if (level.maxXP === Infinity) return 100;
-  const progress = ((xp - level.minXP) / (level.maxXP - level.minXP)) * 100;
-  return Math.round(progress);
+  const progress = ((normalizedXp - level.minXP) / (level.maxXP - level.minXP)) * 100;
+  // Do not display 100% until the next level has actually been reached.
+  return Math.min(99, Math.max(0, Math.round(progress)));
 }
 
 export function getXPToNextLevel(xp: number) {
-  const level = getLevelFromXP(xp);
+  const normalizedXp = Math.max(0, xp);
+  const level = getLevelFromXP(normalizedXp);
   if (level.maxXP === Infinity) return 0;
-  return level.maxXP - xp;
+  return level.maxXP - normalizedXp;
 }

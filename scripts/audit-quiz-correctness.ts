@@ -86,7 +86,7 @@ pass('active quiz must not import stale Part 1 bank', !tieredSource.includes("fr
 pass('active quiz must not import stale Unit 6 bank', !tieredSource.includes("from '../data/quiz-unit6'"));
 pass('scenario matching must use exact English meaning', tieredSource.includes('meaning: turn.english'));
 pass('positional emoji pool must be removed', !tieredSource.includes('EMOJI_POOL'));
-pass('matching supports hidden transliteration', matchSource.includes('showTranslit ? pair.transliteration : null'));
+pass('matching supports hidden transliteration', matchSource.includes('showSecondary={showTranslit}'));
 pass('Arabic reading must not autoplay', !arabicSelectSource.includes('useEffect(') && !arabicSelectSource.includes('doPlay'));
 pass('phone question must be constrained', tieredSource.includes("My number starts with 010"));
 pass('age question must be constrained', tieredSource.includes("I am twenty years old"));
@@ -97,7 +97,10 @@ pass('time distractors must carry explicit clock values', tieredSource.includes(
 pass('sentence-order distractors must be full comparable sentences', tieredSource.includes('العربية ده كبيرة شوية'));
 pass('time-unit gloss must be distinct', gulfWordsSource.includes("english: 'Second (time unit)'"));
 pass('ordinal gloss must be distinct', gulfWordsSource.includes("english: 'Second (ordinal, masculine)'"));
-pass('database completion identity must be unique', migrationSource.includes('scenario_progress_user_scenario_unique'));
+pass(
+  'database completion identity must use the existing unique constraint',
+  migrationSource.includes('on conflict (user_id, scenario_id, dialect)'),
+);
 pass('database award must be transaction-locked', migrationSource.includes('pg_advisory_xact_lock'));
 
 // Every canonical source item used by the active generators is locally voiced,
