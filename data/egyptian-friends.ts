@@ -1,6 +1,7 @@
 import type { DialogueTurn } from './gulf-dialogues';
 import { EGYPTIAN_UNIT810_AUDIO_BY_PATH } from './egyptian-unit810-audio';
 import { EGYPTIAN_MODEL_ID, EGYPTIAN_VOICE_ID } from './egyptian-unit6';
+import { getEgyptianSceneImageIds } from './egyptian-scene-images';
 
 type FriendTurn = [
   type: 'waiter' | 'user',
@@ -39,9 +40,9 @@ function scenario(
   description: string,
   setting: string,
   objective: string,
-  imageId: string,
+  _imageId: string,
   entries: FriendTurn[],
-  useEntranceImage = false,
+  _useEntranceImage = false,
 ): EgyptianFriendScenario {
   let staffIndex = 0;
   let userIndex = 0;
@@ -67,6 +68,7 @@ function scenario(
     } satisfies DialogueTurn;
   });
 
+  const imageIds = getEgyptianSceneImageIds(contentId);
   return {
     contentId,
     scenarioName,
@@ -74,8 +76,8 @@ function scenario(
     description,
     setting,
     objective,
-    imageId,
-    entranceImageId: useEntranceImage ? `${imageId}-entrance` : undefined,
+    imageId: imageIds.interiorId,
+    entranceImageId: imageIds.entranceId,
     dialogue,
   };
 }

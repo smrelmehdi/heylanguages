@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Image as ImageIcon } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View, Image } from 'react-native';
 import { theme } from '../constants/theme';
@@ -9,7 +9,7 @@ const { height } = Dimensions.get('window');
 const imageHeight = height * 0.60;
 
 interface Props {
-  image: any;
+  image?: any;
   badge: string;
   title: string;
   description: string;
@@ -28,7 +28,13 @@ export default function ScenarioIntroScreen({ image, badge, title, description, 
 
       {/* Image */}
       <View style={{ height: imageHeight, width: '100%' }}>
-        <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        {image
+          ? <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          : (
+            <View style={styles.imageFallback} accessibilityLabel="Scene image unavailable">
+              <ImageIcon color={theme.colors.textTertiary} size={48} />
+            </View>
+          )}
         <LinearGradient
           colors={['transparent', 'rgba(31, 29, 39, 0.7)', theme.colors.bgBase]}
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160 }}
@@ -79,6 +85,13 @@ export default function ScenarioIntroScreen({ image, badge, title, description, 
 }
 
 const styles = StyleSheet.create({
+  imageFallback: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.bgSurface,
+  },
   panel: {
     flex: 1,
     paddingHorizontal: 20,

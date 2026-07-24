@@ -30,6 +30,7 @@ import { EGYPTIAN_UNIT7_LESSONS } from '../egyptian-work';
 import { EGYPTIAN_UNIT8_SCENARIOS } from '../egyptian-emergencies';
 import { EGYPTIAN_UNIT9_LESSONS } from '../egyptian-social';
 import { EGYPTIAN_UNIT10_SCENARIOS } from '../egyptian-friends';
+import { getEgyptianSceneImageIds } from '../egyptian-scene-images';
 
 const dialect = 'egyptian' as const;
 
@@ -75,22 +76,26 @@ const scenario = (
   commercialAccess: 'free' | 'premium' = 'free',
   unitId = 'unit-2',
   metadata?: Pick<CurriculumItem, 'description' | 'setting' | 'objective' | 'sceneImageId' | 'sceneEntranceImageId'>,
-): CurriculumItem => ({
-  dialect,
-  unitId,
-  contentId,
-  contentType: 'scenario',
-  title,
-  subtitle: scenarioName === 'Cafe' || scenarioName === 'Taxi' ? '4 mins' : '3 mins',
-  route: { screen: 'scenario', params: { type: scenarioName } },
-  homeHref: SCENARIO_HOME_HREFS[scenarioName] ?? `/scenario?type=${scenarioName}`,
-  availability: 'available',
-  commercialAccess,
-  scenarioName,
-  sceneImageKey: scenarioName,
-  ...metadata,
-  acceptedTransliterationProfile: 'egyptian',
-});
+): CurriculumItem => {
+  const imageIds = getEgyptianSceneImageIds(contentId);
+  return {
+    dialect,
+    unitId,
+    contentId,
+    contentType: 'scenario',
+    title,
+    subtitle: scenarioName === 'Cafe' || scenarioName === 'Taxi' ? '4 mins' : '3 mins',
+    route: { screen: 'scenario', params: { type: scenarioName } },
+    homeHref: SCENARIO_HOME_HREFS[scenarioName] ?? `/scenario-intro-egyptian?contentId=${contentId}`,
+    availability: 'available',
+    commercialAccess,
+    scenarioName,
+    ...metadata,
+    sceneImageId: imageIds.interiorId,
+    sceneEntranceImageId: imageIds.entranceId,
+    acceptedTransliterationProfile: 'egyptian',
+  };
+};
 
 const quiz = (
   unitId: string,
@@ -141,16 +146,50 @@ export const EGYPTIAN_CURRICULUM: DialectCurriculum = {
       title: 'Unit 2: Real Life Situations',
       availability: 'available',
       items: [
-        scenario('cafe', 'Café Ordering', 'Cafe'),
-        scenario('taxi', 'Taxi Ride', 'Taxi'),
-        scenario('hotel', 'Hotel Check-in', 'Hotel'),
+        scenario('cafe', 'Café Ordering', 'Cafe', 'free', 'unit-2', {
+          description: 'Order a drink, answer simple questions, and pay.',
+          setting: 'A café in Cairo',
+          objective: 'Order politely and understand a short café exchange.',
+        }),
+        scenario('taxi', 'Taxi Ride', 'Taxi', 'free', 'unit-2', {
+          description: 'Give a destination, discuss the route, and pay the fare.',
+          setting: 'A taxi in Cairo',
+          objective: 'Use practical destination, direction, and fare language.',
+        }),
+        scenario('hotel', 'Hotel Check-in', 'Hotel', 'free', 'unit-2', {
+          description: 'Check in and ask for essential hotel information.',
+          setting: 'A hotel reception in Cairo',
+          objective: 'Confirm a booking and understand basic room information.',
+        }),
         quiz('unit-2', 'quiz_u2_p1', 'Unit 2 Quiz · Part 1', '2p1', 'quiz-unit2'),
-        scenario('restaurant', 'Restaurant', 'Restaurant'),
-        scenario('supermarket', 'Supermarket', 'Supermarket'),
-        scenario('pharmacy', 'Pharmacy', 'Pharmacy'),
+        scenario('restaurant', 'Restaurant', 'Restaurant', 'free', 'unit-2', {
+          description: 'Order food and ask for the bill.',
+          setting: 'A restaurant in Cairo',
+          objective: 'Order a simple meal and complete the payment exchange.',
+        }),
+        scenario('supermarket', 'Supermarket', 'Supermarket', 'free', 'unit-2', {
+          description: 'Find products, ask prices, and check out.',
+          setting: 'A supermarket in Cairo',
+          objective: 'Ask where products are and understand a simple checkout.',
+        }),
+        scenario('pharmacy', 'Pharmacy', 'Pharmacy', 'free', 'unit-2', {
+          description: 'Describe a symptom and understand medicine instructions.',
+          setting: 'A pharmacy in Cairo',
+          objective: 'Ask for medicine and understand a basic dosage exchange.',
+        }),
+        scenario('barbershop', 'Barbershop', 'Barbershop', 'free', 'unit-2', {
+          description: 'Ask for a haircut, describe the style, and pay at a barbershop in Cairo.',
+          setting: 'A barbershop in Cairo',
+          objective: 'Request a haircut and describe the sides, top, beard, and finishing preferences.',
+          sceneImageId: 'cairo-barbershop-interior',
+          sceneEntranceImageId: 'cairo-barbershop-entrance',
+        }),
         quiz('unit-2', 'quiz_u2_p2', 'Unit 2 Quiz · Part 2', '2p2', 'quiz-unit2'),
-        scenario('barbershop', 'Barbershop', 'Barbershop'),
-        scenario('airport', 'Airport', 'Airport'),
+        scenario('airport', 'Airport', 'Airport', 'free', 'unit-2', {
+          description: 'Check in, discuss baggage, and find the gate.',
+          setting: 'An airport check-in desk in Cairo',
+          objective: 'Handle a basic airport check-in exchange.',
+        }),
       ],
     },
     {

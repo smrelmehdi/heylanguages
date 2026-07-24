@@ -137,6 +137,7 @@ function RootLayoutNav() {
             <Stack.Screen name="scenario-intro-pharmacy" options={{ headerShown: false }} />
             <Stack.Screen name="scenario-intro-barbershop" options={{ headerShown: false }} />
             <Stack.Screen name="scenario-intro-airport" options={{ headerShown: false }} />
+            <Stack.Screen name="scenario-intro-egyptian" options={{ headerShown: false }} />
             <Stack.Screen name="scenario-intro-morning-routine" options={{ headerShown: false }} />
             <Stack.Screen name="scenario-intro-gym" options={{ headerShown: false }} />
             <Stack.Screen name="scenario-intro-cooking-home" options={{ headerShown: false }} />

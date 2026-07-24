@@ -13,11 +13,9 @@ interface CafeSceneProps {
 export default function CafeScene({ arabic, transliteration, isWaiterSpeaking, backgroundImage }: CafeSceneProps) {
   return (
     <View style={styles.stage}>
-      <Image
-        source={backgroundImage ?? require('../assets/images/cafe-bg.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      />
+      {backgroundImage
+        ? <Image source={backgroundImage} style={styles.backgroundImage} resizeMode="cover" />
+        : <View style={styles.backgroundFallback} />}
 
       <View style={[styles.bubble, isWaiterSpeaking ? styles.waiterBubble : styles.yusufBubble]}>
         <Text style={styles.bubbleText}>{arabic}</Text>
@@ -38,6 +36,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'absolute',
+  },
+  backgroundFallback: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.bgSurface,
   },
   bubble: {
     backgroundColor: theme.colors.bgSurface,

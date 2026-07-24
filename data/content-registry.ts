@@ -92,13 +92,21 @@ export const DIALECT_LABELS: Record<string, string> = {
 
 const GULF_SCENE_IMAGES: Record<string, any> = {
   Cafe:            require('../assets/images/cafe-bg.png'),
+  CafeEntrance:    require('../assets/images/arabic-cafe-entrance.png'),
   Taxi:            require('../assets/images/dubai-taxi-interior.png'),
+  TaxiEntrance:    require('../assets/images/dubai-taxi-street.png'),
   Hotel:           require('../assets/images/dubai-hotel-reception.png'),
+  HotelEntrance:   require('../assets/images/dubai-hotel-entrance.png'),
   Restaurant:      require('../assets/images/dubai-restaurant-interior.png'),
+  RestaurantEntrance: require('../assets/images/dubai-restaurant-entrance.png'),
   Supermarket:     require('../assets/images/dubai-supermarket-interior.png'),
+  SupermarketEntrance: require('../assets/images/dubai-supermarket-entrance.png'),
   Pharmacy:        require('../assets/images/dubai-pharmacy-interior.png'),
+  PharmacyEntrance: require('../assets/images/dubai-pharmacy-entrance.png'),
   Barbershop:      require('../assets/images/dubai-barbershop-interior.png'),
+  BarbershopEntrance: require('../assets/images/dubai-barbershop-entrance.png'),
   Airport:         require('../assets/images/dubai-airport-interior.png'),
+  AirportEntrance: require('../assets/images/dubai-airport-entrance.png'),
   // Unit 6 — interior + entrance image pairs
   MorningRoutine:          require('../assets/images/dubai-morning-routine-interior.png'),
   MorningRoutineEntrance:  require('../assets/images/dubai-morning-routine-entrance.png'),
@@ -158,8 +166,15 @@ const MSA_SCENE_IMAGES: Record<string, any> = {
   Directions: GULF_SCENE_IMAGES.AskingForHelp,
   // Temporary semantic approximation: no phone-call image currently exists.
   PhoneCall: require('../assets/images/dubai-hotel-reception.png'),
+  // Neutral shared technology imagery until dedicated phone-repair artwork exists.
+  'phone-repair-interior': GULF_SCENE_IMAGES.FriendsSocialMedia,
+  'phone-repair-entrance': GULF_SCENE_IMAGES.FriendsSocialMediaEntrance,
   ...Object.fromEntries([...MSA_UNIT6_SCENARIOS, ...MSA_UNIT8_SCENARIOS, ...MSA_UNIT10_SCENARIOS]
-    .map(item => [item.scenarioName, GULF_SCENE_IMAGES[item.imageKey]])),
+    .map(item => [item.scenarioName,
+      item.imageKey === 'phone-repair-interior'
+        ? GULF_SCENE_IMAGES.FriendsSocialMedia
+        : GULF_SCENE_IMAGES[item.imageKey],
+    ])),
   // A generic help scene is less misleading than the lost-wallet scene.
   MsaLostPhone: GULF_SCENE_IMAGES.AskingForHelp,
 };
@@ -285,35 +300,24 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       ...EGYPTIAN_UNIT10_SCENARIOS_BY_NAME,
     },
     sceneImages: {
-      // ── Cairo (real images) ───────────────────────────────────────────────
-      Cafe:               require('../assets/images/cairo-cafe-interior.png'),
-      CafeEntrance:       require('../assets/images/cairo-cafe-entrance.png'),
-      Taxi:               require('../assets/images/cairo-taxi-interior.png'),
-      TaxiEntrance:       require('../assets/images/cairo-taxi-entrance.png'),
-      Hotel:              require('../assets/images/cairo-hotel-interior.png'),
-      HotelEntrance:      require('../assets/images/cairo-hotel-entrance.png'),
-      // ── Cairo (real images) ───────────────────────────────────────────────
-      Restaurant:         require('../assets/images/cairo-restaurant-interior.png'),
-      RestaurantEntrance: require('../assets/images/cairo-restaurant-entrance.png'),
-      Supermarket:        require('../assets/images/cairo-supermarket-interior.png'),
-      SupermarketEntrance: require('../assets/images/cairo-supermarket-entrance.png'),
-      // ── Dubai placeholders — TODO: swap with cairo-* images when available ─
-      Pharmacy:           require('../assets/images/dubai-pharmacy-interior.png'),
-      PharmacyEntrance:   require('../assets/images/dubai-pharmacy-entrance.png'),
-      Barbershop:         require('../assets/images/dubai-barbershop-interior.png'),
-      BarbershopEntrance: require('../assets/images/dubai-barbershop-entrance.png'),
-      Airport:            require('../assets/images/dubai-airport-interior.png'),
-      AirportEntrance:    require('../assets/images/dubai-airport-entrance.png'),
-      // Unit 6 reuses only confirmed Cairo assets. Missing Cairo scenes stay unset.
-      EgyptianCafeOrder:          require('../assets/images/cairo-cafe-interior.png'),
-      EgyptianRestaurantOrder:    require('../assets/images/cairo-restaurant-interior.png'),
-      EgyptianEverydaySupermarket: require('../assets/images/cairo-supermarket-interior.png'),
-      EgyptianEverydayTaxi:       require('../assets/images/cairo-taxi-interior.png'),
-      EgyptianEverydayHotel:      require('../assets/images/cairo-hotel-interior.png'),
-      // Explicit Egyptian reuse while dedicated Unit 8-10 Cairo scenes are pending.
-      EgyptianLostPhone:          require('../assets/images/cairo-cafe-interior.png'),
-      EgyptianBrunch:             require('../assets/images/cairo-cafe-interior.png'),
-      EgyptianRoadTrip:           require('../assets/images/cairo-taxi-interior.png'),
+      'cairo-airport-entrance': require('../assets/images/cairo-airport-entrance.png'),
+      'cairo-airport-interior': require('../assets/images/cairo-airport-interior.png'),
+      'cairo-barbershop-entrance': require('../assets/images/cairo-barbershop-entrance.png'),
+      'cairo-barbershop-interior': require('../assets/images/cairo-barbershop-interior.png'),
+      'cairo-cafe-entrance': require('../assets/images/cairo-cafe-entrance.png'),
+      'cairo-cafe-interior': require('../assets/images/cairo-cafe-interior.png'),
+      'cairo-directions-entrance': require('../assets/images/cairo-directions-entrance.png'),
+      'cairo-directions-interior': require('../assets/images/cairo-directions-interior.png'),
+      'cairo-hotel-entrance': require('../assets/images/cairo-hotel-entrance.png'),
+      'cairo-hotel-interior': require('../assets/images/cairo-hotel-interior.png'),
+      'cairo-pharmacy-entrance': require('../assets/images/cairo-pharmacy-entrance.png'),
+      'cairo-pharmacy-interior': require('../assets/images/cairo-pharmacy-interior.png'),
+      'cairo-restaurant-entrance': require('../assets/images/cairo-restaurant-entrance.png'),
+      'cairo-restaurant-interior': require('../assets/images/cairo-restaurant-interior.png'),
+      'cairo-supermarket-entrance': require('../assets/images/cairo-supermarket-entrance.png'),
+      'cairo-supermarket-interior': require('../assets/images/cairo-supermarket-interior.png'),
+      'cairo-taxi-entrance': require('../assets/images/cairo-taxi-entrance.png'),
+      'cairo-taxi-interior': require('../assets/images/cairo-taxi-interior.png'),
     },
     availableLessons: [
       'basic', 'greetings', 'intro',

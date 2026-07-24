@@ -1,5 +1,6 @@
 import type { DialogueTurn } from './gulf-dialogues';
 import { EGYPTIAN_UNIT67_AUDIO_BY_PATH } from './egyptian-unit67-audio';
+import { getEgyptianSceneImageIds } from './egyptian-scene-images';
 
 export const EGYPTIAN_VOICE_ID = 'LXrTqFIgiubkrMkwvOUr';
 export const EGYPTIAN_MODEL_ID = 'eleven_v3';
@@ -26,7 +27,16 @@ export interface EgyptianUnit6Scenario {
   imageId: string;
   entranceImageId: string;
   audioFolder: string;
+  vocabulary: EgyptianScenarioVocabulary[];
   dialogue: DialogueTurn[];
+}
+
+export interface EgyptianScenarioVocabulary {
+  displayArabic: string;
+  audioText: string;
+  evalTarget: string;
+  transliteration: string;
+  english: string;
 }
 
 function audioReadyText(displayArabic: string) {
@@ -68,9 +78,12 @@ function scenario(
   description: string,
   setting: string,
   objective: string,
-  imageId: string,
+  _imageId: string,
   entries: ScenarioTurnEntry[],
+  _entranceImageId?: string,
+  vocabulary: EgyptianScenarioVocabulary[] = [],
 ): EgyptianUnit6Scenario {
+  const imageIds = getEgyptianSceneImageIds(contentId);
   return {
     contentId,
     scenarioName,
@@ -78,9 +91,10 @@ function scenario(
     description,
     setting,
     objective,
-    imageId,
-    entranceImageId: `${imageId}-entrance`,
+    imageId: imageIds.interiorId,
+    entranceImageId: imageIds.entranceId,
     audioFolder: `assets/audio/egyptian/unit-6/${contentId}`,
+    vocabulary,
     dialogue: buildDialogue(contentId, entries),
   };
 }
@@ -190,35 +204,43 @@ export const EGYPTIAN_PHARMACY_SCENARIO = scenario(
   ],
 );
 
-export const EGYPTIAN_BARBER_SCENARIO = scenario(
-  'everyday-barber', 'EgyptianEverydayBarber', 'At the Barber',
-  'Explain the haircut you want and check the result.', 'A barbershop in Cairo',
-  'Request a haircut and describe length using simple phrases.', 'cairo-barbershop', [
-    ['waiter', 'barber', 'أهلاً، تحب تعمل إيه؟', 'ahlan, tihibb taamil eih?', 'Hi, what would you like?'],
-    ['user', 'customer', 'عايز أقصره شوية', "aayiz a'assaroh shwayya", 'I want to shorten it a little'],
+export const EGYPTIAN_PHONE_REPAIR_SCENARIO = scenario(
+  'phone-repair', 'EgyptianPhoneRepair', 'Phone Repair',
+  'Explain two phone problems, ask about the repair, and collect the phone.', 'A phone repair shop in Cairo',
+  'Describe phone damage, ask about price and timing, protect personal data, and approve a repair.',
+  'cairo-phone-repair-interior', [
+    ['waiter', 'technician', 'أهلاً، أقدر أساعدك إزاي؟', "ahlan, a'dar asaa'dak izzay?", 'Hi, how can I help you?'],
+    ['user', 'customer', 'الموبايل وقع مني والشاشة اتكسرت', "el-mobayl wi'i minnii wish-shaasha itkassaret", 'I dropped my phone and the screen cracked'],
+    ['waiter', 'technician', 'فيه مشكلة تانية؟', 'fi mushkila taanya?', 'Is there another problem?'],
+    ['user', 'customer', 'أيوه، البطارية بتخلص بسرعة', 'aywa, el-battaareyya bitkhlaS bisora', 'Yes, the battery runs out quickly'],
+    ['waiter', 'technician', 'ممكن يتصلح، بس لازم أكشف عليه الأول', 'momken yitSallah, bas laazim akshif aleih el-awwil', 'It can be repaired, but I need to inspect it first'],
+    ['user', 'customer', 'تمام، التصليح هيكلف كام؟', 'tamaam, et-taSliih haykallif kam?', 'Okay, how much will the repair cost?'],
+    ['waiter', 'technician', 'تغيير الشاشة والبطارية هيكلف ألفين جنيه', 'taghyiir esh-shaasha wel-battaareyya haykallif alfein geneeh', 'Replacing the screen and battery will cost two thousand pounds', undefined, undefined, 'تغيير الشاشة والبطارية هيكلف ألفين گنيه.'],
+    ['user', 'customer', 'وهياخد وقت قد إيه؟', "w hayakhod wa't add eih?", 'And how long will it take?'],
+    ['waiter', 'technician', 'يومين، ويكون جاهز', 'yoomein, w yikuun gaahiz', 'Two days, and it will be ready', undefined, undefined, 'يومين، ويكون گاهز.'],
+    ['user', 'customer', 'والصور والبيانات هتفضل زي ما هي؟', 'wis-sowar wel-bayaanaat hatifdal zay ma hiyya?', 'Will the photos and data stay as they are?'],
+    ['waiter', 'technician', 'أيوه، مش هنمسح أي حاجة. تحب نبدأ التصليح؟', 'aywa, mish hanimsah ayy haaga. tihibb nibda et-taSliih?', 'Yes, we will not delete anything. Would you like us to start the repair?'],
     [
-      'waiter',
-      'barber',
-      'والجناب، عايزها قصيرة؟',
-      "wel-geenab, 'aayezha 'aseera?",
-      'And the sides, do you want them short?',
-      [
-        "wel-geenab, 'aayezha 'aseera?",
-        'wel-geenab aayezha aseera',
-        'wel geenab aayezha aseera',
-        'wel-ginaab aayezha aseera',
-      ],
-      undefined,
-      'والگيناب، عايزها قصيرة؟',
-      require('../assets/audio/egyptian/unit-6/everyday-barber/w2.mp3'),
+      'user', 'customer', 'تمام، صلحه لو سمحت', 'tamaam, sallahoh law samaht', 'Okay, repair it please',
+      ['tamaam, sallahoh law samaht'],
+      ['تمام، صلحه لو سمحت', 'لأ، السعر غالي عليا'],
     ],
-    ['user', 'customer', 'الجناب قصيرة، ومن فوق أطول شوية', "el-ginaab asiira, w min foo' atwal shwayya", 'Short on the sides and a little longer on top'],
-    ['waiter', 'barber', 'تحب أظبط الدقن؟', "tihibb azabbat ed-da'n?", 'Would you like me to trim the beard?'],
-    ['user', 'customer', 'أيوه، بس خفيف', 'aywa, bas khafiif', 'Yes, but lightly'],
-    ['waiter', 'barber', 'كده الطول كويس؟', 'kida et-tuul kwayyis?', 'Is this length good?'],
-    ['user', 'customer', 'أيوه، كده تمام', 'aywa, kida tamaam', 'Yes, that is perfect'],
-    ['waiter', 'barber', 'خلاص، اتفضل بص في المراية', 'khalaas, itfaddal boss fi el-miraaya', 'All done, have a look in the mirror'],
-    ['user', 'customer', 'حلو أوي، تسلم إيدك', 'helw awi, tislam iidak', 'Very nice, thank you for your work'],
+    ['user', 'customer', 'أنا جيت أستلم الموبايل', 'ana giit astilim el-mobayl', 'I came to collect the phone', undefined, undefined, 'أنا گيت أستلم الموبايل.'],
+    ['waiter', 'technician', 'اتفضل، جربه واتأكد إن كل حاجة شغالة', 'itfaddal, garraboh witakkid inn koll haaga shaghghaala', 'Here you go. Test it and make sure everything works', undefined, undefined, 'اتفضل، گرّبه واتأكد إن كل حاجة شغالة.'],
+  ],
+  'cairo-phone-repair-entrance',
+  [
+    { displayArabic: 'الشاشة اتكسرت', audioText: 'الشاشة اتكسرت.', evalTarget: 'الشاشة اتكسرت', transliteration: 'esh-shaasha itkassaret', english: 'The screen cracked' },
+    { displayArabic: 'البطارية', audioText: 'البطارية.', evalTarget: 'البطارية', transliteration: 'el-battaareyya', english: 'The battery' },
+    { displayArabic: 'بتخلص بسرعة', audioText: 'بتخلص بسرعة.', evalTarget: 'بتخلص بسرعة', transliteration: 'bitkhlaS bisora', english: 'It runs out quickly' },
+    { displayArabic: 'يتصلح', audioText: 'يتصلح.', evalTarget: 'يتصلح', transliteration: 'yitSallah', english: 'It can be repaired' },
+    { displayArabic: 'التصليح', audioText: 'التصليح.', evalTarget: 'التصليح', transliteration: 'et-taSliih', english: 'The repair' },
+    { displayArabic: 'هيكلف كام؟', audioText: 'هيكلف كام؟', evalTarget: 'هيكلف كام؟', transliteration: 'haykallif kam?', english: 'How much will it cost?' },
+    { displayArabic: 'هياخد وقت قد إيه؟', audioText: 'هياخد وقت قد إيه؟', evalTarget: 'هياخد وقت قد إيه؟', transliteration: "hayakhod wa't add eih?", english: 'How long will it take?' },
+    { displayArabic: 'الصور والبيانات', audioText: 'الصور والبيانات.', evalTarget: 'الصور والبيانات', transliteration: 'es-sowar wel-bayaanaat', english: 'The photos and data' },
+    { displayArabic: 'صلحه لو سمحت', audioText: 'صلحه لو سمحت.', evalTarget: 'صلحه لو سمحت', transliteration: 'sallahoh law samaht', english: 'Repair it, please' },
+    { displayArabic: 'السعر غالي عليا', audioText: 'السعر غالي عليا.', evalTarget: 'السعر غالي عليا', transliteration: 'es-si\'r ghaali alayya', english: 'The price is too expensive for me' },
+    { displayArabic: 'أستلم الموبايل', audioText: 'أستلم الموبايل.', evalTarget: 'أستلم الموبايل', transliteration: 'astilim el-mobayl', english: 'Collect the phone' },
   ],
 );
 
@@ -280,7 +302,7 @@ export const EGYPTIAN_UNIT6_SCENARIOS: EgyptianUnit6Scenario[] = [
   EGYPTIAN_TAXI_SCENARIO,
   EGYPTIAN_DIRECTIONS_SCENARIO,
   EGYPTIAN_PHARMACY_SCENARIO,
-  EGYPTIAN_BARBER_SCENARIO,
+  EGYPTIAN_PHONE_REPAIR_SCENARIO,
   EGYPTIAN_HOTEL_SCENARIO,
   EGYPTIAN_AIRPORT_SCENARIO,
   EGYPTIAN_PHONE_CALL_SCENARIO,

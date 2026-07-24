@@ -51,7 +51,7 @@ import {
 type Phase = 'intro' | 'quiz' | 'redrill' | 'results';
 
 const UNIT2_PART1_SCENARIOS = ['Cafe', 'Taxi', 'Hotel'];
-const UNIT2_PART2_SCENARIOS = ['Restaurant', 'Supermarket', 'Pharmacy'];
+const UNIT2_PART2_SCENARIOS = ['Restaurant', 'Supermarket', 'Pharmacy', 'Barbershop'];
 const EGYPTIAN_UNIT6_SCENARIOS = [
   'EgyptianCafeOrder',
   'EgyptianRestaurantOrder',
@@ -59,7 +59,7 @@ const EGYPTIAN_UNIT6_SCENARIOS = [
   'EgyptianEverydayTaxi',
   'EgyptianDirections',
   'EgyptianEverydayPharmacy',
-  'EgyptianEverydayBarber',
+  'EgyptianPhoneRepair',
   'EgyptianEverydayHotel',
   'EgyptianEverydayAirport',
   'EgyptianPhoneCall',
@@ -507,11 +507,23 @@ function makeArabicSelectQuestion(
 }
 
 function getGenericQuizSceneImage(content: DialectContent) {
-  return content.sceneImages.Cafe
+  return content.sceneImages['cairo-cafe-interior']
+    ?? content.sceneImages.Cafe
+    ?? content.sceneImages['cairo-restaurant-interior']
     ?? content.sceneImages.Restaurant
+    ?? content.sceneImages['cairo-supermarket-interior']
     ?? content.sceneImages.Supermarket
+    ?? content.sceneImages['cairo-taxi-interior']
     ?? content.sceneImages.Taxi
     ?? Object.values(content.sceneImages).find(Boolean)
+    ?? null;
+}
+
+function getScenarioSceneImage(content: DialectContent, dialect: string, scenarioName: string) {
+  const item = getDialectCurriculumItems(dialect)
+    .find(candidate => candidate.contentType === 'scenario' && candidate.scenarioName === scenarioName);
+  return (item?.sceneImageId ? content.sceneImages[item.sceneImageId] : undefined)
+    ?? content.sceneImages[scenarioName]
     ?? null;
 }
 
@@ -1029,7 +1041,7 @@ function buildDialectUnit2Quiz(
   const questions: QuizQuestion[] = [];
 
   scenarioEntries.forEach(entry => {
-    const sceneImage = content.sceneImages[entry.name] ?? null;
+    const sceneImage = getScenarioSceneImage(content, dialect, entry.name);
     const scenarioUserTurns = entry.turns.filter(turn => turn.type === 'user');
     const scenarioNpcTurns = entry.turns.filter(turn => turn.type !== 'user');
     const scenarioQuestionTurns = uniqueTurns([...scenarioUserTurns, ...scenarioNpcTurns]);
@@ -1307,7 +1319,7 @@ function buildBalancedEgyptianScenarioQuiz(
   };
 
   const baseFormats = sources.map((_, index): QuizQuestion['format'][] => {
-    if (content.sceneImages[scenarioNames[index]]) return ['scene_replay', 'listening'];
+    if (getScenarioSceneImage(content, 'egyptian', scenarioNames[index])) return ['scene_replay', 'listening'];
     if (tier.tier === 1) return index % 3 === 0 ? ['scene_replay', 'listening'] : ['listening'];
     if (tier.tier === 2) return index % 2 === 0 ? ['fill_conversation', 'listening'] : ['listening'];
     if (tier.tier === 3) {
@@ -1434,10 +1446,11 @@ function buildEgyptianUnit9Quiz(lessons: WordLessonEntry[], content: DialectCont
         fillDistractors.map(word => wordOption(word)),
       ));
     }
-    if (lessonItem.id === 'cafe-with-friends' && content.sceneImages.Cafe) {
+    const cafeSceneImage = getScenarioSceneImage(content, 'egyptian', 'Cafe');
+    if (lessonItem.id === 'cafe-with-friends' && cafeSceneImage) {
       questions.push(makeWordSceneQuestion(
         'eg_u9_cafe_scene', source, 'You are making a plan at a Cairo café. Choose the natural phrase.',
-        primary, distractors(primary), content.sceneImages.Cafe,
+        primary, distractors(primary), cafeSceneImage,
       ));
     }
     candidatesByLesson.set(lessonItem.id, questions);
