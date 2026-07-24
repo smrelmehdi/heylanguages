@@ -69,7 +69,9 @@ const rows = scenarios.map((item: any) => {
     interiorExpectedPath: expected.interiorPath,
     interiorResolvedPath: interiorAsset,
     interiorExists: existsSync(resolve(ROOT, expected.interiorPath)),
-    resolverUsesInteriorId: resolved?.sceneImage === content.sceneImages[item.sceneImageId],
+    resolverUsesInteriorId: interiorAsset
+      ? resolved?.sceneImage === content.sceneImages[item.sceneImageId]
+      : null,
     gulfFallback: [entranceAsset, interiorAsset].some(path => path?.includes('/dubai-') || path?.includes('dubai-')),
   };
 });
@@ -86,22 +88,37 @@ const missing = rows.flatMap((row: any) => [
   ...(!row.entranceExists ? [row.entranceExpectedPath] : []),
   ...(!row.interiorExists ? [row.interiorExpectedPath] : []),
 ]);
-const duplicateIds = [...rows.flatMap((row: any) => [row.entranceId, row.interiorId])]
-  .filter((id, index, all) => all.indexOf(id) !== index);
+const imageUseCounts: Record<string, number> = rows.flatMap((row: any) => [row.entranceId, row.interiorId])
+  .reduce((uses: Record<string, number>, id: string) => {
+    uses[id] = (uses[id] ?? 0) + 1;
+    return uses;
+  }, {} as Record<string, number>);
+const sharedImageIds = Object.entries(imageUseCounts as Record<string, number>)
+  .filter(([, uses]) => uses > 1);
+const registryPaths = Object.entries(content.sceneImages)
+  .reduce((paths: Record<string, string[]>, [id, value]) => {
+    if (typeof value !== 'string') return paths;
+    const path = relative(ROOT, value);
+    paths[path] = [...(paths[path] ?? []), id];
+    return paths;
+  }, {});
+const duplicateRegistryMappings = Object.entries(registryPaths)
+  .filter(([, ids]) => ids.length > 1)
+  .map(([path, ids]) => ({ path, ids }));
 const failures = {
   unexpectedScenarioCount: rows.length !== 38,
-  nonCanonicalIds: rows.filter((row: any) => (
-    row.entranceId !== `cairo-${row.contentId}-entrance`
-    || row.interiorId !== `cairo-${row.contentId}-interior`
-  )).map((row: any) => row.contentId),
+  unexpectedImageIds: rows.filter((row: any) => {
+    const expected = getEgyptianSceneImageIds(row.contentId);
+    return row.entranceId !== expected.entranceId || row.interiorId !== expected.interiorId;
+  }).map((row: any) => row.contentId),
   directScenarioRoutes: rows.filter((row: any) => !row.introRoute.startsWith('/scenario-intro')).map((row: any) => row.contentId),
-  resolverMismatches: rows.filter((row: any) => !row.resolverUsesInteriorId).map((row: any) => row.contentId),
+  resolverMismatches: rows.filter((row: any) => row.resolverUsesInteriorId === false).map((row: any) => row.contentId),
   gulfFallbacks: rows.filter((row: any) => row.gulfFallback).map((row: any) => row.contentId),
   existingFilesNotRegistered: rows.flatMap((row: any) => [
     ...(row.entranceExists && !row.entranceResolvedPath ? [row.entranceId] : []),
     ...(row.interiorExists && !row.interiorResolvedPath ? [row.interiorId] : []),
   ]),
-  duplicateIds,
+  duplicateRegistryMappings,
   otherDialectCairoIds,
 };
 
@@ -111,6 +128,7 @@ const report = {
   resolvedInteriorCount: rows.filter((row: any) => row.interiorResolvedPath).length,
   missingPngCount: missing.length,
   missingPngs: [...new Set(missing)].sort(),
+  sharedImageIds,
   failures,
   rows,
 };

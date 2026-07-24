@@ -312,6 +312,8 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       'cairo-hotel-interior': require('../assets/images/cairo-hotel-interior.png'),
       'cairo-pharmacy-entrance': require('../assets/images/cairo-pharmacy-entrance.png'),
       'cairo-pharmacy-interior': require('../assets/images/cairo-pharmacy-interior.png'),
+      'cairo-phone-repair-entrance': require('../assets/images/cairo-phone-repair-entrance.png'),
+      'cairo-phone-repair-interior': require('../assets/images/cairo-phone-repair-interior.png'),
       'cairo-restaurant-entrance': require('../assets/images/cairo-restaurant-entrance.png'),
       'cairo-restaurant-interior': require('../assets/images/cairo-restaurant-interior.png'),
       'cairo-supermarket-entrance': require('../assets/images/cairo-supermarket-entrance.png'),
