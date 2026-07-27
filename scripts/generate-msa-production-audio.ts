@@ -22,7 +22,7 @@ const MODEL_ID = 'eleven_v3';
 const OUTPUT_FORMAT = 'api-default';
 const EXPECTED_COUNTS: Record<number, number> = {
   1: 51, 2: 80, 3: 62, 4: 57, 5: 56,
-  6: 80, 7: 50, 8: 80, 9: 50, 10: 80,
+  6: 86, 7: 50, 8: 80, 9: 50, 10: 80,
 };
 const VOICE_SETTINGS = {
   stability: 0.75,
@@ -95,7 +95,7 @@ function validateTargets(targets: ManifestTarget[]) {
   const ids = new Set<string>();
   const counts: Record<number, number> = {};
 
-  if (targets.length !== 646) errors.push(`Expected 646 targets, found ${targets.length}.`);
+  if (targets.length !== 652) errors.push(`Expected 652 targets, found ${targets.length}.`);
   for (const target of targets) {
     counts[target.unit] = (counts[target.unit] ?? 0) + 1;
     if (!target.audioText?.trim()) errors.push(`${target.itemOrTurnId}: empty audioText.`);

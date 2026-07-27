@@ -38,7 +38,16 @@ export type MsaTurnEntry = [
   english: string,
   audioText?: string,
   acceptedTransliterations?: string[],
+  responseOptions?: string[],
 ];
+
+export interface MsaScenarioVocabulary {
+  displayArabic: string;
+  audioText: string;
+  evalTarget: string;
+  transliteration: string;
+  english: string;
+}
 
 export interface MsaScenario {
   contentId: string;
@@ -48,6 +57,8 @@ export interface MsaScenario {
   setting: string;
   objective: string;
   imageKey: string;
+  entranceImageKey?: string;
+  vocabulary: MsaScenarioVocabulary[];
   dialogue: DialogueTurn[];
 }
 
@@ -203,10 +214,14 @@ export function makeMsaScenario(
   objective: string,
   imageKey: string,
   entries: MsaTurnEntry[],
+  options: {
+    entranceImageKey?: string;
+    vocabulary?: MsaScenarioVocabulary[];
+  } = {},
 ): MsaScenario {
   let staffIndex = 0;
   let userIndex = 0;
-  const dialogue = entries.map(([type, speakerRole, displayArabic, transliteration, english, audioText, accepted]) => {
+  const dialogue = entries.map(([type, speakerRole, displayArabic, transliteration, english, audioText, accepted, responseOptions]) => {
     const cleanDisplayArabic = msaDisplay(displayArabic);
     const index = type === 'waiter' ? ++staffIndex : ++userIndex;
     const prefix = type === 'waiter' ? 'w' : 'u';
@@ -221,6 +236,7 @@ export function makeMsaScenario(
       transliteration: normalizeMsaTransliteration(transliteration),
       acceptedTransliterations: msaAccepted(transliteration, accepted),
       english,
+      responseOptions,
       pronunciationStep: type === 'user',
       audioPath,
       audio: getMsaAudio(audioPath),
@@ -229,5 +245,16 @@ export function makeMsaScenario(
     } satisfies DialogueTurn;
   });
 
-  return { contentId, scenarioName, title, description, setting, objective, imageKey, dialogue };
+  return {
+    contentId,
+    scenarioName,
+    title,
+    description,
+    setting,
+    objective,
+    imageKey,
+    entranceImageKey: options.entranceImageKey,
+    vocabulary: options.vocabulary ?? [],
+    dialogue,
+  };
 }

@@ -122,7 +122,7 @@ export const SCENARIO_TYPE_TO_CONTENT_ID: Record<string, string> = {
   MsaAdvancedTaxi: 'advanced-taxi',
   MsaAdvancedDirections: 'advanced-directions',
   MsaAdvancedPharmacy: 'advanced-pharmacy',
-  MsaAdvancedBarber: 'advanced-barber',
+  MsaPhoneRepair: 'phone-repair',
   MsaAdvancedHotel: 'advanced-hotel',
   MsaAdvancedAirport: 'advanced-airport',
   MsaAdvancedPhone: 'advanced-phone-call',

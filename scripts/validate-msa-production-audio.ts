@@ -208,9 +208,9 @@ function main() {
   console.log(JSON.stringify(result, null, 2));
 
   const failures = [
-    targets.length !== 646,
-    productionFiles.length !== 646,
-    staticEntries.length !== 646,
+    targets.length !== 652,
+    productionFiles.length !== 652,
+    staticEntries.length !== 652,
     invalidOrMissing.length > 0,
     hashMismatches.length > 0,
     contentDrift.length > 0,

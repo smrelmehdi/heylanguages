@@ -26,12 +26,13 @@ const lesson = (
 
 const scenario = (
   unitId: string,
-  item: { contentId: string; scenarioName: string; title: string; description: string; setting: string; objective: string; imageKey: string },
+  item: { contentId: string; scenarioName: string; title: string; description: string; setting: string; objective: string; imageKey: string; entranceImageKey?: string },
   commercialAccess: 'free' | 'premium',
 ): CurriculumItem => ({
   dialect, unitId, contentId: item.contentId, contentType: 'scenario', title: item.title, subtitle: '4 mins',
   route: { screen: 'scenario', params: { type: item.scenarioName } }, homeHref: `/scenario?type=${item.scenarioName}`,
   availability: 'available', commercialAccess, scenarioName: item.scenarioName, sceneImageKey: item.imageKey,
+  sceneEntranceImageId: item.entranceImageKey,
   description: item.description, setting: item.setting, objective: item.objective, acceptedTransliterationProfile: 'msa',
 });
 
