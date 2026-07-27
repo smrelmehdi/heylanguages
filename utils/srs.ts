@@ -22,6 +22,7 @@ export interface QuizSrsSummary {
 type QuizSrsMap = Record<string, QuizSrsEntry>;
 
 const QUIZ_SRS_STORAGE_KEY = 'quiz_srs_v1';
+let srsWriteQueue = Promise.resolve();
 
 function stableHash(value: string) {
   let hash = 2166136261;
@@ -43,12 +44,19 @@ function shuffle<T>(items: T[], seed?: string, getId?: (item: T) => string): T[]
   return [...items];
 }
 
+async function readQuizSrsMap(): Promise<QuizSrsMap> {
+  const raw = await AsyncStorage.getItem(QUIZ_SRS_STORAGE_KEY);
+  if (!raw) return {};
+  const parsed = JSON.parse(raw) as QuizSrsMap;
+  return parsed ?? {};
+}
+
 async function loadQuizSrsMap(): Promise<QuizSrsMap> {
   try {
-    const raw = await AsyncStorage.getItem(QUIZ_SRS_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as QuizSrsMap;
-    return parsed ?? {};
+    // Public reads wait for queued writes so Home and Daily Review see the same
+    // committed snapshot after an answer.
+    await srsWriteQueue;
+    return await readQuizSrsMap();
   } catch (error) {
     console.warn('Quiz SRS load error:', error);
     return {};
@@ -84,11 +92,7 @@ export async function getQuizSrsSummary(itemIds: string[]): Promise<QuizSrsSumma
 }
 
 async function saveQuizSrsMap(map: QuizSrsMap): Promise<void> {
-  try {
-    await AsyncStorage.setItem(QUIZ_SRS_STORAGE_KEY, JSON.stringify(map));
-  } catch (error) {
-    console.warn('Quiz SRS save error:', error);
-  }
+  await AsyncStorage.setItem(QUIZ_SRS_STORAGE_KEY, JSON.stringify(map));
 }
 
 function nextIntervalDays(correctStreak: number): number {
@@ -100,35 +104,39 @@ function nextIntervalDays(correctStreak: number): number {
 }
 
 export async function recordQuizSrsResult(itemId: string, correct: boolean): Promise<void> {
-  const map = await loadQuizSrsMap();
-  const existing = map[itemId];
-  const now = Date.now();
+  const operation = srsWriteQueue.then(async () => {
+    const map = await readQuizSrsMap();
+    const existing = map[itemId];
+    const now = Date.now();
 
-  if (correct) {
-    const correctStreak = (existing?.correctStreak ?? 0) + 1;
-    const intervalDays = nextIntervalDays(correctStreak);
-    map[itemId] = {
-      itemId,
-      dueAt: now + intervalDays * 24 * 60 * 60 * 1000,
-      intervalDays,
-      correctStreak,
-      wrongCount: Math.max(0, (existing?.wrongCount ?? 0) - 1),
-      lastResult: 'correct',
-      updatedAt: now,
-    };
-  } else {
-    map[itemId] = {
-      itemId,
-      dueAt: now,
-      intervalDays: 0,
-      correctStreak: 0,
-      wrongCount: (existing?.wrongCount ?? 0) + 1,
-      lastResult: 'wrong',
-      updatedAt: now,
-    };
-  }
+    if (correct) {
+      const correctStreak = (existing?.correctStreak ?? 0) + 1;
+      const intervalDays = nextIntervalDays(correctStreak);
+      map[itemId] = {
+        itemId,
+        dueAt: now + intervalDays * 24 * 60 * 60 * 1000,
+        intervalDays,
+        correctStreak,
+        wrongCount: Math.max(0, (existing?.wrongCount ?? 0) - 1),
+        lastResult: 'correct',
+        updatedAt: now,
+      };
+    } else {
+      map[itemId] = {
+        itemId,
+        dueAt: now,
+        intervalDays: 0,
+        correctStreak: 0,
+        wrongCount: (existing?.wrongCount ?? 0) + 1,
+        lastResult: 'wrong',
+        updatedAt: now,
+      };
+    }
 
-  await saveQuizSrsMap(map);
+    await saveQuizSrsMap(map);
+  });
+  srsWriteQueue = operation.then(() => undefined, () => undefined);
+  return operation;
 }
 
 function priorityScore(entry: QuizSrsEntry | undefined, now: number): number {
@@ -245,4 +253,14 @@ export async function getDueItemIds(): Promise<Set<string>> {
     if (entry.dueAt <= now) ids.add(id);
   }
   return ids;
+}
+
+export async function getResolvableDueCount(candidateIds: Iterable<string>): Promise<number> {
+  const dueIds = await getDueItemIds();
+  const uniqueCandidates = new Set(candidateIds);
+  let count = 0;
+  uniqueCandidates.forEach(id => {
+    if (dueIds.has(id)) count += 1;
+  });
+  return count;
 }

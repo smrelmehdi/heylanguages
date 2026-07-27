@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -36,7 +36,8 @@ import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/
 import { MSA_UNIT3_QUIZ_WORDS } from '../data/msa-alphabet-audio';
 import { getDialectCurriculumItems } from '../utils/content-resolver';
 import { buildCompletionKey, parseCompletionKey } from '../utils/progression';
-import { finishQuizAttempt, getOrCreateQuizAttemptSeed, startFreshQuizAttempt } from '../utils/quiz-attempt';
+import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope, isDedicatedReviewRoute } from '../utils/phase1-review';
+import { createScopedAttemptSeedCache, finishQuizAttempt, startFreshQuizAttempt, type ScopedAttemptSeed } from '../utils/quiz-attempt';
 import { persistQuizPass } from '../utils/quiz-completion';
 import { selectWithAttemptSeed, stableQuizHash } from '../utils/quiz-selection';
 import { ARABIC_SELECT_XP, getQuizTier, getQuizTierInfo, TYPING_QUESTION_XP, type QuizTierInfo } from '../utils/quiz-level';
@@ -116,6 +117,7 @@ type WordLessonEntry = {
 };
 
 type QuizAttemptPlan = {
+  attempt: ScopedAttemptSeed;
   questions: QuizQuestion[];
   tierInfo: QuizTierInfo;
   srsSummary: QuizSrsSummary | null;
@@ -129,6 +131,25 @@ type InitialAttemptResult = {
   attemptXp: number;
   missedCount: number;
 };
+
+function QuizAccessGate({
+  isReview,
+  contentId,
+  contentLabel,
+  children,
+}: {
+  isReview: boolean;
+  contentId: string | null;
+  contentLabel: string;
+  children: ReactNode;
+}) {
+  if (isReview) return <>{children}</>;
+  return (
+    <PremiumRouteGate contentId={contentId} contentType="quiz" contentLabel={contentLabel}>
+      {children}
+    </PremiumRouteGate>
+  );
+}
 
 const displayTurnArabic = (turn: DialogueTurn) => turn.displayArabic ?? turn.arabic;
 const turnAudioText = (turn: DialogueTurn) => turn.audioText ?? turn.displayArabic ?? turn.arabic;
@@ -1517,7 +1538,9 @@ export default function QuizUnit2Screen() {
   const { dialect, content } = useDialect();
   const { applyGuestXpSnapshot, refreshFromServer } = useXP();
   const requestedUnit = unit ?? '2p1';
-  const attemptScope = `${dialect}:${requestedUnit}`;
+  const attemptScope = requestedUnit === 'review'
+    ? getPhase1ReviewAttemptScope(dialect)
+    : `${dialect}:${requestedUnit}`;
   const routeContentId = getQuizContentId(requestedUnit);
   const isSupportedQuizUnit = SUPPORTED_TIERED_QUIZ_UNITS.has(requestedUnit);
 
@@ -1549,7 +1572,11 @@ export default function QuizUnit2Screen() {
   const wrongIdsRef = useRef(new Set<string>());
   const correctedPracticeIdsRef = useRef(new Set<string>());
   const awardedQuestionIdsRef = useRef(new Set<string>());
-  const attemptSeedRef = useRef<string | null>(null);
+  const attemptSeedCacheRef = useRef<ReturnType<typeof createScopedAttemptSeedCache> | null>(null);
+  const activeAttemptRef = useRef<ScopedAttemptSeed | null>(null);
+  if (!attemptSeedCacheRef.current) {
+    attemptSeedCacheRef.current = createScopedAttemptSeedCache();
+  }
 
   // Card entrance animation
   const cardOpacity = useSharedValue(0);
@@ -1582,18 +1609,19 @@ export default function QuizUnit2Screen() {
     'Unit 2 Quiz';
 
   const buildAttemptPlan = async (): Promise<QuizAttemptPlan | null> => {
-    const attemptSeed = attemptSeedRef.current ?? await getOrCreateQuizAttemptSeed(attemptScope);
-    attemptSeedRef.current = attemptSeed;
+    const attempt = await attemptSeedCacheRef.current!.resolve(attemptScope);
+    if (!attempt) return null;
+    const attemptSeed = attempt.seed;
     currentAttemptSelectionSeed = attemptSeed;
 
-    if (requestedUnit === 'review') {
-      const allScenarioNames = Object.keys(content.scenarios);
-      const allDialectQuestions = buildDialectUnit2Quiz(allScenarioNames, content, dialect);
+    if (isDedicatedReviewRoute(requestedUnit)) {
+      const allDialectQuestions = buildPhase1ReviewQuestions(content, dialect, attemptSeed);
       const dueIds = await getDueItemIds();
       const dueQuestions = allDialectQuestions.filter(q => dueIds.has(q.id));
       const selected = shuffleNoAdjacentFormats(dueQuestions).slice(0, 10);
       if (selected.length === 0) return null;
       return {
+        attempt,
         questions: selected,
         tierInfo: getQuizTierInfo(1),
         srsSummary: await getQuizSrsSummary(selected.map(q => q.id)),
@@ -1677,6 +1705,7 @@ export default function QuizUnit2Screen() {
     const prioritized = await prioritizeQuizItems(base, question => question.id);
     const shuffled = shuffleNoAdjacentFormats(prioritized);
     return {
+      attempt,
       questions: shuffled,
       tierInfo: currentTierInfo,
       srsSummary: await getQuizSrsSummary(shuffled.map(question => question.id)),
@@ -1687,6 +1716,7 @@ export default function QuizUnit2Screen() {
   useEffect(() => {
     if (phase !== 'intro') return;
     let cancelled = false;
+    setAttemptPlan(null);
     setIsPlanningAttempt(true);
     buildAttemptPlan()
       .then(plan => {
@@ -1733,6 +1763,7 @@ export default function QuizUnit2Screen() {
 
   const beginQuizWithPlan = (plan: QuizAttemptPlan) => {
     resetAttemptState();
+    activeAttemptRef.current = plan.attempt;
     setAllQuestions(plan.questions);
     setQuestions(plan.questions);
     setTierInfo(plan.tierInfo);
@@ -1742,7 +1773,9 @@ export default function QuizUnit2Screen() {
   };
 
   const startQuiz = async () => {
-    const plan = attemptPlan ?? await buildAttemptPlan();
+    const plan = attemptPlan?.attempt.scope === attemptScope
+      ? attemptPlan
+      : await buildAttemptPlan();
     if (!plan) {
       Alert.alert(
         requestedUnit === 'review' ? 'All caught up! 🎉' : 'Quiz unavailable',
@@ -1824,8 +1857,8 @@ export default function QuizUnit2Screen() {
                 console.warn('Quiz save error:', error);
               }
             }
-            if (attemptSeedRef.current) {
-              await finishQuizAttempt(attemptScope, attemptSeedRef.current);
+            if (activeAttemptRef.current) {
+              await finishQuizAttempt(activeAttemptRef.current.scope, activeAttemptRef.current.seed);
             }
             setPhase('results');
           };
@@ -1876,7 +1909,9 @@ export default function QuizUnit2Screen() {
   };
 
   const handleRetryFullQuiz = async () => {
-    attemptSeedRef.current = await startFreshQuizAttempt(attemptScope);
+    const seed = await startFreshQuizAttempt(attemptScope);
+    attemptSeedCacheRef.current!.set(attemptScope, seed);
+    activeAttemptRef.current = null;
     setPhase('intro');
     setAttemptPlan(null);
     setIsPlanningAttempt(true);
@@ -1900,7 +1935,7 @@ export default function QuizUnit2Screen() {
 
   if (phase === 'intro') {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
+      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizIntro
           title={quizTitle}
@@ -1910,13 +1945,13 @@ export default function QuizUnit2Screen() {
           isLoading={isPlanningAttempt}
           onStart={startQuiz}
         />
-      </PremiumRouteGate>
+      </QuizAccessGate>
     );
   }
 
   if (phase === 'results') {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
+      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizResults
           correct={initialResult?.correctCount ?? 0}
@@ -1936,21 +1971,21 @@ export default function QuizUnit2Screen() {
           onRetryFull={handleRetryFullQuiz}
           onHome={() => router.replace('/(tabs)')}
         />
-      </PremiumRouteGate>
+      </QuizAccessGate>
     );
   }
 
   const currentQuestion = questions[currentIndex];
   if (!currentQuestion) {
     return (
-      <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
+      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
         <Stack.Screen options={{ headerShown: false }} />
-      </PremiumRouteGate>
+      </QuizAccessGate>
     );
   }
 
   return (
-    <PremiumRouteGate contentId={routeContentId} contentType="quiz" contentLabel={quizTitle}>
+    <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container}>
 
@@ -2075,7 +2110,7 @@ export default function QuizUnit2Screen() {
         {showXpFloat && <XPFloat key={xpFloatKey} amount={lastAwardedXp} />}
 
       </SafeAreaView>
-    </PremiumRouteGate>
+    </QuizAccessGate>
   );
 }
 

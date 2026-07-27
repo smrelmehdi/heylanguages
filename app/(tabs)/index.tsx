@@ -40,7 +40,9 @@ import { useXP } from '../../contexts/XPContext';
 import { TESTING_UNLOCK_ALL } from '../../utils/access';
 import { getDialectCurriculum, isSupportedCurriculumDialect, type CurriculumItem } from '../../data/curriculum';
 import { hasCompletedContent } from '../../utils/progression';
-import { getTotalDueCount } from '../../utils/srs';
+import { getOrCreateQuizAttemptSeed } from '../../utils/quiz-attempt';
+import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope } from '../../utils/phase1-review';
+import { getResolvableDueCount } from '../../utils/srs';
 import type { StreakData } from '../../utils/streak';
 import { clearPendingMilestone, getLocalStreakData, getPendingMilestone } from '../../utils/streak';
 import { supabase } from '../../utils/supabase';
@@ -131,7 +133,7 @@ export default function HomeScreen() {
   const [isGuest, setIsGuest] = useState(false);
   const [lessonsToday, setLessonsToday] = useState(0);
   const [level, setLevel] = useState('beginner');
-  const { dialect: contextDialect, setDialect: setContextDialect } = useDialect();
+  const { dialect: contextDialect, content, setDialect: setContextDialect } = useDialect();
   const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
   const [promptReason, setPromptReason] = useState('');
   const [showExpiryWarning, setShowExpiryWarning] = useState(false);
@@ -294,9 +296,6 @@ export default function HomeScreen() {
           setShowMilestoneModal(true);
         }
 
-        // SRS due count for Daily Review card
-        const due = await getTotalDueCount();
-        setDueReviewCount(due);
       };
 
       loadData();
@@ -309,6 +308,27 @@ export default function HomeScreen() {
 
       return () => clearTimeout(restoreTimer);
     }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const loadResolvableReviewCount = async () => {
+        try {
+          const attemptSeed = await getOrCreateQuizAttemptSeed(getPhase1ReviewAttemptScope(contextDialect));
+          const candidates = buildPhase1ReviewQuestions(content, contextDialect, attemptSeed);
+          const due = await getResolvableDueCount(candidates.map(question => question.id));
+          if (!cancelled) setDueReviewCount(due);
+        } catch (error) {
+          console.warn('[review] Failed to resolve due items:', error);
+          if (!cancelled) setDueReviewCount(0);
+        }
+      };
+      loadResolvableReviewCount();
+      return () => {
+        cancelled = true;
+      };
+    }, [content, contextDialect])
   );
 
   // When TESTING_UNLOCK_ALL is true, treat every user as logged-in with no prerequisites
