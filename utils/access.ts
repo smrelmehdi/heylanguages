@@ -175,7 +175,7 @@ export const SCENARIO_TYPE_TO_CONTENT_ID: Record<string, string> = {
   EgyptianEverydayTaxi: 'everyday-taxi',
   EgyptianDirections: 'directions',
   EgyptianEverydayPharmacy: 'everyday-pharmacy',
-  EgyptianEverydayBarber: 'everyday-barber',
+  EgyptianPhoneRepair: 'phone-repair',
   EgyptianEverydayHotel: 'everyday-hotel',
   EgyptianEverydayAirport: 'everyday-airport',
   EgyptianPhoneCall: 'phone-call',

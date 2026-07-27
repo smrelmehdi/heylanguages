@@ -108,7 +108,7 @@ const EGYPTIAN_UNIT_6_SCENARIOS = [
   ['everyday-taxi', 'EGYPTIAN_TAXI_SCENARIO'],
   ['directions', 'EGYPTIAN_DIRECTIONS_SCENARIO'],
   ['everyday-pharmacy', 'EGYPTIAN_PHARMACY_SCENARIO'],
-  ['everyday-barber', 'EGYPTIAN_BARBER_SCENARIO'],
+  ['phone-repair', 'EGYPTIAN_PHONE_REPAIR_SCENARIO'],
   ['everyday-hotel', 'EGYPTIAN_HOTEL_SCENARIO'],
   ['everyday-airport', 'EGYPTIAN_AIRPORT_SCENARIO'],
   ['phone-call', 'EGYPTIAN_PHONE_CALL_SCENARIO'],

@@ -157,12 +157,8 @@ const riskTermsWithoutDirectAudioMatch = RISK_TERMS
   .map(([label]) => label)
   .filter(label => !matchedRiskLabels.has(label));
 
-const barber = unit6.find(target => target.audioPath.endsWith('/everyday-barber/w2.mp3'));
 const directions = unit6.find(target => target.audioText === 'لأ، لِفّ شمال.');
 const specialCases = {
-  barberLocked: barber?.displayArabic === 'والجناب، عايزها قصيرة؟'
-    && barber.audioText === 'والگيناب، عايزها قصيرة؟'
-    && barber.evalTarget === 'والجناب، عايزها قصيرة؟',
   directionsLocked: Boolean(directions),
 };
 
@@ -210,23 +206,22 @@ writeFileSync(join(REPORT_DIR, 'PRONUNCIATION_RISKS.md'), [
 
 console.log(JSON.stringify(report, null, 2));
 
-const failed = targets.length !== 165
-  || unit6.length !== 103
+const failed = targets.length !== 169
+  || unit6.length !== 107
   || unit7.length !== 62
-  || targetPathSet.size !== 165
-  || staticPathSet.size !== 165
+  || targetPathSet.size !== 169
+  || staticPathSet.size !== 169
   || duplicateReferences.length > 0
   || missingFiles.length > 0
   || missingStaticRequires.length > 0
   || unreferencedFiles.length > 0
   || invalidFiles.length > 0
   || suspiciousDurations.length > 0
-  || offlinePathSet.size !== 165
+  || offlinePathSet.size !== 169
   || missingRuntimeAudio.length > 0
   || duplicateOfflineReferences.length > 0
   || [...targetPathSet].some(path => !offlinePathSet.has(path))
   || [...offlinePathSet].some(path => !targetPathSet.has(path))
-  || !specialCases.barberLocked
   || !specialCases.directionsLocked;
 
 if (failed) process.exitCode = 1;
