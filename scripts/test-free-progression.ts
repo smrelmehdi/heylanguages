@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import Module from 'node:module';
 
 const extensions = (Module as typeof Module & { _extensions: Record<string, (module: { exports: unknown }) => void> })._extensions;
-for (const extension of ['.mp3', '.png', '.jpg', '.jpeg']) {
+for (const extension of ['.mp3', '.png', '.jpg', '.jpeg', '.webp']) {
   extensions[extension] = module => {
     module.exports = 1;
   };
