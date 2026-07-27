@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withSequence, withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence, withTiming,
 } from 'react-native-reanimated';
-import type { ListeningQuestion } from '../../data/quiz-types';
-import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 import { theme } from '../../constants/theme';
 import { useDialect } from '../../contexts/DialectContext';
+import type { ListeningQuestion } from '../../data/quiz-types';
 import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
+import type { QuizAnswerResult } from '../../utils/quiz-scoring';
+import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 
 const MAX_REPLAYS = 3;
 
@@ -29,6 +31,8 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
   // replays = number of manual replay presses (auto-play on mount doesn't count)
   const [replays, setReplays] = useState(0);
   const btnScale = useSharedValue(1);
+  const isMountedRef = useRef(true);
+  const resetStartingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doPlay = async () => {
     if (isStartingAudio) return;
@@ -38,9 +42,13 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
     try {
       await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId, { owner: audioOwner });
     } catch {
-      setAudioError('Audio did not start. Tap to retry.');
+      if (isMountedRef.current) setAudioError('Audio did not start. Tap to retry.');
     } finally {
-      setTimeout(() => setIsStartingAudio(false), 250);
+      if (isMountedRef.current) {
+        resetStartingTimerRef.current = setTimeout(() => {
+          if (isMountedRef.current) setIsStartingAudio(false);
+        }, 250);
+      }
     }
   };
 
@@ -48,7 +56,9 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
   useEffect(() => {
     const t = setTimeout(() => doPlay(), 400);
     return () => {
+      isMountedRef.current = false;
       clearTimeout(t);
+      if (resetStartingTimerRef.current) clearTimeout(resetStartingTimerRef.current);
       releaseAudioPlaybackOwner(audioOwner);
     };
   }, []);

@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Keyboard,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withTiming,
 } from 'react-native-reanimated';
 import { theme } from '../../constants/theme';
 import { useDialect } from '../../contexts/DialectContext';
-import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
 import type { TransliterationTypeQuestion } from '../../data/quiz-types';
+import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
 import { gradeTransliteration, type TransliterationGradeStatus } from '../../utils/quiz-level';
 import type { QuizAnswerResult } from '../../utils/quiz-scoring';
 import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
@@ -38,6 +38,8 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
   const [isStartingAudio, setIsStartingAudio] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const audioOwner = useRef(createAudioPlaybackOwner('quiz-transliteration')).current;
+  const isMountedRef = useRef(true);
+  const resetStartingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Shake animation for wrong answers
   const shakeX = useSharedValue(0);
@@ -53,9 +55,13 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
     try {
       await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId, { owner: audioOwner });
     } catch {
-      setAudioError('Audio did not start. Tap to retry.');
+      if (isMountedRef.current) setAudioError('Audio did not start. Tap to retry.');
     } finally {
-      setTimeout(() => setIsStartingAudio(false), 250);
+      if (isMountedRef.current) {
+        resetStartingTimerRef.current = setTimeout(() => {
+          if (isMountedRef.current) setIsStartingAudio(false);
+        }, 250);
+      }
     }
   };
 
@@ -64,7 +70,9 @@ export default function TransliterationInput({ question, answerResult, onAnswer 
       playQuestionAudio();
     }, 350);
     return () => {
+      isMountedRef.current = false;
       clearTimeout(t);
+      if (resetStartingTimerRef.current) clearTimeout(resetStartingTimerRef.current);
       releaseAudioPlaybackOwner(audioOwner);
     };
   }, []);

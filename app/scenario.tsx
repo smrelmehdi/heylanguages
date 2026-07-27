@@ -196,6 +196,7 @@ function getSpeakerRoleLabel(type: string | undefined): string {
     case 'Supermarket': return 'Staff says';
     case 'Pharmacy': return 'Pharmacist says';
     case 'Barbershop': return 'Barber says';
+    case 'MsaPhoneRepair': return 'Technician says';
     case 'Airport': return 'Airport staff says';
     case 'Restaurant': return 'Waiter says';
     case 'EgyptianCafeOrder': return 'Barista says';
@@ -204,7 +205,7 @@ function getSpeakerRoleLabel(type: string | undefined): string {
     case 'EgyptianEverydayTaxi': return 'Driver says';
     case 'EgyptianDirections': return 'Local says';
     case 'EgyptianEverydayPharmacy': return 'Pharmacist says';
-    case 'EgyptianEverydayBarber': return 'Barber says';
+    case 'EgyptianPhoneRepair': return 'Technician says';
     case 'EgyptianEverydayHotel': return 'Receptionist says';
     case 'EgyptianEverydayAirport': return 'Airport staff says';
     case 'EgyptianPhoneCall': return 'Caller says';
@@ -503,6 +504,7 @@ export default function ScenarioScreen() {
       case 'Supermarket': return `🛒 Supermarket · ${dialectLabel}`;
       case 'Pharmacy':    return `💊 Pharmacy · ${dialectLabel}`;
       case 'Barbershop':     return `✂️ Barbershop · ${dialectLabel}`;
+      case 'MsaPhoneRepair': return `📱 Phone Repair · ${dialectLabel}`;
       case 'Airport':        return `✈️ Airport · ${dialectLabel}`;
       case 'MorningRoutine': return `🌅 Morning Routine · ${dialectLabel}`;
       case 'AtGym':          return `💪 At the Gym · ${dialectLabel}`;
@@ -533,7 +535,7 @@ export default function ScenarioScreen() {
       case 'EgyptianEverydayTaxi': return `🚕 Taxi · ${dialectLabel}`;
       case 'EgyptianDirections': return `🗺️ Directions · ${dialectLabel}`;
       case 'EgyptianEverydayPharmacy': return `💊 Pharmacy · ${dialectLabel}`;
-      case 'EgyptianEverydayBarber': return `✂️ Barber · ${dialectLabel}`;
+      case 'EgyptianPhoneRepair': return `📱 Phone Repair · ${dialectLabel}`;
       case 'EgyptianEverydayHotel': return `🏨 Hotel · ${dialectLabel}`;
       case 'EgyptianEverydayAirport': return `✈️ Airport · ${dialectLabel}`;
       case 'EgyptianPhoneCall': return `📞 Phone Call · ${dialectLabel}`;
@@ -774,6 +776,8 @@ export default function ScenarioScreen() {
     setIsSpeaking(true);
     try {
       await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId, { owner: audioOwner });
+    } catch (error) {
+      console.warn('Scenario audio playback failed:', error);
     } finally {
       setIsSpeaking(false);
     }

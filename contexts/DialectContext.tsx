@@ -81,7 +81,7 @@ export function DialectProvider({ children }: { children: React.ReactNode }) {
   const setDialect = useCallback(async (newDialect: string) => {
     const nextDialect = normalizeStoredDialect(newDialect);
     if (nextDialect === dialect) return;
-    stopAudio();
+    stopAudio(undefined, 'dialect-change');
     setDialectState(nextDialect);
     await AsyncStorage.setItem('wizard_dialect', nextDialect);
     const { data: { session } } = await supabase.auth.getSession();

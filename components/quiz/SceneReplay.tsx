@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSequence,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withTiming,
 } from 'react-native-reanimated';
-import type { SceneReplayQuestion } from '../../data/quiz-types';
-import type { QuizAnswerResult } from '../../utils/quiz-scoring';
-import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 import { theme } from '../../constants/theme';
 import { useDialect } from '../../contexts/DialectContext';
+import type { SceneReplayQuestion } from '../../data/quiz-types';
 import { createAudioPlaybackOwner } from '../../utils/audio-lifecycle';
+import type { QuizAnswerResult } from '../../utils/quiz-scoring';
+import { playLocalAudioWithTtsFallback, releaseAudioPlaybackOwner } from '../../utils/tts';
 
 interface Props {
   question: SceneReplayQuestion;
@@ -24,6 +27,8 @@ export default function SceneReplay({ question, answerResult, onAnswer, showTran
   const [translitRevealed, setTranslitRevealed] = useState(false);
   const [isStartingAudio, setIsStartingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  const resetStartingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const playQuestionAudio = async () => {
     if (isStartingAudio) return;
@@ -32,9 +37,13 @@ export default function SceneReplay({ question, answerResult, onAnswer, showTran
     try {
       await playLocalAudioWithTtsFallback(question.audioFile, question.audioText, content.voiceId, { owner: audioOwner });
     } catch {
-      setAudioError('Audio did not start. Tap to retry.');
+      if (isMountedRef.current) setAudioError('Audio did not start. Tap to retry.');
     } finally {
-      setTimeout(() => setIsStartingAudio(false), 250);
+      if (isMountedRef.current) {
+        resetStartingTimerRef.current = setTimeout(() => {
+          if (isMountedRef.current) setIsStartingAudio(false);
+        }, 250);
+      }
     }
   };
 
@@ -44,7 +53,9 @@ export default function SceneReplay({ question, answerResult, onAnswer, showTran
       playQuestionAudio();
     }, 400);
     return () => {
+      isMountedRef.current = false;
       clearTimeout(t);
+      if (resetStartingTimerRef.current) clearTimeout(resetStartingTimerRef.current);
       releaseAudioPlaybackOwner(audioOwner);
     };
   }, []);

@@ -11,7 +11,6 @@ const VOICE_MSA = 'xvhpbk8otnNHtT3fjCpr';       // Omar (MSA)
 // One native player and one request owner for every playback path.
 let currentPlayer: any = null;
 let currentSubscription: { remove?: () => void } | null = null;
-let playbackWatchdog: ReturnType<typeof setTimeout> | null = null;
 let audioModeQueue: Promise<void> = Promise.resolve();
 let requestedAudioMode: 'playback' | 'recording' | null = null;
 let recordingModeOwner: AudioPlaybackOwner | null = null;
@@ -22,6 +21,8 @@ const TTS_CACHE_PREFIX = 'tts_';
 const TTS_CACHE_MAX_BYTES = 50 * 1024 * 1024;
 const TTS_CACHE_TARGET_BYTES = 40 * 1024 * 1024;
 const TTS_MEMORY_CACHE_MAX_ITEMS = 180;
+const PLAYBACK_START_TIMEOUT_MS = 5000;
+const RUNTIME_TTS_TIMEOUT_MS = 20000;
 
 type AudioSource = string | number | { uri?: string; assetId?: number };
 type OptionalNetworkState = {
@@ -37,6 +38,37 @@ export interface PlayOptions {
   owner?: AudioPlaybackOwner;
 }
 
+export type AudioCancellationReason =
+  | 'owner-stop'
+  | 'owner-release'
+  | 'replacement'
+  | 'component-unmount'
+  | 'app-background'
+  | 'dialect-change'
+  | 'recording-preparation'
+  | 'manual-reset';
+
+export type AudioFailureCode =
+  | 'offline_unavailable'
+  | 'start_timeout'
+  | 'native_failure'
+  | 'invalid_audio'
+  | 'runtime_tts_timeout';
+
+export class AudioPlaybackError extends Error {
+  readonly code: AudioFailureCode;
+
+  constructor(code: AudioFailureCode, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'AudioPlaybackError';
+    this.code = code;
+  }
+}
+
+export function isAudioPlaybackError(error: unknown): error is AudioPlaybackError {
+  return error instanceof AudioPlaybackError;
+}
+
 type GenerateSpeechResponse = {
   audioBase64?: unknown;
   contentType?: unknown;
@@ -44,6 +76,21 @@ type GenerateSpeechResponse = {
 };
 
 let didWarnMissingExpoNetwork = false;
+
+type PlaybackStartOutcome =
+  | { status: 'started' }
+  | { status: 'cancelled'; reason: AudioCancellationReason };
+
+type PlaybackAttemptSettlement = {
+  token: number;
+  player: any;
+  settled: boolean;
+  timeout: ReturnType<typeof setTimeout> | null;
+  resolve: (outcome: PlaybackStartOutcome) => void;
+  reject: (error: AudioPlaybackError) => void;
+};
+
+let currentPlaybackAttempt: PlaybackAttemptSettlement | null = null;
 
 function getOptionalNetwork(): OptionalNetworkModule | null {
   try {
@@ -63,7 +110,27 @@ async function isRuntimeTtsOnline(): Promise<boolean> {
   const Network = getOptionalNetwork();
   if (!Network?.getNetworkStateAsync) return true;
   const network = await Network.getNetworkStateAsync();
-  return Boolean(network.isConnected && network.isInternetReachable !== false);
+  if (network.isConnected === false || network.isInternetReachable === false) return false;
+  return true;
+}
+
+async function withRuntimeTtsTimeout<T>(operation: PromiseLike<T>): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      Promise.resolve(operation),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(new AudioPlaybackError(
+            'runtime_tts_timeout',
+            'Speech generation timed out. Please try again.',
+          ));
+        }, RUNTIME_TTS_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 function dialectForVoice(voiceId?: string): AudioDialect {
@@ -93,12 +160,42 @@ function hashCode(str: string): number {
   return hash;
 }
 
-function disposeCurrent(reason = 'dispose') {
+function settlePlaybackAttempt(
+  token: number,
+  player: any,
+  settle: (attempt: PlaybackAttemptSettlement) => void,
+) {
+  const attempt = currentPlaybackAttempt;
+  if (!attempt || attempt.token !== token || attempt.player !== player || attempt.settled) return false;
+  attempt.settled = true;
+  if (attempt.timeout) {
+    clearTimeout(attempt.timeout);
+    attempt.timeout = null;
+  }
+  currentPlaybackAttempt = null;
+  settle(attempt);
+  return true;
+}
+
+function resolveStarted(token: number, player: any) {
+  return settlePlaybackAttempt(token, player, attempt => attempt.resolve({ status: 'started' }));
+}
+
+function resolveCancelled(token: number, player: any, reason: AudioCancellationReason) {
+  return settlePlaybackAttempt(token, player, attempt => attempt.resolve({ status: 'cancelled', reason }));
+}
+
+function rejectFailure(token: number, player: any, error: AudioPlaybackError) {
+  return settlePlaybackAttempt(token, player, attempt => attempt.reject(error));
+}
+
+function disposeCurrent(reason = 'dispose', cancellationReason: AudioCancellationReason = 'replacement') {
   const { token, owner } = playbackLifecycle.snapshot();
   audioLog('dispose', { reason, token, owner: owner?.label });
-  if (playbackWatchdog) {
-    clearTimeout(playbackWatchdog);
-    playbackWatchdog = null;
+  const player = currentPlayer;
+  const attempt = currentPlaybackAttempt;
+  if (player && attempt && attempt.player === player) {
+    resolveCancelled(attempt.token, player, cancellationReason);
   }
   if (currentSubscription) {
     try { currentSubscription.remove?.(); } catch {}
@@ -113,9 +210,9 @@ function disposeCurrent(reason = 'dispose') {
 
 function clearCurrentPlayer(player: any, token: number) {
   if (currentPlayer !== player) return;
-  if (playbackWatchdog) {
-    clearTimeout(playbackWatchdog);
-    playbackWatchdog = null;
+  const attempt = currentPlaybackAttempt;
+  if (attempt && attempt.player === player && attempt.token === token) {
+    resolveCancelled(token, player, 'replacement');
   }
   if (currentSubscription) {
     try { currentSubscription.remove?.(); } catch {}
@@ -159,7 +256,7 @@ async function setPlaybackMode(reason: string, force = false) {
 
 export async function prepareRecordingAudioMode(reason = 'recording', owner?: AudioPlaybackOwner): Promise<void> {
   playbackLifecycle.stop();
-  disposeCurrent(`recording:${reason}`);
+  disposeCurrent(`recording:${reason}`, 'recording-preparation');
   recordingModeOwner = owner ?? null;
   audioLog('mode:recording', { reason });
   await queueAudioMode({
@@ -185,7 +282,7 @@ export async function restorePlaybackAudioMode(reason = 'recording-finished', ow
 
 export async function resetAudioPlayback(reason = 'manual-reset'): Promise<void> {
   playbackLifecycle.stop();
-  disposeCurrent(reason);
+  disposeCurrent(reason, 'manual-reset');
   await setPlaybackMode(reason, true);
 }
 
@@ -241,45 +338,101 @@ async function trimTtsFileCache() {
 
 async function startPlayback(source: AudioSource, token: number, opts?: PlayOptions): Promise<void> {
   if (!playbackLifecycle.isCurrent(token)) return;
-  disposeCurrent('before-play');
+  disposeCurrent('before-play', 'replacement');
   await setPlaybackMode('before-play');
   if (!playbackLifecycle.isCurrent(token)) return;
 
   let player: any = null;
+  let playerCreated = false;
   try {
     audioLog('play:start', { token, owner: opts?.owner?.label, sourceType: typeof source });
     player = createAudioPlayer(source as any, {
       keepAudioSessionActive: true,
       updateInterval: 100,
     });
+    playerCreated = true;
     if (!playbackLifecycle.isCurrent(token)) {
       try { player.remove(); } catch {}
       return;
     }
     currentPlayer = player;
 
+    const startAck = new Promise<PlaybackStartOutcome>((resolve, reject) => {
+      currentPlaybackAttempt = {
+        token,
+        player,
+        settled: false,
+        timeout: null,
+        resolve,
+        reject,
+      };
+    });
+    // A synchronous player.play() throw may reject before startAck is awaited.
+    startAck.catch(() => {});
+
     currentSubscription = player.addListener?.('playbackStatusUpdate', (status: any) => {
       if (!playbackLifecycle.isCurrent(token)) return;
       if (status?.error) {
+        rejectFailure(
+          token,
+          player,
+          new AudioPlaybackError('native_failure', String(status.error)),
+        );
         audioWarn('play:error', { token, owner: opts?.owner?.label, error: status.error });
         playbackLifecycle.stop();
         setPlaybackMode('playback-error', true).catch(() => {});
         clearCurrentPlayer(player, token);
         return;
       }
+
+      const currentTime = Number(status?.currentTime ?? player.currentTime ?? 0);
+      const duration = Number(status?.duration ?? player.duration ?? 0);
+      const loaded = status?.isLoaded !== false && player.isLoaded !== false;
+      const credibleFinish = Boolean(
+        status?.didJustFinish &&
+        loaded &&
+        duration > 0 &&
+        currentTime > 0 &&
+        currentTime >= Math.max(0, duration - 0.05)
+      );
+      const wasAwaitingStart = Boolean(
+        currentPlaybackAttempt?.token === token &&
+        currentPlaybackAttempt.player === player
+      );
+
+      if (status?.playing || currentTime > 0 || credibleFinish) {
+        resolveStarted(token, player);
+      }
       if (status?.didJustFinish) {
+        if (!credibleFinish && currentPlaybackAttempt?.player === player) {
+          rejectFailure(
+            token,
+            player,
+            new AudioPlaybackError('invalid_audio', 'Audio finished without evidence of playable content.'),
+          );
+        }
         audioLog('play:finish', { token });
-        opts?.onComplete?.();
+        if (credibleFinish || !wasAwaitingStart) opts?.onComplete?.();
         clearCurrentPlayer(player, token);
       }
     });
 
     player.play();
-    playbackWatchdog = setTimeout(() => {
-      if (!playbackLifecycle.isCurrent(token) || currentPlayer !== player) return;
+    const attempt = currentPlaybackAttempt;
+    if (!attempt || attempt.token !== token || attempt.player !== player) return;
+    attempt.timeout = setTimeout(() => {
+      if (
+        !playbackLifecycle.isCurrent(token) ||
+        currentPlayer !== player ||
+        currentPlaybackAttempt?.token !== token ||
+        currentPlaybackAttempt.player !== player
+      ) return;
       const loaded = Boolean(player.isLoaded);
       const playing = Boolean(player.playing);
-      if (playing) return;
+      if (playing) {
+        resolveStarted(token, player);
+        return;
+      }
       const duration = Number(player.duration ?? 0);
       const currentTime = Number(player.currentTime ?? 0);
       const reachedEnd = loaded && duration > 0 && currentTime >= duration - 0.05;
@@ -291,17 +444,32 @@ async function startPlayback(source: AudioSource, token: number, opts?: PlayOpti
         duration,
         reachedEnd,
       });
-      if (reachedEnd) opts?.onComplete?.();
+      rejectFailure(
+        token,
+        player,
+        new AudioPlaybackError('start_timeout', 'Audio playback did not start in time.'),
+      );
       playbackLifecycle.stop();
-      disposeCurrent('play-start-timeout');
+      disposeCurrent('play-start-timeout', 'replacement');
       setPlaybackMode('play-start-timeout', true).catch(() => {});
-    }, 5000);
+    }, PLAYBACK_START_TIMEOUT_MS);
+
+    // Do not report success until playback actually starts (or finishes instantly).
+    await startAck;
   } catch (err) {
-    audioWarn('play:start-error', err);
+    const error = isAudioPlaybackError(err)
+      ? err
+      : new AudioPlaybackError(
+          playerCreated ? 'native_failure' : 'invalid_audio',
+          err instanceof Error ? err.message : 'Audio playback failed to start.',
+          { cause: err },
+        );
+    if (player) rejectFailure(token, player, error);
+    audioWarn('play:start-error', error);
     if (player) clearCurrentPlayer(player, token);
-    else disposeCurrent('play-start-error');
+    else disposeCurrent('play-start-error', 'replacement');
     await setPlaybackMode('play-start-error', true);
-    throw err;
+    throw error;
   }
 }
 
@@ -346,34 +514,39 @@ export async function speakArabic(
 
     if (!(await isRuntimeTtsOnline())) {
       console.warn(`[TTS offline] Skipping runtime speech fetch while offline: ${text.slice(0, 80)}`);
-      return;
+      throw new AudioPlaybackError(
+        'offline_unavailable',
+        'Offline and no packaged audio available for this phrase.',
+      );
     }
 
-    const { data, error } = await supabase.functions.invoke<GenerateSpeechResponse>(
-      'generate-speech',
-      {
-        body: {
-          text,
-          dialect: dialectForVoice(effectiveVoiceId),
+    const { data, error } = await withRuntimeTtsTimeout(
+      supabase.functions.invoke<GenerateSpeechResponse>(
+        'generate-speech',
+        {
+          body: {
+            text,
+            dialect: dialectForVoice(effectiveVoiceId),
+          },
         },
-      },
+      ),
     );
 
     if (!playbackLifecycle.isCurrent(token)) return;
 
     if (error) {
       console.warn('ElevenLabs error:', error.message);
-      throw new Error(error.message);
+      throw new AudioPlaybackError('native_failure', error.message, { cause: error });
     }
 
     if (data?.error) {
       console.warn('ElevenLabs error:', data.error);
-      throw new Error(String(data.error));
+      throw new AudioPlaybackError('native_failure', String(data.error));
     }
 
     if (typeof data?.audioBase64 !== 'string') {
       console.warn('ElevenLabs error: missing audio data');
-      throw new Error('Speech generation returned no audio data.');
+      throw new AudioPlaybackError('invalid_audio', 'Speech generation returned no audio data.');
     }
 
     const fileName = 'tts_' + effectiveVoiceId.slice(-8) + '_' + Math.abs(hashCode(text)) + '.mp3';
@@ -421,16 +594,22 @@ export async function playLocalAudioWithTtsFallback(
   await speakArabic(text, voiceId, opts);
 }
 
-export function stopAudio(owner?: AudioPlaybackOwner): void {
+export function stopAudio(
+  owner?: AudioPlaybackOwner,
+  reason: AudioCancellationReason = 'owner-stop',
+): void {
   if (!playbackLifecycle.stop(owner)) {
     audioLog('stop:ignored-stale-owner', { owner: owner?.label });
     return;
   }
-  disposeCurrent('stopAudio');
+  disposeCurrent('stopAudio', reason);
 }
 
-export function releaseAudioPlaybackOwner(owner: AudioPlaybackOwner): void {
-  stopAudio(owner);
+export function releaseAudioPlaybackOwner(
+  owner: AudioPlaybackOwner,
+  reason: AudioCancellationReason = 'component-unmount',
+): void {
+  stopAudio(owner, reason);
   audioLog('owner:released', { owner: owner.label });
 }
 
@@ -444,7 +623,7 @@ export async function handleAudioAppStateChange(state: string): Promise<void> {
     await setPlaybackMode('app-foreground', true);
     return;
   }
-  stopAudio();
+  stopAudio(undefined, 'app-background');
 }
 
 export type { AudioPlaybackOwner } from './audio-lifecycle';
