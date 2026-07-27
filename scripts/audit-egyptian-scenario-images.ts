@@ -43,8 +43,17 @@ function assetPath(id: string) {
   return typeof value === 'string' ? relative(ROOT, value) : null;
 }
 
+function physicalAssetPath(id: string) {
+  const registeredPath = assetPath(id);
+  if (registeredPath) return registeredPath;
+
+  return ['png', 'webp', 'jpg', 'jpeg']
+    .map(extension => `assets/images/${id}.${extension}`)
+    .find(path => existsSync(resolve(ROOT, path)))
+    ?? `assets/images/${id}.png`;
+}
+
 const rows = scenarios.map((item: any) => {
-  const expected = getEgyptianSceneImageIds(item.contentId);
   const resolved = resolveContent({
     dialect: 'egyptian',
     unitId: item.unitId,
@@ -53,6 +62,8 @@ const rows = scenarios.map((item: any) => {
   });
   const entranceAsset = assetPath(item.sceneEntranceImageId);
   const interiorAsset = assetPath(item.sceneImageId);
+  const entrancePhysicalPath = physicalAssetPath(item.sceneEntranceImageId);
+  const interiorPhysicalPath = physicalAssetPath(item.sceneImageId);
   return {
     unit: Number(item.unitId.replace('unit-', '')),
     contentId: item.contentId,
@@ -62,13 +73,13 @@ const rows = scenarios.map((item: any) => {
     introRoute: item.homeHref,
     introType: dedicatedRoutes.has(item.homeHref) ? 'dedicated' : 'shared',
     entranceId: item.sceneEntranceImageId,
-    entranceExpectedPath: expected.entrancePath,
+    entranceExpectedPath: entrancePhysicalPath,
     entranceResolvedPath: entranceAsset,
-    entranceExists: existsSync(resolve(ROOT, expected.entrancePath)),
+    entranceExists: existsSync(resolve(ROOT, entrancePhysicalPath)),
     interiorId: item.sceneImageId,
-    interiorExpectedPath: expected.interiorPath,
+    interiorExpectedPath: interiorPhysicalPath,
     interiorResolvedPath: interiorAsset,
-    interiorExists: existsSync(resolve(ROOT, expected.interiorPath)),
+    interiorExists: existsSync(resolve(ROOT, interiorPhysicalPath)),
     resolverUsesInteriorId: interiorAsset
       ? resolved?.sceneImage === content.sceneImages[item.sceneImageId]
       : null,
