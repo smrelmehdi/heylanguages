@@ -107,7 +107,7 @@ export function resolveContent(input: ResolveContentInput): ResolvedContent | nu
     return {
       item,
       dialogue,
-      sceneImage: content.sceneImages[item.sceneImageKey ?? item.scenarioName],
+      sceneImage: content.sceneImages[item.sceneImageId ?? item.sceneImageKey ?? item.scenarioName],
     };
   }
 

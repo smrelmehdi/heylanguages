@@ -7,6 +7,7 @@ export const EGYPTIAN_SCENE_IMAGE_REUSE: Readonly<Record<string, string>> = {
   'everyday-hotel': 'cairo-hotel',
   'everyday-airport': 'cairo-airport',
   'pharmacy-emergency': 'cairo-pharmacy',
+  'describing-pain': 'cairo-hospital-reception',
   brunch: 'cairo-cafe',
   'remembering-the-trip': 'cairo-cafe',
 };
