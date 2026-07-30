@@ -32,7 +32,6 @@ export type PublicAppEnv = 'development' | 'preview' | 'production';
 const TESTING_UNLOCK_OVERRIDE_KEY = 'internal_testing_unlock_all_override';
 const VALID_APP_ENVS = new Set<PublicAppEnv>(['development', 'preview', 'production']);
 const RAW_APP_ENV = process.env.EXPO_PUBLIC_APP_ENV;
-const RAW_TESTING_UNLOCK = process.env.EXPO_PUBLIC_TESTING_UNLOCK_ALL;
 const IS_LOCAL_DEV = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true;
 
 export const APP_ENV: PublicAppEnv =
@@ -42,18 +41,21 @@ export const APP_ENV: PublicAppEnv =
       ? 'development'
       : 'production';
 
-const ENV_TESTING_UNLOCK_ALL =
-  RAW_TESTING_UNLOCK === 'true' && APP_ENV !== 'production';
-
 let runtimeTestingUnlockOverride: boolean | null = null;
 
-export const CAN_USE_INTERNAL_TESTING_ACCESS = APP_ENV !== 'production';
+export const CAN_USE_INTERNAL_TESTING_ACCESS = IS_LOCAL_DEV;
 
-export let TESTING_UNLOCK_ALL = ENV_TESTING_UNLOCK_ALL;
+export let TESTING_UNLOCK_ALL = false;
+
+export function resolveInternalTestingAccess(
+  isDevelopmentBuild: boolean,
+  requestedOverride: boolean | null | undefined
+) {
+  return isDevelopmentBuild === true && requestedOverride === true;
+}
 
 function resolveTestingUnlockAll() {
-  if (!CAN_USE_INTERNAL_TESTING_ACCESS) return false;
-  return runtimeTestingUnlockOverride ?? ENV_TESTING_UNLOCK_ALL;
+  return resolveInternalTestingAccess(CAN_USE_INTERNAL_TESTING_ACCESS, runtimeTestingUnlockOverride);
 }
 
 function applyTestingUnlockValue() {
@@ -237,7 +239,10 @@ export function getContentAccess({
     return { allowed: false, reason: 'unavailable' };
   }
 
-  if (isTestingUnlocked && isContentAvailableForDialect(dialect, normalized, contentType)) {
+  if (
+    resolveInternalTestingAccess(CAN_USE_INTERNAL_TESTING_ACCESS, isTestingUnlocked) &&
+    isContentAvailableForDialect(dialect, normalized, contentType)
+  ) {
     return { allowed: true, reason: 'testing' };
   }
 

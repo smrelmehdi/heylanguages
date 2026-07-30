@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import Module from 'node:module';
 
+(globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = true;
+
 const extensions = (Module as typeof Module & { _extensions: Record<string, (module: { exports: unknown }) => void> })._extensions;
 for (const extension of ['.mp3', '.png', '.jpg', '.jpeg', '.webp']) {
   extensions[extension] = module => {

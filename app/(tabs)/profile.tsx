@@ -160,9 +160,9 @@ export default function ProfileScreen() {
     const applied = await setTestingUnlockAllOverride(enabled);
     setTestingUnlockEnabled(applied);
     Alert.alert(
-      applied ? 'Internal unlock enabled' : 'Internal unlock disabled',
+      applied ? 'Development override enabled' : 'Development override disabled',
       applied
-        ? 'All content is temporarily unlocked for this internal build. Remove this control before deployment.'
+        ? 'All content is temporarily unlocked in this development build.'
         : 'Locked content now uses the normal free/premium access rules.'
     );
   };
@@ -343,8 +343,8 @@ export default function ProfileScreen() {
                     ? 'Premium unlocks all lessons, offline packs, and premium practice.'
                     : 'Free plan includes Units 1-3 and previews in Units 4-5.'}
                 </Text>
-                {testingUnlockEnabled && (
-                  <Text style={styles.internalAccessLabel}>Internal testing access</Text>
+                {CAN_USE_INTERNAL_TESTING_ACCESS && testingUnlockEnabled && (
+                  <Text style={styles.internalAccessLabel}>Development override active</Text>
                 )}
               </View>
             </View>
@@ -498,36 +498,31 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {(CAN_USE_INTERNAL_TESTING_ACCESS || __DEV__) && (
+        {__DEV__ && (
           <>
-            {/* TEMP DEV ONLY - remove before production */}
             <Text style={styles.sectionTitle}>Developer</Text>
             <View style={styles.settingsCard}>
-              {CAN_USE_INTERNAL_TESTING_ACCESS && (
-                <View style={[styles.settingRow, !__DEV__ && styles.settingRowLast]}>
+              <View style={styles.settingRow}>
                   <View style={styles.settingLeft}>
                     <View>
-                      <Text style={styles.settingLabel}>Unlock all content</Text>
-                      <Text style={styles.devMeta}>Temporary internal testing only. Remove before deployment.</Text>
+                      <Text style={styles.settingLabel}>Development content override</Text>
+                      <Text style={styles.devMeta}>Available only while running a development JavaScript bundle.</Text>
                     </View>
                   </View>
                   <Switch
                     value={testingUnlockEnabled}
                     onValueChange={handleTestingUnlockToggle}
-                    accessibilityLabel="Unlock all content for internal testing"
+                    accessibilityLabel="Override content locks in development"
                     trackColor={{ false: theme.colors.bgElevated, true: 'rgba(61, 212, 192, 0.35)' }}
                     thumbColor={testingUnlockEnabled ? theme.colors.accentPrimary : theme.colors.textTertiary}
                   />
-                </View>
-              )}
+              </View>
 
-              {__DEV__ && (
-                <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleResetOnboarding}>
-                  <View style={styles.settingLeft}>
-                    <Text style={styles.settingLabel}>Reset onboarding</Text>
-                  </View>
-                </Pressable>
-              )}
+              <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleResetOnboarding}>
+                <View style={styles.settingLeft}>
+                  <Text style={styles.settingLabel}>Reset onboarding</Text>
+                </View>
+              </Pressable>
             </View>
           </>
         )}
