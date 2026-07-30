@@ -7,7 +7,7 @@ import type { DialectContent, DialogueTurn } from '../data/content-registry';
 const extensions = (Module as typeof Module & {
   _extensions: Record<string, (module: { exports: unknown }, filename: string) => void>;
 })._extensions;
-for (const extension of ['.mp3', '.png', '.jpg', '.jpeg']) {
+for (const extension of ['.mp3', '.png', '.jpg', '.jpeg', '.webp']) {
   extensions[extension] = (module, filename) => {
     module.exports = filename;
   };
