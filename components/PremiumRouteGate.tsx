@@ -102,13 +102,11 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
   };
 
   const handlePurchase = async () => {
-    const unlocked = await purchasePremium();
-    if (unlocked) return;
+    await purchasePremium();
   };
 
   const handleRestore = async () => {
-    const restored = await restorePurchases();
-    if (restored) return;
+    await restorePurchases();
   };
 
   if (access.allowed) {
@@ -151,7 +149,7 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
         price={premiumPrice}
         isPurchasing={isPurchasing}
         isRestoring={isRestoring}
-        isPremiumAvailable={Boolean(premiumPackage)}
+        isPremiumAvailable={availabilityStatus === 'ready' && Boolean(premiumPackage)}
         availabilityStatus={availabilityStatus}
         error={error}
         onPurchase={handlePurchase}

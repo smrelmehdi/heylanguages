@@ -216,10 +216,11 @@ export default function ProfileScreen() {
   };
 
   const handleRestorePurchases = async () => {
-    const restored = await restorePurchases();
+    const result = await restorePurchases();
+    if (result === 'error') return;
     Alert.alert(
-      restored ? 'Premium restored' : 'No premium found',
-      restored
+      result === 'success' ? 'Premium restored' : 'No premium found',
+      result === 'success'
         ? 'Your premium access is active on this device.'
         : 'No active premium subscription was found for this store account.'
     );
@@ -444,21 +445,36 @@ export default function ProfileScreen() {
         {/* Account */}
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.settingsCard}>
-          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.privacy)}>
+          <Pressable
+            style={styles.settingRow}
+            onPress={() => openExternalLink(LEGAL_URLS.privacy)}
+            accessibilityRole="link"
+            accessibilityLabel="Open Privacy Policy"
+          >
             <View style={styles.settingLeft}>
               <Text style={styles.settingLabel}>Privacy Policy</Text>
             </View>
             <ChevronRight color={theme.colors.textTertiary} size={16} />
           </Pressable>
 
-          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.terms)}>
+          <Pressable
+            style={styles.settingRow}
+            onPress={() => openExternalLink(LEGAL_URLS.terms)}
+            accessibilityRole="link"
+            accessibilityLabel="Open Terms of Use"
+          >
             <View style={styles.settingLeft}>
               <Text style={styles.settingLabel}>Terms of Use</Text>
             </View>
             <ChevronRight color={theme.colors.textTertiary} size={16} />
           </Pressable>
 
-          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.support)}>
+          <Pressable
+            style={styles.settingRow}
+            onPress={() => openExternalLink(LEGAL_URLS.support)}
+            accessibilityRole="link"
+            accessibilityLabel="Open Support"
+          >
             <View style={styles.settingLeft}>
               <Text style={styles.settingLabel}>Support</Text>
             </View>

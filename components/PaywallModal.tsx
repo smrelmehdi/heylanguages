@@ -1,5 +1,5 @@
 import { Crown, Lock, X } from 'lucide-react-native';
-import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEGAL_URLS } from '../constants/legal';
 import { theme } from '../constants/theme';
 import type { PremiumAvailabilityStatus } from '../contexts/PremiumContext';
@@ -36,11 +36,12 @@ export default function PaywallModal({
   onRestore,
   onRefresh,
 }: Props) {
-  const purchaseLabel = price ? `Start Premium - ${price}` : 'Start Premium';
+  const purchaseLabel = price ? `Start Premium - ${price} / month` : 'Start Premium';
   const isBusy = isPurchasing || isRestoring;
   const unavailableText =
     availabilityStatus === 'initializing' ? 'Loading Premium...' :
-    availabilityStatus === 'missing_api_key' || availabilityStatus === 'native_module_missing' || availabilityStatus === 'unsupported_platform'
+    availabilityStatus === 'missing_api_key' || availabilityStatus === 'invalid_api_key' ||
+    availabilityStatus === 'native_module_missing' || availabilityStatus === 'unsupported_platform'
       ? 'Premium purchases are unavailable in this build.'
       : availabilityStatus === 'missing_default_offering'
         ? 'Premium is not available in the store right now.'
@@ -55,82 +56,117 @@ export default function PaywallModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={isBusy ? () => {} : onClose}>
+      <Pressable style={styles.backdrop} onPress={isBusy ? undefined : onClose}>
         <Pressable style={styles.sheet} onPress={() => {}}>
-
-          {/* Handle bar */}
-          <View style={styles.handle} />
-
-          {/* Close button */}
-          <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={12}>
+          <Pressable
+            style={[styles.closeBtn, isBusy && styles.buttonDisabled]}
+            onPress={onClose}
+            disabled={isBusy}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close Premium"
+          >
             <X color={theme.colors.textTertiary} size={18} />
           </Pressable>
 
-          {/* Icon */}
-          <View style={styles.iconWell}>
-            <Lock color={theme.colors.accentPrimary} size={28} />
-          </View>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.handle} />
 
-          <Text style={styles.title}>Unlock "{contentLabel}"</Text>
-          <Text style={styles.subtitle}>
-            {premiumOnly
-              ? 'This lesson is available with a Premium membership.'
-              : 'Premium unlocks all lessons, offline packs, and premium practice.'}
-          </Text>
-
-          {/* Premium option: V1 payment access, with no rewarded-ad alternative. */}
-          <View style={[styles.option, styles.optionPremium]}>
-            <View style={[styles.optionIconWell, styles.optionIconWellPremium]}>
-              <Crown color="#F59E0B" size={20} />
+            <View style={styles.iconWell}>
+              <Lock color={theme.colors.accentPrimary} size={28} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitlePremium}>HeyYusuf Premium</Text>
-              <Text style={styles.optionMeta}>
-                Unlock every lesson, offline packs, and premium practice.
-              </Text>
+
+            <Text style={styles.title}>Unlock "{contentLabel}"</Text>
+            <Text style={styles.subtitle}>
+              {premiumOnly
+                ? 'This lesson is available with a Premium membership.'
+                : 'Premium unlocks all lessons, offline packs, and premium practice.'}
+            </Text>
+
+            <View style={[styles.option, styles.optionPremium]}>
+              <View style={[styles.optionIconWell, styles.optionIconWellPremium]}>
+                <Crown color="#F59E0B" size={20} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionTitlePremium}>HeyYusuf Premium</Text>
+                <Text style={styles.optionMeta}>
+                  Unlock every lesson, offline packs, and premium practice.
+                </Text>
+              </View>
             </View>
-          </View>
 
-          {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && <Text style={styles.errorText} accessibilityRole="alert">{error}</Text>}
 
-          {isPremiumAvailable ? (
+            {isPremiumAvailable ? (
+              <Pressable
+                style={[styles.primaryButton, isBusy && styles.buttonDisabled]}
+                onPress={onPurchase}
+                disabled={isBusy}
+                accessibilityRole="button"
+                accessibilityLabel={purchaseLabel}
+              >
+                {isPurchasing ? (
+                  <ActivityIndicator color={theme.colors.bgBase} />
+                ) : (
+                  <Text style={styles.primaryButtonText}>{purchaseLabel}</Text>
+                )}
+              </Pressable>
+            ) : (
+              <View style={styles.unavailableBox}>
+                <Text style={styles.unavailableText}>{unavailableText}</Text>
+                {onRefresh && (
+                  <Pressable
+                    style={styles.secondaryButton}
+                    onPress={onRefresh}
+                    disabled={isBusy}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry loading Premium"
+                  >
+                    <Text style={styles.secondaryButtonText}>Retry</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+
+            <Text style={styles.renewalText}>
+              Renews automatically each month until canceled. Manage or cancel through your store account.
+            </Text>
+
             <Pressable
-              style={[styles.primaryButton, isBusy && styles.buttonDisabled]}
-              onPress={onPurchase}
+              style={styles.restoreButton}
+              onPress={onRestore}
               disabled={isBusy}
+              accessibilityRole="button"
+              accessibilityLabel="Restore Purchases"
             >
-              {isPurchasing ? (
-                <ActivityIndicator color={theme.colors.bgBase} />
-              ) : (
-                <Text style={styles.primaryButtonText}>{purchaseLabel}</Text>
-              )}
+              <Text style={styles.restoreButtonText}>{isRestoring ? 'Restoring...' : 'Restore Purchases'}</Text>
             </Pressable>
-          ) : (
-            <View style={styles.unavailableBox}>
-              <Text style={styles.unavailableText}>{unavailableText}</Text>
-              {onRefresh && (
-                <Pressable style={styles.secondaryButton} onPress={onRefresh} disabled={isBusy}>
-                  <Text style={styles.secondaryButtonText}>Retry</Text>
-                </Pressable>
-              )}
+
+            <View style={styles.legalLinks}>
+              <Pressable
+                onPress={() => openUrl(LEGAL_URLS.privacy)}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel="Open Privacy Policy"
+              >
+                <Text style={styles.legalLinkText}>Privacy Policy</Text>
+              </Pressable>
+              <Text style={styles.legalSeparator}>•</Text>
+              <Pressable
+                onPress={() => openUrl(LEGAL_URLS.terms)}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel="Open Terms of Use"
+              >
+                <Text style={styles.legalLinkText}>Terms of Use</Text>
+              </Pressable>
             </View>
-          )}
-
-          <Pressable style={styles.restoreButton} onPress={onRestore} disabled={isBusy}>
-            <Text style={styles.restoreButtonText}>{isRestoring ? 'Restoring...' : 'Restore Purchases'}</Text>
-          </Pressable>
-
-          <View style={styles.legalLinks}>
-            <Pressable onPress={() => openUrl(LEGAL_URLS.privacy)} hitSlop={8}>
-              <Text style={styles.legalLinkText}>Privacy Policy</Text>
-            </Pressable>
-            <Text style={styles.legalSeparator}>•</Text>
-            <Pressable onPress={() => openUrl(LEGAL_URLS.terms)} hitSlop={8}>
-              <Text style={styles.legalLinkText}>Terms of Use</Text>
-            </Pressable>
-          </View>
-
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -147,10 +183,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgSurface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-    alignItems: 'center',
+    maxHeight: '92%',
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
+  scroll: { width: '100%' },
+  sheetContent: { alignItems: 'center', paddingBottom: 16 },
   handle: {
     width: 36,
     height: 4,
@@ -162,6 +200,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
+    zIndex: 2,
   },
   iconWell: {
     width: 64,
@@ -301,6 +340,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textAccent,
     fontSize: 14,
     fontWeight: '600',
+  },
+  renewalText: {
+    color: theme.colors.textTertiary,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 6,
   },
   legalLinks: {
     flexDirection: 'row',

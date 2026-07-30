@@ -386,13 +386,13 @@ export default function HomeScreen() {
   };
 
   const handlePurchasePremium = async () => {
-    const unlocked = await purchasePremium();
-    if (unlocked) setPaywallVisible(false);
+    const result = await purchasePremium();
+    if (result === 'success') setPaywallVisible(false);
   };
 
   const handleRestorePurchases = async () => {
-    const restored = await restorePurchases();
-    if (restored) setPaywallVisible(false);
+    const result = await restorePurchases();
+    if (result === 'success') setPaywallVisible(false);
   };
 
   const questComplete = lessonsToday >= 1;
@@ -701,7 +701,7 @@ export default function HomeScreen() {
         price={premiumPrice}
         isPurchasing={isPurchasing}
         isRestoring={isRestoring}
-        isPremiumAvailable={Boolean(premiumPackage)}
+        isPremiumAvailable={availabilityStatus === 'ready' && Boolean(premiumPackage)}
         availabilityStatus={availabilityStatus}
         error={premiumError}
         onPurchase={handlePurchasePremium}
