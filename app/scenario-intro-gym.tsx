@@ -7,7 +7,7 @@ export default function ScenarioIntroGymPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.AtGymEntrance ?? require('../assets/images/dubai-gym-entrance.png')}
+      image={content.sceneImages.AtGymEntrance ?? require('../assets/images/dubai-gym-entrance.webp')}
       badge="💪 Unit 6 · Lesson 2"
       title="At the Gym"
       description="Your personal trainer Mudarrib is ready for the session. Warm up, hit the treadmill, and push through your workout in Gulf Arabic."

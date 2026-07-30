@@ -7,7 +7,7 @@ export default function ScenarioIntroLostWalletPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.LostWalletEntrance ?? require('../assets/images/dubai-lost-wallet-entrance.png')}
+      image={content.sceneImages.LostWalletEntrance ?? require('../assets/images/dubai-lost-wallet-entrance.webp')}
       badge="👛 Unit 8 · Lesson 5"
       title="Lost Wallet"
       description="You can't find your wallet at the mall. Talk to security and describe it so they can check lost and found."

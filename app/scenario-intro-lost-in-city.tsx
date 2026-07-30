@@ -7,7 +7,7 @@ export default function ScenarioIntroLostInCityPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.LostInCityEntrance ?? require('../assets/images/dubai-lost-in-city-entrance.png')}
+      image={content.sceneImages.LostInCityEntrance ?? require('../assets/images/dubai-lost-in-city-entrance.webp')}
       badge="🗺️ Unit 8 · Lesson 1"
       title="Lost in the City"
       description="You're in Dubai and can't find your way to Dubai Mall. Stop a passerby and ask for directions in Gulf Arabic."

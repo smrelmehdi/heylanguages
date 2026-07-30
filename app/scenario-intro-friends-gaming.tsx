@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsGamingPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsGamingEntrance ?? require('../assets/images/dubai-friends-gaming-entrance.png')}
+      image={content.sceneImages.FriendsGamingEntrance ?? require('../assets/images/dubai-friends-gaming-entrance.webp')}
       badge="🎮 Unit 10 · Lesson 3"
       title="Gaming Night"
       description="It's gaming night! Coordinate with your crew to get online for a squad session in Gulf Arabic."
