@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsBirthdayPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsBirthdayEntrance ?? require('../assets/images/dubai-friends-birthday-entrance.png')}
+      image={content.sceneImages.FriendsBirthdayEntrance ?? require('../assets/images/dubai-friends-birthday-entrance.webp')}
       badge="🎂 Unit 10 · Lesson 7"
       title="Birthday Party"
       description="It's your friend's birthday! Wish them well, give a gift, and celebrate together in Gulf Arabic."

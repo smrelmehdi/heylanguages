@@ -7,7 +7,7 @@ export default function ScenarioIntroFriendsRoadTripPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.FriendsRoadTripEntrance ?? require('../assets/images/dubai-friends-road-trip-entrance.png')}
+      image={content.sceneImages.FriendsRoadTripEntrance ?? require('../assets/images/dubai-friends-road-trip-entrance.webp')}
       badge="🚗 Unit 10 · Lesson 6"
       title="Road Trip"
       description="Plan a road trip to Hatta with your crew — destination, who drives, and what to pack in Gulf Arabic."

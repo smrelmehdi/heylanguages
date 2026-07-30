@@ -7,7 +7,7 @@ export default function ScenarioIntroHospitalEmergencyPage() {
   const { content } = useDialect();
   return (
     <ScenarioIntroScreen
-      image={content.sceneImages.HospitalEmergencyEntrance ?? require('../assets/images/dubai-hospital-emergency-entrance.png')}
+      image={content.sceneImages.HospitalEmergencyEntrance ?? require('../assets/images/dubai-hospital-emergency-entrance.webp')}
       badge="🏥 Unit 8 · Lesson 4"
       title="Hospital Emergency"
       description="Your friend fell and can't walk. Rush to the hospital and explain the situation to the nurse in Gulf Arabic."
