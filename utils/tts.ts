@@ -2,6 +2,7 @@ import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAudioAsset, type AudioDialect } from '../constants/audio-manifest';
 import { AudioPlaybackLifecycle, type AudioPlaybackOwner } from './audio-lifecycle';
+import { resolveOfflineAudioSource } from './offline-pack';
 import { supabase } from './supabase';
 
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';
@@ -345,8 +346,15 @@ async function startPlayback(source: AudioSource, token: number, opts?: PlayOpti
   let player: any = null;
   let playerCreated = false;
   try {
-    audioLog('play:start', { token, owner: opts?.owner?.label, sourceType: typeof source });
-    player = createAudioPlayer(source as any, {
+    const resolvedSource = await resolveOfflineAudioSource(source) as AudioSource;
+    if (!playbackLifecycle.isCurrent(token)) return;
+    audioLog('play:start', {
+      token,
+      owner: opts?.owner?.label,
+      sourceType: typeof resolvedSource,
+      offlinePackResolved: resolvedSource !== source,
+    });
+    player = createAudioPlayer(resolvedSource as any, {
       keepAudioSessionActive: true,
       updateInterval: 100,
     });

@@ -6,7 +6,9 @@ import * as ExpoSplash from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import 'react-native-reanimated';
+import OfflineGate from '../components/OfflineGate';
 import SplashScreen from '../components/SplashScreen';
+import { ConnectivityProvider } from '../contexts/ConnectivityContext';
 import { DialectProvider } from '../contexts/DialectContext';
 import { PaywallProvider } from '../contexts/PaywallContext';
 import { PremiumProvider } from '../contexts/PremiumContext';
@@ -121,9 +123,9 @@ function RootLayoutNav() {
       <PaywallProvider>
         <XPProvider>
           <DialectProvider>
-          {/* TEMP: offline gate disabled for simulator testing until native expo-network build is available. */}
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
+            <ConnectivityProvider>
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -165,14 +167,16 @@ function RootLayoutNav() {
             <Stack.Screen name="scenario-intro-friends-farewell" options={{ headerShown: false }} />
             <Stack.Screen name="chat" options={{ headerShown: false }} />
             <Stack.Screen name="writing" options={{ headerShown: false }} />
-            </Stack>
-            {!splashHidden && (
-              <SplashScreen
-                ready={initialized}
-                onReady={() => setSplashHidden(true)}
-              />
-            )}
-          </ThemeProvider>
+                </Stack>
+                <OfflineGate />
+                {!splashHidden && (
+                  <SplashScreen
+                    ready={initialized}
+                    onReady={() => setSplashHidden(true)}
+                  />
+                )}
+              </ThemeProvider>
+            </ConnectivityProvider>
           </DialectProvider>
         </XPProvider>
       </PaywallProvider>

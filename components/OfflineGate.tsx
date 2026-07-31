@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { WifiOff } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
@@ -6,6 +7,7 @@ import { useConnectivity } from '../contexts/ConnectivityContext';
 import { usePaywall } from '../contexts/PaywallContext';
 
 export default function OfflineGate() {
+  const router = useRouter();
   const { shouldBlockOfflineFree, refreshConnection, offlineBlockReason } = useConnectivity();
   const { openPaywall } = usePaywall();
 
@@ -35,9 +37,17 @@ export default function OfflineGate() {
 
         <Pressable
           style={styles.secondaryButton}
-          onPress={() => openPaywall('offline_audio', { contentLabel: 'Offline audio packs' })}
+          onPress={() => {
+            if (offlineBlockReason === 'pack-required') {
+              router.push('/(tabs)/profile' as any);
+            } else {
+              openPaywall('offline_audio', { contentLabel: 'Offline audio packs' });
+            }
+          }}
         >
-          <Text style={styles.secondaryButtonText}>Learn about Premium</Text>
+          <Text style={styles.secondaryButtonText}>
+            {offlineBlockReason === 'pack-required' ? 'Manage offline packs' : 'Learn about Premium'}
+          </Text>
         </Pressable>
       </LinearGradient>
     </View>

@@ -1,12 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import {
-    downloadOfflineDialectPack,
-    getOfflineDialectAssetCount,
-    getOfflinePackMap,
-    removeOfflineDialectPack,
-    type OfflineDialect,
-    type OfflinePackMap,
-    type OfflinePackRecord,
+  createEmptyOfflinePackMap,
+  downloadOfflineDialectPack,
+  getOfflineDialectAssetCount,
+  getOfflineDialectManifestInfo,
+  getOfflinePackMap,
+  isOfflinePackReady,
+  isOfflinePackUpdateAvailable,
+  removeOfflineDialectPack,
+  type OfflineDialect,
+  type OfflinePackManifestInfo,
+  type OfflinePackMap,
+  type OfflinePackRecord,
 } from '../utils/offline-pack';
 import { useDialect } from './DialectContext';
 import { useXP } from './XPContext';
@@ -43,6 +48,8 @@ interface ConnectivityContextValue {
   downloadPack: (dialect: OfflineDialect) => Promise<void>;
   removePack: (dialect: OfflineDialect) => Promise<void>;
   getPackAssetCount: (dialect: OfflineDialect) => number;
+  getPackManifestInfo: (dialect: OfflineDialect) => OfflinePackManifestInfo;
+  isPackUpdateAvailable: (dialect: OfflineDialect) => boolean;
 }
 
 const DEFAULT_DOWNLOAD_STATE: DownloadState = {
@@ -78,11 +85,7 @@ const ConnectivityContext = createContext<ConnectivityContextValue>({
   shouldBlockOfflineFree: false,
   offlineBlockReason: null,
   currentDialectOfflineReady: false,
-  offlinePacks: {
-    gulf: { downloaded: false, downloadedAt: null, assetCount: 0, version: 1 },
-    egyptian: { downloaded: false, downloadedAt: null, assetCount: 0, version: 1 },
-    msa: { downloaded: false, downloadedAt: null, assetCount: 0, version: 1 },
-  },
+  offlinePacks: createEmptyOfflinePackMap(),
   downloadStates: {
     gulf: DEFAULT_DOWNLOAD_STATE,
     egyptian: DEFAULT_DOWNLOAD_STATE,
@@ -92,18 +95,16 @@ const ConnectivityContext = createContext<ConnectivityContextValue>({
   downloadPack: async () => {},
   removePack: async () => {},
   getPackAssetCount: () => 0,
+  getPackManifestInfo: dialect => getOfflineDialectManifestInfo(dialect),
+  isPackUpdateAvailable: () => false,
 });
 
 export function ConnectivityProvider({ children }: { children: React.ReactNode }) {
   const { dialect } = useDialect();
-  const { isPremium, isLoaded: isXpLoaded } = useXP();
+  const { isPremium, premiumStatus, isLoaded: isXpLoaded } = useXP();
   const [isOnline, setIsOnline] = useState(true);
   const [isChecking, setIsChecking] = useState(true);
-  const [offlinePacks, setOfflinePacks] = useState<OfflinePackMap>({
-    gulf: { downloaded: false, downloadedAt: null, assetCount: 0, version: 1 },
-    egyptian: { downloaded: false, downloadedAt: null, assetCount: 0, version: 1 },
-    msa: { downloaded: false, downloadedAt: null, assetCount: 0, version: 1 },
-  });
+  const [offlinePacks, setOfflinePacks] = useState<OfflinePackMap>(createEmptyOfflinePackMap);
   const [downloadStates, setDownloadStates] = useState<DownloadStateMap>({
     gulf: DEFAULT_DOWNLOAD_STATE,
     egyptian: DEFAULT_DOWNLOAD_STATE,
@@ -161,7 +162,7 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
     }));
 
     try {
-      const record = await downloadOfflineDialectPack(dialect, (progress, completed, total) => {
+      const record = await downloadOfflineDialectPack(dialect, isPremium, (progress, completed, total) => {
         setDownloadStates(current => ({
           ...current,
           [dialect]: {
@@ -201,12 +202,7 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
 
   const removePack = useCallback(async (dialect: OfflineDialect) => {
     await removeOfflineDialectPack(dialect);
-    const cleared: OfflinePackRecord = {
-      downloaded: false,
-      downloadedAt: null,
-      assetCount: 0,
-      version: 1,
-    };
+    const cleared: OfflinePackRecord = createEmptyOfflinePackMap()[dialect];
     setOfflinePacks(current => ({ ...current, [dialect]: cleared }));
     setDownloadStates(current => ({
       ...current,
@@ -218,9 +214,18 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
     return getOfflineDialectAssetCount(dialect);
   }, []);
 
+  const getPackManifestInfo = useCallback((dialect: OfflineDialect) => {
+    return getOfflineDialectManifestInfo(dialect);
+  }, []);
+
+  const isPackUpdateAvailable = useCallback((dialect: OfflineDialect) => {
+    return isOfflinePackUpdateAvailable(offlinePacks[dialect], dialect);
+  }, [offlinePacks]);
+
   const activeDialect = (dialect === 'egyptian' || dialect === 'msa' ? dialect : 'gulf') as OfflineDialect;
-  const currentDialectOfflineReady = Boolean(offlinePacks[activeDialect]?.downloaded);
-  const shouldBlockOfflineFree = !isChecking && isXpLoaded && !isOnline && (!isPremium || !currentDialectOfflineReady);
+  const currentDialectOfflineReady = isOfflinePackReady(offlinePacks[activeDialect], activeDialect);
+  const shouldBlockOfflineFree = premiumStatus !== 'loading' &&
+    !isChecking && isXpLoaded && !isOnline && (!isPremium || !currentDialectOfflineReady);
   const offlineBlockReason = shouldBlockOfflineFree
     ? (isPremium ? 'pack-required' : 'free-plan')
     : null;
@@ -239,6 +244,8 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
         downloadPack,
         removePack,
         getPackAssetCount,
+        getPackManifestInfo,
+        isPackUpdateAvailable,
       }}
     >
       {children}

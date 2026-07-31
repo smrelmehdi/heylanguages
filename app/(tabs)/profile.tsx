@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { BarChart2, ChevronRight, Crown, Download, Globe, LogOut, RefreshCw, Trash2 } from 'lucide-react-native';
+import { AlertCircle, BarChart2, CheckCircle2, ChevronRight, Crown, Download, Globe, LogOut, RefreshCw, Trash2 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -34,7 +34,14 @@ export default function ProfileScreen() {
   const isPremium = premiumStatus === 'premium';
   const isPremiumLoading = premiumStatus === 'loading';
   const { openPaywall } = usePaywall();
-  const { offlinePacks, downloadStates, downloadPack, removePack, getPackAssetCount } = useConnectivity();
+  const {
+    offlinePacks,
+    downloadStates,
+    downloadPack,
+    removePack,
+    getPackManifestInfo,
+    isPackUpdateAvailable,
+  } = useConnectivity();
   const [scenariosCompleted, setScenariosCompleted] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [testingUnlockEnabled, setTestingUnlockEnabled] = useState(getTestingUnlockAllState());
@@ -209,9 +216,8 @@ export default function ProfileScreen() {
   const handleDownloadPack = async (dialect: OfflineDialect) => {
     try {
       await downloadPack(dialect);
-      Alert.alert('Offline pack ready', `${DIALECTS.find(item => item.id === dialect)?.label ?? 'Dialect'} can now be used offline on premium.`);
     } catch (error) {
-      Alert.alert('Download failed', error instanceof Error ? error.message : 'Could not prepare the offline pack.');
+      if (__DEV__) console.warn('[offline-pack] Profile download failed.', error);
     }
   };
 
@@ -225,7 +231,11 @@ export default function ProfileScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            await removePack(dialect);
+            try {
+              await removePack(dialect);
+            } catch (error) {
+              Alert.alert('Remove failed', error instanceof Error ? error.message : 'Could not remove the offline pack.');
+            }
           },
         },
       ]
@@ -442,6 +452,24 @@ export default function ProfileScreen() {
               const isCurrentDialect = contextDialect === dialect.id;
               const isDownloading = downloadState.status === 'downloading';
               const progressPct = Math.round(downloadState.progress * 100);
+              const manifest = getPackManifestInfo(dialect.id);
+              const updateAvailable = isPackUpdateAvailable(dialect.id);
+              const isDownloaded = pack.downloaded && !updateAvailable;
+              const packMegabytes = pack.totalBytes > 0 ? (pack.totalBytes / (1024 * 1024)).toFixed(1) : null;
+              const expectedMegabytes = manifest.expectedBytes > 0
+                ? (manifest.expectedBytes / (1024 * 1024)).toFixed(1)
+                : null;
+              const statusText = isDownloading
+                ? `Downloading ${downloadState.completed} of ${downloadState.total} (${progressPct}%)`
+                : downloadState.status === 'error'
+                  ? downloadState.error ?? 'Download paused. Tap Retry.'
+                  : updateAvailable
+                    ? `Update available · ${manifest.fileCount} audio files`
+                    : isDownloaded
+                      ? `Downloaded · ${pack.assetCount} files${packMegabytes ? ` · ${packMegabytes} MB` : ''}`
+                      : manifest.available
+                        ? `${manifest.fileCount} audio files${expectedMegabytes ? ` · ${expectedMegabytes} MB` : ''}`
+                        : 'Offline pack not available yet';
 
               return (
                 <View
@@ -452,31 +480,52 @@ export default function ProfileScreen() {
                     <View style={styles.settingIcon}>
                       <Download color={theme.colors.accentPrimary} size={16} />
                     </View>
-                    <View>
+                    <View style={styles.offlinePackCopy}>
                       <Text style={styles.settingLabel}>{dialect.label}</Text>
-                      <Text style={styles.offlineMeta}>
-                        {isDownloading
-                          ? `Preparing pack… ${progressPct}%`
-                          : pack.downloaded
-                            ? `${pack.assetCount} audio files ready offline`
-                            : `${getPackAssetCount(dialect.id)} audio files available`}
+                      <Text style={[styles.offlineMeta, downloadState.status === 'error' && styles.offlineErrorText]}>
+                        {statusText}
                       </Text>
+                      {isDownloading && (
+                        <View style={styles.offlineProgressTrack}>
+                          <View style={[styles.offlineProgressFill, { width: `${progressPct}%` }]} />
+                        </View>
+                      )}
                       {isCurrentDialect && <Text style={styles.currentDialectTag}>Current dialect</Text>}
                     </View>
                   </View>
 
-                  {pack.downloaded ? (
-                    <Pressable style={styles.offlineActionGhost} onPress={() => handleRemovePack(dialect.id)}>
-                      <Trash2 color={theme.colors.accentDanger} size={15} />
-                      <Text style={styles.offlineActionGhostText}>Remove</Text>
-                    </Pressable>
+                  {!manifest.available ? (
+                    <AlertCircle color={theme.colors.textTertiary} size={18} />
+                  ) : isDownloading ? (
+                    <View style={styles.offlineActionProgress} accessibilityLabel={`Downloading ${downloadState.completed} of ${downloadState.total}`}>
+                      <ActivityIndicator color={theme.colors.accentPrimary} size="small" />
+                      <Text style={styles.offlineActionProgressText}>{progressPct}%</Text>
+                    </View>
+                  ) : isDownloaded ? (
+                    <View style={styles.offlineDownloadedActions}>
+                      <View style={styles.offlineDownloadedStatus}>
+                        <CheckCircle2 color={theme.colors.accentSuccess} size={15} />
+                        <Text style={styles.offlineDownloadedText}>Downloaded</Text>
+                      </View>
+                      <Pressable
+                        style={styles.offlineRemoveButton}
+                        onPress={() => handleRemovePack(dialect.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${dialect.label} offline pack`}
+                      >
+                        <Trash2 color={theme.colors.accentDanger} size={15} />
+                      </Pressable>
+                    </View>
                   ) : (
                     <Pressable
-                      style={[styles.offlineActionPrimary, isDownloading && styles.offlineActionDisabled]}
-                      disabled={isDownloading}
+                      style={styles.offlineActionPrimary}
                       onPress={() => handleDownloadPack(dialect.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${downloadState.status === 'error' ? 'Retry' : updateAvailable ? 'Update' : 'Download'} ${dialect.label} offline pack`}
                     >
-                      <Text style={styles.offlineActionPrimaryText}>{isDownloading ? 'Preparing…' : 'Download'}</Text>
+                      <Text style={styles.offlineActionPrimaryText}>
+                        {downloadState.status === 'error' ? 'Retry' : updateAvailable ? 'Update' : 'Download'}
+                      </Text>
                     </Pressable>
                   )}
                 </View>
@@ -642,13 +691,20 @@ const styles = StyleSheet.create({
   },
   premiumHydrationCopy: { flex: 1, gap: 8 },
   premiumHydrationLine: { height: 9, borderRadius: 4, backgroundColor: theme.colors.bgElevated },
+  offlinePackCopy: { flex: 1, minWidth: 0 },
   offlineMeta: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 3 },
+  offlineErrorText: { color: theme.colors.accentDanger },
+  offlineProgressTrack: { height: 4, marginTop: 8, borderRadius: 2, overflow: 'hidden', backgroundColor: theme.colors.bgElevated },
+  offlineProgressFill: { height: '100%', borderRadius: 2, backgroundColor: theme.colors.accentPrimary },
   currentDialectTag: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, marginTop: 4 },
   offlineActionPrimary: { minWidth: 96, height: 38, borderRadius: theme.radii.md, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   offlineActionPrimaryText: { color: theme.colors.bgBase, fontSize: 13, fontWeight: theme.fontWeight.medium },
-  offlineActionGhost: { minWidth: 96, height: 38, borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.accentDanger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, flexDirection: 'row', gap: 6 },
-  offlineActionGhostText: { color: theme.colors.accentDanger, fontSize: 13, fontWeight: theme.fontWeight.medium },
-  offlineActionDisabled: { opacity: 0.6 },
+  offlineActionProgress: { width: 62, minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  offlineActionProgressText: { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption },
+  offlineDownloadedActions: { alignItems: 'flex-end', gap: 8 },
+  offlineDownloadedStatus: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  offlineDownloadedText: { color: theme.colors.accentSuccess, fontSize: theme.fontSize.caption, fontWeight: theme.fontWeight.medium },
+  offlineRemoveButton: { width: 38, height: 38, borderRadius: theme.radii.sm, borderWidth: 1, borderColor: `${theme.colors.accentDanger}66`, alignItems: 'center', justifyContent: 'center' },
   offlineTeaserCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 18, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 14 },
   offlineTeaserTitle: { fontSize: 16, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8 },
   offlineTeaserText: { fontSize: 14, lineHeight: 20, color: theme.colors.textSecondary, marginBottom: 14 },

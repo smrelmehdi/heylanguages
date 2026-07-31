@@ -136,6 +136,9 @@ moduleWithLoader._load = function loadForAudioTests(request, parent, isMain) {
       },
     };
   }
+  if (request === './offline-pack') {
+    return { resolveOfflineAudioSource: async (source: unknown) => source };
+  }
   if (request === 'expo-network') {
     return { getNetworkStateAsync: async () => networkState };
   }
