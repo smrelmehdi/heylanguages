@@ -1,8 +1,9 @@
 import { Check, Crown, Lock, X } from 'lucide-react-native';
-import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEGAL_URLS } from '../constants/legal';
 import { theme } from '../constants/theme';
 import type { PremiumAvailabilityStatus } from '../contexts/PremiumContext';
+import { getConnectivitySnapshot } from '../utils/connectivity-state';
 
 type Props = {
   visible: boolean;
@@ -61,6 +62,11 @@ export default function PaywallModal({
             : 'Premium unavailable, try again later.';
 
   const openUrl = (url: string) => {
+    const connectivity = getConnectivitySnapshot();
+    if (connectivity.isHydrated && !connectivity.isOnline) {
+      Alert.alert('Internet connection required', 'Reconnect to open this page.');
+      return;
+    }
     Linking.openURL(url).catch(() => {});
   };
 

@@ -1,9 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 import PaywallModal from '../components/PaywallModal';
 import PremiumSuccessModal from '../components/PremiumSuccessModal';
 import { shouldShowPremiumSuccess, type PremiumPaywallSource } from '../utils/premium';
 import { recordPremiumDiagnostic } from '../utils/premium-diagnostics';
+import { getConnectivitySnapshot } from '../utils/connectivity-state';
 import { usePremium } from './PremiumContext';
 
 type OpenPaywallOptions = {
@@ -57,6 +59,11 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   }, [clearPremiumError, isPurchasing, isRestoring]);
 
   const handlePurchase = useCallback(async () => {
+    if (getConnectivitySnapshot().isHydrated && !getConnectivitySnapshot().isOnline) {
+      if (__DEV__) console.info('[connectivity] blocked network-only action', { action: 'purchase' });
+      Alert.alert('Internet connection required', 'Reconnect to start a Premium subscription.');
+      return;
+    }
     const wasPremium = isPremium;
     const result = await purchasePremium();
     if (result === 'success') {
@@ -84,6 +91,11 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   }, [isPremium, purchasePremium]);
 
   const handleRestore = useCallback(async () => {
+    if (getConnectivitySnapshot().isHydrated && !getConnectivitySnapshot().isOnline) {
+      if (__DEV__) console.info('[connectivity] blocked network-only action', { action: 'restore' });
+      Alert.alert('Internet connection required', 'Reconnect to restore purchases.');
+      return;
+    }
     const result = await restorePurchases();
     if (result === 'success') {
       setPaywallSource(null);

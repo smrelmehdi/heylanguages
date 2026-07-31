@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCompletionKeyCandidates, isFirstContentCompletion } from './progression';
+import { getConnectivitySnapshot, isLikelyNetworkError } from './connectivity-state';
+import { acknowledgeOnlineCompletion, enqueueOfflineCompletion } from './offline-progress';
 import { supabase } from './supabase';
 
 export const GUEST_PROGRESS_KEY = 'guest_progress';
@@ -19,6 +21,7 @@ export type CurriculumCompletionInput = {
 export type CurriculumCompletionResult = {
   firstCompletion: boolean;
   xpAwarded: number;
+  queuedOffline?: boolean;
 };
 
 type GuestCompletionStorage = Pick<typeof AsyncStorage, 'getItem' | 'multiSet'>;
@@ -63,20 +66,47 @@ export async function persistCurriculumCompletion(input: CurriculumCompletionInp
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return persistGuestCompletion(input);
 
-  const { data, error } = await supabase.rpc('complete_quiz_once', {
-    p_scenario: input.completionKey,
-    p_dialect: input.dialect,
-    p_score: input.score,
-    p_xp: input.xp,
-    p_completion_candidates: getCompletionKeyCandidates(input.dialect, input.legacyContentId),
-  });
-  if (error) throw error;
+  const queueInput = {
+    ownerId: session.user.id,
+    completionKey: input.completionKey,
+    legacyContentId: input.legacyContentId,
+    dialect: input.dialect,
+    score: input.score,
+    xp: input.xp,
+    completionCandidates: getCompletionKeyCandidates(input.dialect, input.legacyContentId),
+  };
+  const persistOffline = async () => {
+    const queued = await enqueueOfflineCompletion(queueInput);
+    if (queued.firstCompletion) input.applyGuestXpSnapshot(queued.previousXp, queued.nextXp);
+    return { firstCompletion: queued.firstCompletion, xpAwarded: queued.xpAwarded, queuedOffline: true };
+  };
+
+  if (getConnectivitySnapshot().isHydrated && !getConnectivitySnapshot().isOnline) {
+    return persistOffline();
+  }
+
+  let data: unknown;
+  try {
+    const response = await supabase.rpc('complete_quiz_once', {
+      p_scenario: input.completionKey,
+      p_dialect: input.dialect,
+      p_score: input.score,
+      p_xp: input.xp,
+      p_completion_candidates: queueInput.completionCandidates,
+    });
+    if (response.error) throw response.error;
+    data = response.data;
+  } catch (error) {
+    if (isLikelyNetworkError(error)) return persistOffline();
+    throw error;
+  }
 
   const row = Array.isArray(data) ? data[0] : data;
   const result = {
     firstCompletion: Boolean(row?.first_completion),
     xpAwarded: Number(row?.xp_awarded ?? 0),
   };
+  await acknowledgeOnlineCompletion(queueInput);
   try {
     await input.refreshSignedInXp();
   } catch (error) {

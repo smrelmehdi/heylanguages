@@ -7,6 +7,7 @@ import type {
   PurchasesPackage,
 } from 'react-native-purchases';
 import { supabase } from '../utils/supabase';
+import { getConnectivitySnapshot } from '../utils/connectivity-state';
 import {
   createConfigureOnce,
   createCustomerInfoOperationGuard,
@@ -292,6 +293,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     currentCustomerOriginalAppUserIdRef.current = customerInfo.originalAppUserId;
     premiumStatusRef.current = nextStatus;
     logPremiumDebug(`${operation.source} entitlement identifiers`, Object.keys(customerInfo.entitlements.active));
+    logPremiumDebug(`${operation.source} CustomerInfo source`, [
+      getConnectivitySnapshot().isHydrated && !getConnectivitySnapshot().isOnline
+        ? 'RevenueCat SDK cache (offline)'
+        : 'RevenueCat SDK fresh-or-cache (online)',
+    ]);
     setPremiumStatus(nextStatus);
     setManagementURL(customerInfo.managementURL);
     return { accepted: true, status: nextStatus };

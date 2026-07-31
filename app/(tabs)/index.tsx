@@ -47,6 +47,8 @@ import { clearPendingMilestone, getLocalStreakData, getPendingMilestone } from '
 import { supabase } from '../../utils/supabase';
 import { getPaywallSourceForContentType } from '../../utils/premium';
 import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
+import { getLocalCompletionIds } from '../../utils/offline-progress';
+import { getConnectivitySnapshot } from '../../utils/connectivity-state';
 
 let lastHomeScrollY = 0;
 
@@ -221,11 +223,15 @@ export default function HomeScreen() {
           // XP and premium come from XPContext — no extra fetch needed
           setXpTotal(xpFromContext);
 
-          const { data: user } = await supabase
-            .from('users')
-            .select('streak_count, dialect, level, name')
-            .eq('id', session.user.id)
-            .maybeSingle();
+          const connectivity = getConnectivitySnapshot();
+          const canUseNetwork = !connectivity.isHydrated || connectivity.isOnline;
+          const { data: user } = canUseNetwork
+            ? await supabase
+                .from('users')
+                .select('streak_count, dialect, level, name')
+                .eq('id', session.user.id)
+                .maybeSingle()
+            : { data: null };
 
           if (user) {
             setStreakCount(user.streak_count ?? 0);
@@ -240,10 +246,12 @@ export default function HomeScreen() {
           const storedName = await AsyncStorage.getItem('wizard_name');
           if (storedName) setUserName(storedName.split(' ')[0]);
 
-          const { data: progress, error: progressError } = await supabase
-            .from('scenario_progress')
-            .select('scenario_id, completed_count')
-            .eq('user_id', session.user.id);
+          const { data: progress, error: progressError } = canUseNetwork
+            ? await supabase
+                .from('scenario_progress')
+                .select('scenario_id, completed_count')
+                .eq('user_id', session.user.id)
+            : { data: null, error: null };
 
           const map: Record<string, boolean> = {};
           if (progress) {
@@ -252,6 +260,7 @@ export default function HomeScreen() {
             });
           }
           if (progressError) console.warn('[progress] Failed to load signed-in completions:', progressError);
+          (await getLocalCompletionIds(session.user.id)).forEach(id => { map[id] = true; });
           const guestProgress = await AsyncStorage.getItem('guest_progress');
           if (guestProgress) {
             Object.assign(map, JSON.parse(guestProgress));
@@ -260,12 +269,14 @@ export default function HomeScreen() {
           setScenarioProgress(map);
 
           const todayStr = new Date().toISOString().split('T')[0];
-          const { data: todayProgress } = await supabase
-            .from('scenario_progress')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .gt('completed_count', 0)
-            .gte('last_completed', todayStr);
+          const { data: todayProgress } = canUseNetwork
+            ? await supabase
+                .from('scenario_progress')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .gt('completed_count', 0)
+                .gte('last_completed', todayStr)
+            : { data: null };
 
           setLessonsToday(todayProgress?.length ?? 0);
         } else {

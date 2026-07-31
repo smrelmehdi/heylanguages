@@ -29,6 +29,7 @@ import { supabase } from '../utils/supabase';
 import { buildMemoryPrompt, fetchMemory, saveMemory, type UserMemory } from '../utils/memory';
 import SignUpPrompt from '../components/SignUpPrompt';
 import { theme } from '../constants/theme';
+import { getConnectivitySnapshot } from '../utils/connectivity-state';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -494,6 +495,11 @@ Rules:
     systemPrompt: string,
     messages: ClaudeHistoryItem[]
   ): Promise<string> => {
+    const connectivity = getConnectivitySnapshot();
+    if (connectivity.isHydrated && !connectivity.isOnline) {
+      if (__DEV__) console.info('[connectivity] blocked network-only action', { action: 'ai-chat' });
+      throw new Error('internet-required');
+    }
     let timeout: ReturnType<typeof setTimeout> | null = null;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeout = setTimeout(() => {
@@ -533,6 +539,12 @@ Rules:
   // ── Send message ───────────────────────────────────────────────────────────
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
+
+    const connectivity = getConnectivitySnapshot();
+    if (connectivity.isHydrated && !connectivity.isOnline) {
+      Alert.alert('Internet connection required', 'AI conversation practice is unavailable offline. Downloaded lessons and audio are still available.');
+      return;
+    }
 
     if (isGuest && guestMsgCount >= GUEST_MSG_LIMIT) {
       setShowSignUp(true);
@@ -597,14 +609,15 @@ Rules:
       }
     } catch (err: any) {
       console.error('Chat error:', err);
+      const isOffline = err?.message === 'internet-required';
       const isTimeout = err?.name === 'AbortError';
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         arabic: isTimeout ? 'يوسف ما رد... حاول مرة ثانية' : 'عذراً',
         transliteration: isTimeout ? '' : "'uthuran",
-        english: isTimeout ? "Yusuf didn't respond... try again" : 'Sorry',
-        note: isTimeout ? undefined : 'Something went wrong. Please try again.',
+        english: isOffline ? 'Internet connection required' : isTimeout ? "Yusuf didn't respond... try again" : 'Sorry',
+        note: isOffline ? 'AI conversation practice is available when you reconnect.' : isTimeout ? undefined : 'Something went wrong. Please try again.',
       }]);
     } finally {
       setIsLoading(false);

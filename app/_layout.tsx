@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import 'react-native-reanimated';
 import OfflineGate from '../components/OfflineGate';
+import OfflineSyncStatus from '../components/OfflineSyncStatus';
 import SplashScreen from '../components/SplashScreen';
 import { ConnectivityProvider } from '../contexts/ConnectivityContext';
 import { DialectProvider } from '../contexts/DialectContext';
@@ -69,13 +70,20 @@ function RootLayoutNav() {
 
   useEffect(() => {
     // Check existing session on mount
-    Promise.all([
+    const hydration = Promise.all([
       supabase.auth.getSession(),
       hydrateTestingUnlockAllOverride(),
-    ]).then(([{ data: { session } }]) => {
-      setSession(session);
-      setInitialized(true);
+    ]);
+    const hydrationTimeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Session hydration timed out')), 5000);
     });
+    Promise.race([hydration, hydrationTimeout]).then(([{ data: { session } }]) => {
+      if (__DEV__) console.info('[session] hydrated from persisted Supabase storage', { hasSession: Boolean(session) });
+      setSession(session);
+    }).catch(error => {
+      if (__DEV__) console.warn('[session] local hydration failed; continuing as guest', { message: error instanceof Error ? error.message : 'unknown' });
+      setSession(null);
+    }).finally(() => setInitialized(true));
 
     // Listen for sign in / sign out — only updates session state, never re-routes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -169,6 +177,7 @@ function RootLayoutNav() {
             <Stack.Screen name="writing" options={{ headerShown: false }} />
                 </Stack>
                 <OfflineGate />
+                <OfflineSyncStatus />
                 {!splashHidden && (
                   <SplashScreen
                     ready={initialized}

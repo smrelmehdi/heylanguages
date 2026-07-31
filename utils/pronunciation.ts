@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getConnectivitySnapshot } from './connectivity-state';
 
 export type PronunciationResult = {
   result: 'pass' | 'close' | 'fail' | 'unavailable';
@@ -41,6 +42,14 @@ export async function evaluatePronunciation(
   context: SpeechContext = 'lesson',
   hint?: string,
 ): Promise<PronunciationResult> {
+  const connectivity = getConnectivitySnapshot();
+  if (connectivity.isHydrated && !connectivity.isOnline) {
+    if (__DEV__) console.info('[connectivity] blocked network-only action', { action: 'speech-evaluation', dialect, context });
+    return {
+      result: 'unavailable',
+      feedback: 'Pronunciation checking requires an internet connection. You can continue offline.',
+    };
+  }
   const form = new FormData();
   form.append('file', {
     uri: recordingUri,

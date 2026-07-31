@@ -22,6 +22,7 @@ import {
 import type { OfflineDialect } from '../../utils/offline-pack';
 import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
 import { supabase } from '../../utils/supabase';
+import { getConnectivitySnapshot } from '../../utils/connectivity-state';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function ProfileScreen() {
   const isPremiumLoading = premiumStatus === 'loading';
   const { openPaywall } = usePaywall();
   const {
+    isOnline,
     offlinePacks,
     downloadStates,
     downloadPack,
@@ -69,11 +71,15 @@ export default function ProfileScreen() {
 
     if (session) {
       setIsGuest(false);
-      const { data: user } = await supabase
-        .from('users')
-        .select('level, dialect, streak_count')
-        .eq('id', session.user.id)
-        .maybeSingle();
+      const connectivity = getConnectivitySnapshot();
+      const canUseNetwork = !connectivity.isHydrated || connectivity.isOnline;
+      const { data: user } = canUseNetwork
+        ? await supabase
+            .from('users')
+            .select('level, dialect, streak_count')
+            .eq('id', session.user.id)
+            .maybeSingle()
+        : { data: null };
 
       if (user) {
         setLevel(user.level ?? 'beginner');
@@ -85,10 +91,12 @@ export default function ProfileScreen() {
       }
 
       // XP comes from XPContext (reads users.xp, includes both lessons and scenarios)
-      const { data: progress } = await supabase
-        .from('scenario_progress')
-        .select('id, completed_count')
-        .eq('user_id', session.user.id);
+      const { data: progress } = canUseNetwork
+        ? await supabase
+            .from('scenario_progress')
+            .select('id, completed_count')
+            .eq('user_id', session.user.id)
+        : { data: null };
 
       if (progress) {
         const completed = progress.filter(p => (p.completed_count ?? 0) > 0);
@@ -243,6 +251,10 @@ export default function ProfileScreen() {
   };
 
   const handleRestorePurchases = async () => {
+    if (!isOnline) {
+      Alert.alert('Internet connection required', 'Reconnect to restore purchases.');
+      return;
+    }
     const result = await restorePurchases();
     if (result === 'error') return;
     Alert.alert(
@@ -254,6 +266,10 @@ export default function ProfileScreen() {
   };
 
   const handleManageSubscription = async () => {
+    if (!isOnline) {
+      Alert.alert('Internet connection required', 'Reconnect to manage your subscription.');
+      return;
+    }
     if (!managementURL) return;
     const canOpen = await Linking.canOpenURL(managementURL);
     if (canOpen) {
@@ -262,6 +278,10 @@ export default function ProfileScreen() {
   };
 
   const openExternalLink = (url: string) => {
+    if (!isOnline) {
+      Alert.alert('Internet connection required', 'Reconnect to open this page.');
+      return;
+    }
     Linking.openURL(url).catch(() => {
       Alert.alert('Could not open link', 'Please try again later.');
     });

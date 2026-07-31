@@ -10,6 +10,8 @@ import { usePremium } from '../contexts/PremiumContext';
 import { getContentAccess, TESTING_UNLOCK_ALL, type ContentType } from '../utils/access';
 import { getDialectContentMeta } from '../utils/content-resolver';
 import { supabase } from '../utils/supabase';
+import { getLocalCompletionIds } from '../utils/offline-progress';
+import { getConnectivitySnapshot } from '../utils/connectivity-state';
 
 type Props = {
   contentId: string | null;
@@ -37,16 +39,22 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
           const { data: { session } } = await supabase.auth.getSession();
 
           if (session) {
-            const { data: progress, error } = await supabase
-              .from('scenario_progress')
-              .select('scenario_id, completed_count')
-              .eq('user_id', session.user.id);
+            (await getLocalCompletionIds(session.user.id)).forEach(id => ids.add(id));
+            const connectivity = getConnectivitySnapshot();
+            if (!connectivity.isHydrated || connectivity.isOnline) {
+              const { data: progress, error } = await supabase
+                .from('scenario_progress')
+                .select('scenario_id, completed_count')
+                .eq('user_id', session.user.id);
 
-            if (error) throw error;
-
-            progress?.forEach(item => {
-              if ((item.completed_count ?? 0) > 0) ids.add(item.scenario_id);
-            });
+              if (error) {
+                if (__DEV__) console.warn('[access] Remote progression unavailable; using local snapshot.');
+              } else {
+                progress?.forEach(item => {
+                  if ((item.completed_count ?? 0) > 0) ids.add(item.scenario_id);
+                });
+              }
+            }
           }
 
           const guestProgress = await AsyncStorage.getItem('guest_progress');

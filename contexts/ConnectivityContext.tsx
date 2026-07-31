@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   createEmptyOfflinePackMap,
   downloadOfflineDialectPack,
@@ -15,6 +15,9 @@ import {
 } from '../utils/offline-pack';
 import { useDialect } from './DialectContext';
 import { useXP } from './XPContext';
+import { setConnectivitySnapshot } from '../utils/connectivity-state';
+import { hydrateOfflineProgressQueue, syncOfflineProgressQueue } from '../utils/offline-progress';
+import { supabase } from '../utils/supabase';
 
 type DownloadState = {
   status: 'idle' | 'downloading' | 'done' | 'error';
@@ -101,7 +104,8 @@ const ConnectivityContext = createContext<ConnectivityContextValue>({
 
 export function ConnectivityProvider({ children }: { children: React.ReactNode }) {
   const { dialect } = useDialect();
-  const { isPremium, premiumStatus, isLoaded: isXpLoaded } = useXP();
+  const { isPremium, premiumStatus, isLoaded: isXpLoaded, refreshFromServer } = useXP();
+  const previousOnlineRef = useRef<boolean | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [isChecking, setIsChecking] = useState(true);
   const [offlinePacks, setOfflinePacks] = useState<OfflinePackMap>(createEmptyOfflinePackMap);
@@ -115,12 +119,15 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
     const Network = getOptionalNetwork();
     if (!Network?.getNetworkStateAsync) {
       setIsOnline(true);
+      setConnectivitySnapshot({ isOnline: true, isHydrated: true });
       setIsChecking(false);
       return;
     }
 
     const state = await Network.getNetworkStateAsync();
-    setIsOnline(isReachable(state));
+    const online = isReachable(state);
+    setIsOnline(online);
+    setConnectivitySnapshot({ isOnline: online, isHydrated: true });
     setIsChecking(false);
   }, []);
 
@@ -131,25 +138,49 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     refreshConnection().catch(() => {
       setIsOnline(true);
+      setConnectivitySnapshot({ isOnline: true, isHydrated: true });
       setIsChecking(false);
     });
     refreshOfflinePacks().catch(() => {});
+    hydrateOfflineProgressQueue().catch(() => {});
 
     const Network = getOptionalNetwork();
     if (!Network?.addNetworkStateListener) return undefined;
 
     const subscription = Network.addNetworkStateListener(state => {
-      setIsOnline(isReachable(state));
+      const online = isReachable(state);
+      if (__DEV__) console.info('[connectivity] transition', { online });
+      setIsOnline(online);
+      setConnectivitySnapshot({ isOnline: online, isHydrated: true });
       setIsChecking(false);
     });
 
     return () => subscription.remove();
   }, [refreshConnection, refreshOfflinePacks]);
 
+  useEffect(() => {
+    const previous = previousOnlineRef.current;
+    previousOnlineRef.current = isOnline;
+    if (isChecking || !isOnline || previous === true) return;
+    const reconnect = async () => {
+      await supabase.auth.refreshSession().catch(error => {
+        if (__DEV__) console.warn('[session] reconnect refresh failed; persisted session retained', { message: error instanceof Error ? error.message : 'unknown' });
+      });
+      const synced = await syncOfflineProgressQueue();
+      if (__DEV__) console.info('[offline-progress] sync result', { synced });
+      await refreshFromServer();
+    };
+    reconnect()
+      .catch(error => {
+        if (__DEV__) console.warn('[offline-progress] sync failed; events retained', { message: error instanceof Error ? error.message : 'unknown' });
+      });
+  }, [isChecking, isOnline, refreshFromServer]);
+
   const downloadPack = useCallback(async (dialect: OfflineDialect) => {
     if (!isPremium) {
       throw new Error('Offline packs are members-only.');
     }
+    if (!isOnline) throw new Error('An internet connection is required to download an offline pack.');
 
     setDownloadStates(current => ({
       ...current,
@@ -198,7 +229,7 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
       }));
       throw error;
     }
-  }, [isPremium]);
+  }, [isOnline, isPremium]);
 
   const removePack = useCallback(async (dialect: OfflineDialect) => {
     await removeOfflineDialectPack(dialect);
