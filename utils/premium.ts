@@ -2,7 +2,8 @@ import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-n
 
 export const PREMIUM_ENTITLEMENT_ID = 'premium';
 export const DEFAULT_OFFERING_ID = 'default';
-export const MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly';
+export const IOS_MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly';
+export const ANDROID_MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly:monthly';
 export const REVENUECAT_REQUEST_TIMEOUT_MS = 15_000;
 
 export type RevenueCatPlatform = 'ios' | 'android';
@@ -40,10 +41,17 @@ export function getDefaultOffering(offerings: PurchasesOfferings | null) {
   return offerings?.all[DEFAULT_OFFERING_ID] ?? null;
 }
 
-export function selectMonthlyPackage(offerings: PurchasesOfferings | null) {
+export function getMonthlyProductId(platform: string) {
+  if (platform === 'ios') return IOS_MONTHLY_PRODUCT_ID;
+  if (platform === 'android') return ANDROID_MONTHLY_PRODUCT_ID;
+  return null;
+}
+
+export function selectMonthlyPackage(offerings: PurchasesOfferings | null, platform: string) {
   const offering = getDefaultOffering(offerings);
-  if (!offering) return null;
-  return offering.availablePackages.find(item => item.product.identifier === MONTHLY_PRODUCT_ID) ?? null;
+  const productId = getMonthlyProductId(platform);
+  if (!offering || !productId) return null;
+  return offering.availablePackages.find(item => item.product.identifier === productId) ?? null;
 }
 
 export function getRevenueCatIdentityAction(

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   DEFAULT_OFFERING_ID,
-  MONTHLY_PRODUCT_ID,
+  ANDROID_MONTHLY_PRODUCT_ID,
+  IOS_MONTHLY_PRODUCT_ID,
   PREMIUM_ENTITLEMENT_ID,
   createConfigureOnce,
   createExclusiveOperation,
@@ -28,16 +29,25 @@ const customerInfo = (active: boolean) => ({
   entitlements: { active: active ? { premium: {} } : {} },
 }) as any;
 
-const monthlyPackage = {
+const iosMonthlyPackage = {
   identifier: '$rc_monthly',
   packageType: 'MONTHLY',
-  product: { identifier: MONTHLY_PRODUCT_ID, priceString: '$4.99' },
+  product: { identifier: IOS_MONTHLY_PRODUCT_ID, priceString: '$4.99' },
+} as any;
+
+const androidMonthlyPackage = {
+  identifier: '$rc_monthly',
+  packageType: 'MONTHLY',
+  product: { identifier: ANDROID_MONTHLY_PRODUCT_ID, priceString: '$4.99' },
 } as any;
 
 const offerings = {
   current: null,
   all: {
-    default: { identifier: 'default', availablePackages: [monthlyPackage] },
+    default: {
+      identifier: 'default',
+      availablePackages: [iosMonthlyPackage, androidMonthlyPackage],
+    },
   },
 } as any;
 
@@ -148,20 +158,42 @@ test('current offering is not an implicit fallback', () => {
   assert.equal(getDefaultOffering({ all: {}, current: offerings.all.default } as any), null);
 });
 
-test('monthly product identifier is exact', () => {
-  assert.equal(MONTHLY_PRODUCT_ID, 'heyyusuf_premium_monthly');
-  assert.equal(selectMonthlyPackage(offerings), monthlyPackage);
+test('Android accepts the exact product and base-plan identifier', () => {
+  assert.equal(ANDROID_MONTHLY_PRODUCT_ID, 'heyyusuf_premium_monthly:monthly');
+  assert.equal(selectMonthlyPackage(offerings, 'android'), androidMonthlyPackage);
+});
+
+test('Android rejects the product without its base-plan suffix', () => {
+  const iosOnly = {
+    all: { default: { availablePackages: [iosMonthlyPackage] } },
+  } as any;
+  assert.equal(selectMonthlyPackage(iosOnly, 'android'), null);
+});
+
+test('iOS accepts the exact monthly product identifier', () => {
+  assert.equal(IOS_MONTHLY_PRODUCT_ID, 'heyyusuf_premium_monthly');
+  assert.equal(selectMonthlyPackage(offerings, 'ios'), iosMonthlyPackage);
+});
+
+test('iOS rejects the Android product identifier', () => {
+  const androidOnly = {
+    all: { default: { availablePackages: [androidMonthlyPackage] } },
+  } as any;
+  assert.equal(selectMonthlyPackage(androidOnly, 'ios'), null);
 });
 
 test('another package is never selected', () => {
   const annualOnly = {
     all: { default: { availablePackages: [{ product: { identifier: 'annual' } }] } },
   } as any;
-  assert.equal(selectMonthlyPackage(annualOnly), null);
+  assert.equal(selectMonthlyPackage(annualOnly, 'ios'), null);
+  assert.equal(selectMonthlyPackage(annualOnly, 'android'), null);
+  assert.equal(selectMonthlyPackage(offerings, 'web'), null);
 });
 
 test('localized package price remains the display source', () => {
-  assert.equal(selectMonthlyPackage(offerings)?.product.priceString, '$4.99');
+  assert.equal(selectMonthlyPackage(offerings, 'ios')?.product.priceString, '$4.99');
+  assert.equal(selectMonthlyPackage(offerings, 'android')?.product.priceString, '$4.99');
 });
 
 test('purchase and restore cannot overlap', () => {

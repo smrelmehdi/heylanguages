@@ -187,7 +187,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     const nextOfferings = await withTimeout(client.getOfferings());
     if (!mountedRef.current) return;
     const defaultOffering = getDefaultOffering(nextOfferings);
-    const selectedPackage = selectMonthlyPackage(nextOfferings);
+    const selectedPackage = selectMonthlyPackage(nextOfferings, Platform.OS);
     setOfferings(nextOfferings);
     setPremiumPackage(selectedPackage);
     if (!defaultOffering) {
