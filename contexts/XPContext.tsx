@@ -14,6 +14,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { getLevelFromXP } from '../constants/levels';
 import { usePremium } from './PremiumContext';
 import { getContentAccess, TESTING_UNLOCK_ALL, type ContentAccessInput, type ContentAccessResult } from '../utils/access';
+import type { PremiumStatus } from '../utils/premium';
 import { supabase } from '../utils/supabase';
 
 export interface LevelUpInfo {
@@ -24,6 +25,7 @@ export interface LevelUpInfo {
 
 interface XPContextValue {
   xp: number;
+  premiumStatus: PremiumStatus;
   isPremium: boolean;
   isLoaded: boolean;
   /** Applies a guest XP snapshot after progress and XP were persisted together. */
@@ -36,6 +38,7 @@ interface XPContextValue {
 
 const XPContext = createContext<XPContextValue>({
   xp: 0,
+  premiumStatus: 'loading',
   isPremium: false,
   isLoaded: false,
   applyGuestXpSnapshot: () => null,
@@ -49,7 +52,8 @@ const GUEST_XP_CACHE_KEY = 'guest_xp_cache';
 export function XPProvider({ children }: { children: React.ReactNode }) {
   const [xp, setXP] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
-  const { isPremium, refreshCustomerInfo } = usePremium();
+  const { premiumStatus, refreshCustomerInfo } = usePremium();
+  const isPremium = premiumStatus === 'premium';
   // Ref mirrors xp state — needed for synchronous reads inside callbacks
   const xpRef = useRef(0);
   const hydrationGenerationRef = useRef(0);
@@ -138,7 +142,7 @@ export function XPProvider({ children }: { children: React.ReactNode }) {
   }, [loadXpForSession, refreshCustomerInfo]);
 
   return (
-    <XPContext.Provider value={{ xp, isPremium, isLoaded, applyGuestXpSnapshot, getAccess, refreshFromServer }}>
+    <XPContext.Provider value={{ xp, premiumStatus, isPremium, isLoaded, applyGuestXpSnapshot, getAccess, refreshFromServer }}>
       {children}
     </XPContext.Provider>
   );

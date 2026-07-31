@@ -10,6 +10,18 @@ export const REVENUECAT_REQUEST_TIMEOUT_MS = 15_000;
 export type RevenueCatPlatform = 'ios' | 'android';
 export type PremiumActionResult = 'success' | 'cancelled' | 'no_entitlement' | 'error';
 export type RevenueCatIdentityAction = 'refresh' | 'login' | 'logout';
+export type PremiumStatus = 'loading' | 'free' | 'premium' | 'configuration_error';
+export type CustomerInfoOperation = {
+  operationId: number;
+  identityGeneration: number;
+  revenueCatAppUserId: string | null;
+  source: string;
+  requiresOriginalAppUserIdMatch: boolean;
+};
+export type CustomerInfoOperationDecision = {
+  accepted: boolean;
+  rejectionReason: string | null;
+};
 export type PremiumPaywallSource =
   | 'profile_membership'
   | 'offline_audio'
@@ -168,6 +180,49 @@ export function createLatestOperationGuard() {
     },
     current() {
       return generation;
+    },
+  };
+}
+
+export function createCustomerInfoOperationGuard() {
+  let operationSequence = 0;
+  let latestAcceptedOperationId = 0;
+
+  return {
+    begin(input: Omit<CustomerInfoOperation, 'operationId'>): CustomerInfoOperation {
+      operationSequence += 1;
+      return { ...input, operationId: operationSequence };
+    },
+    evaluate(
+      operation: CustomerInfoOperation,
+      current: {
+        identityGeneration: number;
+        revenueCatAppUserId: string | null;
+        originalAppUserId: string | null;
+        incomingOriginalAppUserId: string | null;
+      }
+    ): CustomerInfoOperationDecision {
+      let rejectionReason: string | null = null;
+      if (operation.identityGeneration !== current.identityGeneration) {
+        rejectionReason = 'identity-generation-changed';
+      } else if (operation.revenueCatAppUserId !== current.revenueCatAppUserId) {
+        rejectionReason = 'revenuecat-app-user-id-changed';
+      } else if (
+        operation.requiresOriginalAppUserIdMatch &&
+        current.originalAppUserId &&
+        current.incomingOriginalAppUserId !== current.originalAppUserId
+      ) {
+        rejectionReason = 'customer-info-identity-mismatch';
+      } else if (operation.operationId <= latestAcceptedOperationId) {
+        rejectionReason = 'older-customer-info-operation';
+      }
+
+      if (rejectionReason) return { accepted: false, rejectionReason };
+      latestAcceptedOperationId = operation.operationId;
+      return { accepted: true, rejectionReason: null };
+    },
+    latestAcceptedOperationId() {
+      return latestAcceptedOperationId;
     },
   };
 }

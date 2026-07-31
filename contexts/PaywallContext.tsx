@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import PaywallModal from '../components/PaywallModal';
 import PremiumSuccessModal from '../components/PremiumSuccessModal';
 import { shouldShowPremiumSuccess, type PremiumPaywallSource } from '../utils/premium';
+import { recordPremiumDiagnostic } from '../utils/premium-diagnostics';
 import { usePremium } from './PremiumContext';
 
 type OpenPaywallOptions = {
@@ -59,9 +60,23 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
     const wasPremium = isPremium;
     const result = await purchasePremium();
     if (result === 'success') {
+      recordPremiumDiagnostic({
+        operation: 'paywall.purchase_confirmed',
+        source: 'purchase',
+        previousPremiumStatus: wasPremium ? 'premium' : 'free',
+        nextPremiumStatus: 'premium',
+        accepted: true,
+      });
       setPaywallSource(null);
       setContentLabel(undefined);
       if (shouldShowPremiumSuccess(wasPremium, result)) {
+        recordPremiumDiagnostic({
+          operation: 'premium_success.shown',
+          source: 'purchase',
+          previousPremiumStatus: 'free',
+          nextPremiumStatus: 'premium',
+          accepted: true,
+        });
         setIsSuccessVisible(true);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       }
@@ -102,7 +117,16 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
       />
       <PremiumSuccessModal
         visible={isSuccessVisible}
-        onClose={() => setIsSuccessVisible(false)}
+        onClose={() => {
+          recordPremiumDiagnostic({
+            operation: 'premium_success.dismissed',
+            source: 'purchase',
+            previousPremiumStatus: 'premium',
+            nextPremiumStatus: 'premium',
+            accepted: true,
+          });
+          setIsSuccessVisible(false);
+        }}
       />
     </PaywallContext.Provider>
   );

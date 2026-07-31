@@ -6,6 +6,7 @@ import {
     IOS_MONTHLY_PRODUCT_ID,
     PREMIUM_ENTITLEMENT_ID,
     createConfigureOnce,
+    createCustomerInfoOperationGuard,
     createExclusiveOperation,
     createLatestOperationGuard,
     getDefaultOffering,
@@ -262,6 +263,79 @@ test('stale identity result cannot become current', () => {
   assert.equal(guard.isCurrent(gulf), true);
 });
 
+test('CustomerInfo ordering rejects an older result for the same identity', () => {
+  const guard = createCustomerInfoOperationGuard();
+  const current = {
+    identityGeneration: 4,
+    revenueCatAppUserId: 'user-a',
+    originalAppUserId: 'original-a',
+    incomingOriginalAppUserId: 'original-a',
+  };
+  const older = guard.begin({
+    identityGeneration: 4,
+    revenueCatAppUserId: 'user-a',
+    source: 'foreground',
+    requiresOriginalAppUserIdMatch: false,
+  });
+  const newer = guard.begin({
+    identityGeneration: 4,
+    revenueCatAppUserId: 'user-a',
+    source: 'purchase',
+    requiresOriginalAppUserIdMatch: false,
+  });
+  assert.equal(guard.evaluate(newer, current).accepted, true);
+  assert.equal(guard.evaluate(older, current).rejectionReason, 'older-customer-info-operation');
+});
+
+test('CustomerInfo ordering accepts a newer Free result for confirmed expiration', () => {
+  const guard = createCustomerInfoOperationGuard();
+  const current = {
+    identityGeneration: 2,
+    revenueCatAppUserId: 'user-a',
+    originalAppUserId: 'original-a',
+    incomingOriginalAppUserId: 'original-a',
+  };
+  const premium = guard.begin({
+    identityGeneration: 2,
+    revenueCatAppUserId: 'user-a',
+    source: 'listener',
+    requiresOriginalAppUserIdMatch: false,
+  });
+  const expired = guard.begin({
+    identityGeneration: 2,
+    revenueCatAppUserId: 'user-a',
+    source: 'foreground',
+    requiresOriginalAppUserIdMatch: false,
+  });
+  assert.equal(guard.evaluate(premium, current).accepted, true);
+  assert.equal(guard.evaluate(expired, current).accepted, true);
+});
+
+test('CustomerInfo ordering rejects wrong app user and old listener identity', () => {
+  const guard = createCustomerInfoOperationGuard();
+  const wrongUser = guard.begin({
+    identityGeneration: 3,
+    revenueCatAppUserId: 'user-a',
+    source: 'refresh',
+    requiresOriginalAppUserIdMatch: false,
+  });
+  const current = {
+    identityGeneration: 3,
+    revenueCatAppUserId: 'user-b',
+    originalAppUserId: 'original-b',
+    incomingOriginalAppUserId: 'original-a',
+  };
+  assert.equal(guard.evaluate(wrongUser, current).rejectionReason, 'revenuecat-app-user-id-changed');
+
+  const oldListener = guard.begin({
+    identityGeneration: 3,
+    revenueCatAppUserId: 'user-b',
+    source: 'listener',
+    requiresOriginalAppUserIdMatch: true,
+  });
+  assert.equal(guard.evaluate(oldListener, current).rejectionReason, 'customer-info-identity-mismatch');
+});
+
 test('foreground refresh does not invalidate an in-flight purchase identity', () => {
   const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
   const start = source.indexOf('const refreshCustomerInfo = useCallback');
@@ -421,8 +495,8 @@ test('purchase refreshes CustomerInfo and applies the premium entitlement', () =
   const end = source.indexOf('const restorePurchases', start);
   const purchaseSource = source.slice(start, end);
   assert.match(purchaseSource, /client\.purchasePackage\(premiumPackage\)/);
-  assert.match(purchaseSource, /applyCustomerInfo\(customerInfo/);
-  assert.match(purchaseSource, /hasPremiumEntitlement\(customerInfo\)/);
+  assert.match(purchaseSource, /applyCustomerInfo\(result\.customerInfo, purchaseInfoOperation\)/);
+  assert.match(purchaseSource, /confirmedStatus !== 'premium'/);
   assert.match(purchaseSource, /confirmPremiumEntitlement/);
   assert.doesNotMatch(purchaseSource, /withTimeout\(client\.purchasePackage/);
 });
@@ -439,8 +513,8 @@ test('already-subscribed response performs entitlement recovery', () => {
   const end = source.indexOf('const restorePurchases', start);
   const purchaseSource = source.slice(start, end);
   assert.match(purchaseSource, /isAlreadyPurchasedError\(purchaseError\)/);
-  assert.match(purchaseSource, /confirmPremiumEntitlement\(client, identityToken, null, true\)/);
-  assert.match(purchaseSource, /hasPremiumEntitlement\(customerInfo\)/);
+  assert.match(purchaseSource, /confirmPremiumEntitlement\(client, identityToken, 'purchase', true\)/);
+  assert.match(purchaseSource, /confirmedStatus === 'premium'/);
 });
 
 test('post-purchase verification refreshes first and restores only when needed', () => {
@@ -449,7 +523,7 @@ test('post-purchase verification refreshes first and restores only when needed',
   const end = source.indexOf('const refreshCustomerInfo', start);
   const confirmationSource = source.slice(start, end);
   assert.match(confirmationSource, /client\.getCustomerInfo\(\)/);
-  assert.match(confirmationSource, /if \(!confirmedCustomerInfo && allowRestore\)/);
+  assert.match(confirmationSource, /if \(premiumStatusRef\.current !== 'premium' && allowRestore\)/);
   assert.match(confirmationSource, /client\.restorePurchases\(\)/);
 });
 
@@ -469,7 +543,7 @@ test('listener is registered once per provider and removed during cleanup', () =
   const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
   assert.equal((source.match(/addCustomerInfoUpdateListener\(/g) ?? []).length, 1);
   assert.equal((source.match(/removeCustomerInfoUpdateListener\(/g) ?? []).length, 1);
-  assert.match(source, /applyCustomerInfo\(customerInfo, 'listener'\)/);
+  assert.match(source, /applyCustomerInfo\(customerInfo, listenerOperation\)/);
 });
 
 test('same-user auth events preserve the current identity generation', () => {
@@ -494,10 +568,26 @@ test('Premium profile uses member copy and management instead of reopening paywa
 
 test('Premium Home renders directly from entitlement state with no stale copied flag', () => {
   const source = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
-  assert.match(source, /const isPremium = isPremiumFromContext/);
+  assert.match(source, /const isPremium = premiumStatus === 'premium'/);
   assert.doesNotMatch(source, /setIsPremium/);
   assert.match(source, /Premium active/);
   assert.match(source, /headerPremiumBadge/);
+});
+
+test('PremiumStatus is authoritative and loading UI is neutral on Home and Profile', () => {
+  const context = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const xp = fs.readFileSync('contexts/XPContext.tsx', 'utf8');
+  const home = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
+  const profile = fs.readFileSync('app/(tabs)/profile.tsx', 'utf8');
+  assert.match(context, /type PremiumStatus/);
+  assert.match(context, /const \[premiumStatus, setPremiumStatus\]/);
+  assert.match(context, /const isPremium = premiumStatus === 'premium'/);
+  assert.match(context, /const isLoading = premiumStatus === 'loading'/);
+  assert.match(xp, /premiumStatus: PremiumStatus/);
+  assert.match(home, /Checking membership access/);
+  assert.match(home, /Checking lesson access/);
+  assert.match(profile, /Checking membership/);
+  assert.match(profile, /Checking offline access/);
 });
 
 test('only one paywall and one purchase-success modal are mounted globally', () => {
@@ -553,6 +643,41 @@ test('paywall exposes legal links and auto-renewal disclosure', () => {
   assert.match(source, /Privacy Policy/);
   assert.match(source, /Terms of Use/);
   assert.match(source, /Renews automatically each month until canceled/);
+});
+
+test('structured premium diagnostics contain required sanitized lifecycle fields', () => {
+  const source = fs.readFileSync('utils/premium-diagnostics.ts', 'utf8');
+  for (const field of [
+    'timestamp', 'sequence', 'operation', 'requestId', 'operationSource', 'appState',
+    'revenueCatAppUserId', 'authenticatedUserPresent', 'identityGeneration',
+    'customerInfoOperationId',
+    'previousPremiumStatus', 'incomingActiveEntitlementIds', 'incomingPremiumExpirationDate',
+    'incomingLatestPurchaseDate', 'incomingProductIdentifier', 'nextPremiumStatus',
+    'accepted', 'rejectionReason', 'elapsedMsSincePurchaseStarted',
+  ]) {
+    assert.match(source, new RegExp(field));
+  }
+  assert.doesNotMatch(source, /apiKey|receipt|purchaseToken|accessToken|email/i);
+});
+
+test('diagnostics panel is excluded from production and exposes only requested controls', () => {
+  const utility = fs.readFileSync('utils/premium-diagnostics.ts', 'utf8');
+  const panel = fs.readFileSync('components/PremiumDiagnosticsPanel.tsx', 'utf8');
+  assert.match(utility, /appEnvironment === 'development' \|\| appEnvironment === 'preview'/);
+  assert.match(panel, /if \(!PREMIUM_DIAGNOSTICS_ENABLED\) return null/);
+  assert.match(panel, /Refresh CustomerInfo/);
+  assert.match(panel, /Restore Purchases/);
+  assert.match(panel, /Copy sanitized diagnostics/);
+  assert.match(panel, /Clear local premium cache/);
+});
+
+test('premium diagnostics do not introduce a local entitlement cache', () => {
+  const utility = fs.readFileSync('utils/premium-diagnostics.ts', 'utf8');
+  const context = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  assert.doesNotMatch(utility, /AsyncStorage/);
+  assert.doesNotMatch(context, /AsyncStorage/);
+  assert.match(utility, /no app-owned persisted premium cache exists/i);
+  assert.match(context, /client\.invalidateCustomerInfoCache\(\)/);
 });
 
 async function main() {

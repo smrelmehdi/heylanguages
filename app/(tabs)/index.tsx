@@ -24,7 +24,7 @@ import {
     WifiOff,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MilestoneModal from '../../components/MilestoneModal';
 import SignUpPrompt from '../../components/SignUpPrompt';
@@ -46,6 +46,7 @@ import type { StreakData } from '../../utils/streak';
 import { clearPendingMilestone, getLocalStreakData, getPendingMilestone } from '../../utils/streak';
 import { supabase } from '../../utils/supabase';
 import { getPaywallSourceForContentType } from '../../utils/premium';
+import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
 
 let lastHomeScrollY = 0;
 
@@ -147,9 +148,10 @@ export default function HomeScreen() {
   const { isOnline, offlinePacks, currentDialectOfflineReady } = useConnectivity();
 
   // Freemium state — XP and premium come from XPContext (shared, no extra fetch)
-  const { xp: xpFromContext, isPremium: isPremiumFromContext, getAccess } = useXP();
+  const { xp: xpFromContext, premiumStatus, getAccess } = useXP();
   const { openPaywall } = usePaywall();
-  const isPremium = isPremiumFromContext;
+  const isPremium = premiumStatus === 'premium';
+  const isPremiumLoading = premiumStatus === 'loading';
 
   const [yusufMood, setYusufMood] = useMood('waving');
   const [yusufWhisper, setYusufWhisper] = useState<string | undefined>(undefined);
@@ -189,6 +191,17 @@ export default function HomeScreen() {
   useEffect(() => {
     setXpTotal(xpFromContext);
   }, [xpFromContext]);
+
+  useEffect(() => {
+    recordPremiumDiagnostic({
+      operation: 'home.render_status',
+      source: 'home_render',
+      previousPremiumStatus: premiumStatus,
+      nextPremiumStatus: premiumStatus,
+      accepted: true,
+      updatesPremiumState: false,
+    });
+  }, [premiumStatus]);
 
   const handleYusufTap = () => {
     let next: number;
@@ -585,7 +598,15 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
-        <Pressable
+        {isPremiumLoading ? (
+          <View style={styles.premiumHydrationCard} accessibilityLabel="Checking membership access">
+            <ActivityIndicator color={theme.colors.textTertiary} size="small" />
+            <View style={styles.premiumHydrationCopy}>
+              <View style={[styles.premiumHydrationLine, { width: '42%' }]} />
+              <View style={[styles.premiumHydrationLine, { width: '72%' }]} />
+            </View>
+          </View>
+        ) : <Pressable
           style={[styles.offlineStatusCard, currentDialectOfflineReady && styles.offlineStatusCardReady]}
           onPress={() => {
             if (isPremium) {
@@ -615,7 +636,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <Text style={styles.offlineStatusMeta}>{offlineCardMeta}</Text>
-        </Pressable>
+        </Pressable>}
 
         {/* Daily Quest — single row */}
         <View style={styles.questCard}>
@@ -656,7 +677,19 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {activeUnits.map(unit => {
+        {isPremiumLoading ? (
+          <View style={styles.pathHydration} accessibilityLabel="Checking lesson access">
+            {[0, 1, 2].map(index => (
+              <View key={index} style={styles.pathHydrationRow}>
+                <View style={styles.pathHydrationIcon} />
+                <View style={styles.premiumHydrationCopy}>
+                  <View style={[styles.premiumHydrationLine, { width: index === 1 ? '56%' : '44%' }]} />
+                  <View style={[styles.premiumHydrationLine, { width: '70%' }]} />
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : activeUnits.map(unit => {
           const itemCount = unit.items.length;
           return (
             <View key={unit.unitId}>
@@ -795,6 +828,33 @@ const styles = StyleSheet.create({
   premiumActiveCopy: { flex: 1 },
   premiumActiveTitle: { color: theme.colors.textPrimary, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium },
   premiumActiveMeta: { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption, marginTop: 2 },
+  premiumHydrationCard: {
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.bgSurface,
+  },
+  premiumHydrationCopy: { flex: 1, gap: 8 },
+  premiumHydrationLine: { height: 9, borderRadius: 4, backgroundColor: theme.colors.bgElevated },
+  pathHydration: { gap: 10 },
+  pathHydrationRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.colors.bgSurface,
+  },
+  pathHydrationIcon: { width: 32, height: 32, borderRadius: theme.radii.xs, backgroundColor: theme.colors.bgElevated },
 
   // Banners
   guestBanner: { backgroundColor: theme.colors.bgSurface, borderLeftWidth: 3, borderLeftColor: theme.colors.accentPrimary, borderRadius: theme.radii.xs, padding: theme.spacing.md, marginBottom: theme.spacing.lg },

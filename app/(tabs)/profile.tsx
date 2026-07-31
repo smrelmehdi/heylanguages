@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { BarChart2, ChevronRight, Crown, Download, Globe, LogOut, RefreshCw, Trash2 } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
-import { Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PremiumDiagnosticsPanel from '../../components/PremiumDiagnosticsPanel';
 import { getLevelFromXP, getXPProgress, getXPToNextLevel, LEVELS } from '../../constants/levels';
 import { LEGAL_URLS } from '../../constants/legal';
 import { theme } from '../../constants/theme';
@@ -19,6 +20,7 @@ import {
   setTestingUnlockAllOverride,
 } from '../../utils/access';
 import type { OfflineDialect } from '../../utils/offline-pack';
+import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
 import { supabase } from '../../utils/supabase';
 
 export default function ProfileScreen() {
@@ -27,13 +29,26 @@ export default function ProfileScreen() {
   const [level, setLevel] = useState('Beginner');
   const [streakCount, setStreakCount] = useState(0);
   const { dialect: contextDialect, setDialect: setContextDialect } = useDialect();
-  const { xp: xpTotal, isPremium } = useXP();
-  const { restorePurchases, isLoading: isPremiumLoading, isRestoring, error: premiumError, managementURL } = usePremium();
+  const { xp: xpTotal, premiumStatus } = useXP();
+  const { restorePurchases, isRestoring, error: premiumError, managementURL } = usePremium();
+  const isPremium = premiumStatus === 'premium';
+  const isPremiumLoading = premiumStatus === 'loading';
   const { openPaywall } = usePaywall();
   const { offlinePacks, downloadStates, downloadPack, removePack, getPackAssetCount } = useConnectivity();
   const [scenariosCompleted, setScenariosCompleted] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [testingUnlockEnabled, setTestingUnlockEnabled] = useState(getTestingUnlockAllState());
+
+  useEffect(() => {
+    recordPremiumDiagnostic({
+      operation: 'profile.render_status',
+      source: 'profile_render',
+      previousPremiumStatus: premiumStatus,
+      nextPremiumStatus: premiumStatus,
+      accepted: true,
+      updatesPremiumState: false,
+    });
+  }, [premiumStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -340,7 +355,15 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Premium</Text>
-        <View style={styles.settingsCard}>
+        {isPremiumLoading ? (
+          <View style={styles.premiumHydrationCard} accessibilityLabel="Checking membership">
+            <ActivityIndicator color={theme.colors.textTertiary} size="small" />
+            <View style={styles.premiumHydrationCopy}>
+              <View style={[styles.premiumHydrationLine, { width: '46%' }]} />
+              <View style={[styles.premiumHydrationLine, { width: '76%' }]} />
+            </View>
+          </View>
+        ) : <View style={styles.settingsCard}>
           <Pressable
             style={[styles.settingRow, isPremium && styles.premiumMemberRow]}
             onPress={isPremium ? handleManageSubscription : () => openPaywall('profile_membership', { contentLabel: 'Membership' })}
@@ -398,10 +421,20 @@ export default function ProfileScreen() {
           )}
 
           {premiumError && <Text style={styles.premiumError}>{premiumError}</Text>}
-        </View>
+        </View>}
+
+        <PremiumDiagnosticsPanel />
 
         <Text style={styles.sectionTitle}>Offline audio</Text>
-        {isPremium ? (
+        {isPremiumLoading ? (
+          <View style={styles.premiumHydrationCard} accessibilityLabel="Checking offline access">
+            <ActivityIndicator color={theme.colors.textTertiary} size="small" />
+            <View style={styles.premiumHydrationCopy}>
+              <View style={[styles.premiumHydrationLine, { width: '38%' }]} />
+              <View style={[styles.premiumHydrationLine, { width: '68%' }]} />
+            </View>
+          </View>
+        ) : isPremium ? (
           <View style={styles.settingsCard}>
             {DIALECTS.map((dialect, index) => {
               const pack = offlinePacks[dialect.id];
@@ -595,6 +628,20 @@ const styles = StyleSheet.create({
   internalAccessLabel: { fontSize: theme.fontSize.caption, color: theme.colors.accentWarm, marginTop: 4, fontWeight: theme.fontWeight.medium },
   devMeta: { fontSize: theme.fontSize.label, color: theme.colors.accentWarm, marginTop: 3, lineHeight: 17 },
   premiumError: { color: theme.colors.accentDanger, fontSize: 13, lineHeight: 18, paddingHorizontal: 14, paddingBottom: 14 },
+  premiumHydrationCard: {
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.colors.bgSurface,
+  },
+  premiumHydrationCopy: { flex: 1, gap: 8 },
+  premiumHydrationLine: { height: 9, borderRadius: 4, backgroundColor: theme.colors.bgElevated },
   offlineMeta: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 3 },
   currentDialectTag: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, marginTop: 4 },
   offlineActionPrimary: { minWidth: 96, height: 38, borderRadius: theme.radii.md, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
