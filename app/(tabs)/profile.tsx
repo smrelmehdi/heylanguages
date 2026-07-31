@@ -249,12 +249,20 @@ export default function ProfileScreen() {
         <Text style={styles.pageTitle}>Profile</Text>
 
         {/* Avatar Card */}
-        <View style={styles.avatarCard}>
-          <View style={styles.avatar}>
+        <View style={[styles.avatarCard, isPremium && styles.avatarCardPremium]}>
+          <View style={[styles.avatar, isPremium && styles.avatarPremium]}>
             <Text style={styles.avatarInitial}>{getInitial()}</Text>
           </View>
           <View style={styles.avatarInfo}>
-            <Text style={styles.avatarName}>{userName || 'Friend'}</Text>
+            <View style={styles.avatarNameRow}>
+              <Text style={styles.avatarName}>{userName || 'Friend'}</Text>
+              {isPremium && (
+                <View style={styles.profilePremiumBadge}>
+                  <Crown color={theme.colors.accentWarm} size={12} />
+                  <Text style={styles.profilePremiumBadgeText}>PREMIUM</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.avatarLevel}>
               {currentLevel.icon} {currentLevel.name} · {getDialectLabel()}
             </Text>
@@ -334,20 +342,21 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Premium</Text>
         <View style={styles.settingsCard}>
           <Pressable
-            style={styles.settingRow}
-            onPress={() => openPaywall('profile_membership', { contentLabel: 'Membership' })}
+            style={[styles.settingRow, isPremium && styles.premiumMemberRow]}
+            onPress={isPremium ? handleManageSubscription : () => openPaywall('profile_membership', { contentLabel: 'Membership' })}
+            disabled={isPremium && !managementURL}
             accessibilityRole="button"
-            accessibilityLabel="Open HeyYusuf Premium"
+            accessibilityLabel={isPremium ? 'Manage Premium subscription' : 'Open HeyYusuf Premium'}
           >
             <View style={styles.settingLeft}>
-              <View style={styles.settingIcon}>
+              <View style={[styles.settingIcon, isPremium && styles.premiumMemberIcon]}>
                 <Crown color="#F59E0B" size={16} />
               </View>
-              <View>
+              <View style={styles.settingCopy}>
                 <Text style={styles.settingLabel}>Membership</Text>
                 <Text style={styles.offlineMeta}>
                   {isPremium
-                    ? 'Premium unlocks all lessons, offline packs, and premium practice.'
+                    ? 'All lessons, scenarios, practice modes, and offline audio are unlocked.'
                     : 'Free plan includes Units 1-3 and previews in Units 4-5.'}
                 </Text>
                 {CAN_USE_INTERNAL_TESTING_ACCESS && testingUnlockEnabled && (
@@ -356,7 +365,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <Text style={[styles.premiumStatus, isPremium && styles.premiumStatusActive]}>
-              {isPremium ? 'Active' : 'Free'}
+              {isPremium ? 'Premium Member' : 'Free'}
             </Text>
           </Pressable>
 
@@ -553,10 +562,15 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: 120 },
   pageTitle: { fontSize: theme.fontSize.display, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 16 },
   avatarCard: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 14 },
+  avatarCardPremium: { borderColor: `${theme.colors.accentWarm}66`, backgroundColor: `${theme.colors.accentWarm}08` },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.accentPrimary, alignItems: 'center', justifyContent: 'center' },
+  avatarPremium: { borderWidth: 2, borderColor: theme.colors.accentWarm },
   avatarInitial: { fontSize: 28, fontWeight: theme.fontWeight.medium, color: theme.colors.bgBase },
   avatarInfo: { flex: 1 },
+  avatarNameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   avatarName: { fontSize: 20, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  profilePremiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: theme.radii.pill, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: `${theme.colors.accentWarm}16`, borderWidth: 1, borderColor: `${theme.colors.accentWarm}55` },
+  profilePremiumBadgeText: { color: theme.colors.accentWarm, fontSize: 9, fontWeight: theme.fontWeight.medium },
   avatarLevel: { fontSize: theme.fontSize.body, color: theme.colors.textAccent, fontWeight: theme.fontWeight.regular, marginTop: 3 },
   signInPrompt: { fontSize: theme.fontSize.caption, color: theme.colors.textAccent, marginTop: 4 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
@@ -569,11 +583,14 @@ const styles = StyleSheet.create({
   settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: theme.colors.borderDefault },
   settingRowLast: { borderBottomWidth: 0 },
   settingLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingCopy: { flex: 1 },
   settingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   settingIcon: { width: 32, height: 32, borderRadius: theme.radii.xs, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.bgElevated },
+  premiumMemberRow: { backgroundColor: `${theme.colors.accentWarm}08`, borderBottomColor: `${theme.colors.accentWarm}33` },
+  premiumMemberIcon: { backgroundColor: `${theme.colors.accentWarm}16`, borderWidth: 1, borderColor: `${theme.colors.accentWarm}44` },
   settingLabel: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: theme.fontWeight.regular },
   settingValue: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary },
-  premiumStatus: { fontSize: 13, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary },
+  premiumStatus: { maxWidth: 92, fontSize: 13, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, textAlign: 'right' },
   premiumStatusActive: { color: '#F59E0B' },
   internalAccessLabel: { fontSize: theme.fontSize.caption, color: theme.colors.accentWarm, marginTop: 4, fontWeight: theme.fontWeight.medium },
   devMeta: { fontSize: theme.fontSize.label, color: theme.colors.accentWarm, marginTop: 3, lineHeight: 17 },

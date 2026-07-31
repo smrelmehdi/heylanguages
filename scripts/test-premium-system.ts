@@ -13,10 +13,13 @@ import {
     getRevenueCatApiKey,
     getRevenueCatIdentityAction,
     hasPremiumEntitlement,
+    isAlreadyPurchasedError,
     isAnonymousRevenueCatUser,
     isSafePublicRevenueCatKey,
     isUserCancelledPurchase,
     selectMonthlyPackage,
+    shouldInvalidateRevenueCatIdentity,
+    shouldShowPremiumSuccess,
 } from '../utils/premium';
 
 let getContentAccess: typeof import('../utils/access').getContentAccess;
@@ -231,6 +234,26 @@ test('purchase cancellation is explicit', () => {
   assert.equal(isUserCancelledPurchase(new Error('network')), false);
 });
 
+test('already-purchased recovery uses the exact RevenueCat error code', () => {
+  assert.equal(isAlreadyPurchasedError({ code: '6' }), true);
+  assert.equal(isAlreadyPurchasedError({ userInfo: { readableErrorCode: 'PRODUCT_ALREADY_PURCHASED_ERROR' } }), true);
+  assert.equal(isAlreadyPurchasedError({ message: "You're already subscribed" }), false);
+  assert.equal(isAlreadyPurchasedError({ code: '2' }), false);
+});
+
+test('same-user auth refresh does not invalidate a settled checkout identity', () => {
+  assert.equal(shouldInvalidateRevenueCatIdentity('user-a', 'user-a', true), false);
+  assert.equal(shouldInvalidateRevenueCatIdentity('user-a', 'user-a', false), true);
+  assert.equal(shouldInvalidateRevenueCatIdentity('user-a', 'user-b', true), true);
+});
+
+test('success celebration is limited to first confirmed activation', () => {
+  assert.equal(shouldShowPremiumSuccess(false, 'success'), true);
+  assert.equal(shouldShowPremiumSuccess(true, 'success'), false);
+  assert.equal(shouldShowPremiumSuccess(false, 'no_entitlement'), false);
+  assert.equal(shouldShowPremiumSuccess(false, 'cancelled'), false);
+});
+
 test('stale identity result cannot become current', () => {
   const guard = createLatestOperationGuard();
   const egyptian = guard.begin();
@@ -357,7 +380,7 @@ test('purchase closes the centralized paywall only after explicit success', () =
 test('Membership opens the centralized paywall', () => {
   const source = fs.readFileSync('app/(tabs)/profile.tsx', 'utf8');
   assert.match(source, /openPaywall\('profile_membership'/);
-  assert.match(source, /accessibilityLabel="Open HeyYusuf Premium"/);
+  assert.match(source, /isPremium \? 'Manage Premium subscription' : 'Open HeyYusuf Premium'/);
 });
 
 test('Explore Premium opens the centralized paywall', () => {
@@ -398,9 +421,89 @@ test('purchase refreshes CustomerInfo and applies the premium entitlement', () =
   const end = source.indexOf('const restorePurchases', start);
   const purchaseSource = source.slice(start, end);
   assert.match(purchaseSource, /client\.purchasePackage\(premiumPackage\)/);
-  assert.match(purchaseSource, /client\.getCustomerInfo\(\)/);
-  assert.match(purchaseSource, /applyCustomerInfo\(customerInfo\)/);
+  assert.match(purchaseSource, /applyCustomerInfo\(customerInfo/);
   assert.match(purchaseSource, /hasPremiumEntitlement\(customerInfo\)/);
+  assert.match(purchaseSource, /confirmPremiumEntitlement/);
+  assert.doesNotMatch(purchaseSource, /withTimeout\(client\.purchasePackage/);
+});
+
+test('interactive store checkout is not abandoned by the request timeout', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  assert.match(source, /await client\.purchasePackage\(premiumPackage\)/);
+  assert.doesNotMatch(source, /await withTimeout\(client\.purchasePackage\(premiumPackage\)\)/);
+});
+
+test('already-subscribed response performs entitlement recovery', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const start = source.indexOf('const purchasePremium = useCallback');
+  const end = source.indexOf('const restorePurchases', start);
+  const purchaseSource = source.slice(start, end);
+  assert.match(purchaseSource, /isAlreadyPurchasedError\(purchaseError\)/);
+  assert.match(purchaseSource, /confirmPremiumEntitlement\(client, identityToken, null, true\)/);
+  assert.match(purchaseSource, /hasPremiumEntitlement\(customerInfo\)/);
+});
+
+test('post-purchase verification refreshes first and restores only when needed', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const start = source.indexOf('const confirmPremiumEntitlement = useCallback');
+  const end = source.indexOf('const refreshCustomerInfo', start);
+  const confirmationSource = source.slice(start, end);
+  assert.match(confirmationSource, /client\.getCustomerInfo\(\)/);
+  assert.match(confirmationSource, /if \(!confirmedCustomerInfo && allowRestore\)/);
+  assert.match(confirmationSource, /client\.restorePurchases\(\)/);
+});
+
+test('confirmed purchase closes paywall and opens one-time success state', () => {
+  const source = fs.readFileSync('contexts/PaywallContext.tsx', 'utf8');
+  const start = source.indexOf('const handlePurchase = useCallback');
+  const end = source.indexOf('const handleRestore', start);
+  const purchaseSource = source.slice(start, end);
+  assert.match(purchaseSource, /if \(result === 'success'\)/);
+  assert.match(purchaseSource, /setPaywallSource\(null\)/);
+  assert.match(purchaseSource, /shouldShowPremiumSuccess\(wasPremium, result\)/);
+  assert.match(purchaseSource, /setIsSuccessVisible\(true\)/);
+  assert.match(purchaseSource, /Haptics\.notificationAsync/);
+});
+
+test('listener is registered once per provider and removed during cleanup', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  assert.equal((source.match(/addCustomerInfoUpdateListener\(/g) ?? []).length, 1);
+  assert.equal((source.match(/removeCustomerInfoUpdateListener\(/g) ?? []).length, 1);
+  assert.match(source, /applyCustomerInfo\(customerInfo, 'listener'\)/);
+});
+
+test('same-user auth events preserve the current identity generation', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  assert.match(source, /shouldInvalidateRevenueCatIdentity/);
+  assert.match(source, /invalidatesIdentity\s*\? identityGuardRef\.current\.begin\(\)\s*:\s*identityGuardRef\.current\.current\(\)/);
+});
+
+test('success modal is event-driven and does not appear from listener or launch hydration', () => {
+  const source = fs.readFileSync('contexts/PaywallContext.tsx', 'utf8');
+  assert.equal((source.match(/setIsSuccessVisible\(true\)/g) ?? []).length, 1);
+  assert.match(source, /const result = await purchasePremium\(\)/);
+});
+
+test('Premium profile uses member copy and management instead of reopening paywall', () => {
+  const source = fs.readFileSync('app/(tabs)/profile.tsx', 'utf8');
+  assert.match(source, /isPremium \? handleManageSubscription/);
+  assert.match(source, /Premium Member/);
+  assert.match(source, /All lessons, scenarios, practice modes, and offline audio are unlocked\./);
+  assert.match(source, /profilePremiumBadge/);
+});
+
+test('Premium Home renders directly from entitlement state with no stale copied flag', () => {
+  const source = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
+  assert.match(source, /const isPremium = isPremiumFromContext/);
+  assert.doesNotMatch(source, /setIsPremium/);
+  assert.match(source, /Premium active/);
+  assert.match(source, /headerPremiumBadge/);
+});
+
+test('only one paywall and one purchase-success modal are mounted globally', () => {
+  const source = fs.readFileSync('contexts/PaywallContext.tsx', 'utf8');
+  assert.equal((source.match(/<PaywallModal/g) ?? []).length, 1);
+  assert.equal((source.match(/<PremiumSuccessModal/g) ?? []).length, 1);
 });
 
 test('purchase cancellation leaves the paywall recoverable without an error', () => {

@@ -4,6 +4,7 @@ export const PREMIUM_ENTITLEMENT_ID = 'premium';
 export const DEFAULT_OFFERING_ID = 'default';
 export const IOS_MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly';
 export const ANDROID_MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly:monthly';
+export const PRODUCT_ALREADY_PURCHASED_ERROR_CODE = '6';
 export const REVENUECAT_REQUEST_TIMEOUT_MS = 15_000;
 
 export type RevenueCatPlatform = 'ios' | 'android';
@@ -87,6 +88,32 @@ export function isAnonymousRevenueCatUser(userId: string) {
 
 export function isUserCancelledPurchase(error: unknown) {
   return Boolean(typeof error === 'object' && error !== null && 'userCancelled' in error && error.userCancelled);
+}
+
+export function isAlreadyPurchasedError(error: unknown) {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = 'code' in error ? String(error.code) : '';
+  const readableCode =
+    'userInfo' in error && typeof error.userInfo === 'object' && error.userInfo !== null &&
+    'readableErrorCode' in error.userInfo
+      ? String(error.userInfo.readableErrorCode)
+      : 'readableErrorCode' in error
+        ? String(error.readableErrorCode)
+        : '';
+  return code === PRODUCT_ALREADY_PURCHASED_ERROR_CODE ||
+    readableCode === 'PRODUCT_ALREADY_PURCHASED_ERROR';
+}
+
+export function shouldInvalidateRevenueCatIdentity(
+  currentUserId: string | null,
+  nextUserId: string | null,
+  isIdentitySettled: boolean
+) {
+  return !isIdentitySettled || currentUserId !== nextUserId;
+}
+
+export function shouldShowPremiumSuccess(wasPremium: boolean, result: PremiumActionResult) {
+  return !wasPremium && result === 'success';
 }
 
 export function withTimeout<T>(

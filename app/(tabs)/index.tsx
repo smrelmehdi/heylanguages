@@ -149,7 +149,7 @@ export default function HomeScreen() {
   // Freemium state — XP and premium come from XPContext (shared, no extra fetch)
   const { xp: xpFromContext, isPremium: isPremiumFromContext, getAccess } = useXP();
   const { openPaywall } = usePaywall();
-  const [isPremium, setIsPremium] = useState(false);
+  const isPremium = isPremiumFromContext;
 
   const [yusufMood, setYusufMood] = useMood('waving');
   const [yusufWhisper, setYusufWhisper] = useState<string | undefined>(undefined);
@@ -188,8 +188,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     setXpTotal(xpFromContext);
-    setIsPremium(isPremiumFromContext);
-  }, [xpFromContext, isPremiumFromContext]);
+  }, [xpFromContext]);
 
   const handleYusufTap = () => {
     let next: number;
@@ -208,7 +207,6 @@ export default function HomeScreen() {
         if (session) {
           // XP and premium come from XPContext — no extra fetch needed
           setXpTotal(xpFromContext);
-          setIsPremium(isPremiumFromContext);
 
           const { data: user } = await supabase
             .from('users')
@@ -486,7 +484,15 @@ export default function HomeScreen() {
               <Text style={styles.greetingAhlan}>Ahlan, </Text>
               {userName}
             </Text>
-            <Text style={styles.dialectBadge}>{dialectFlag} {dialectLabel} · {currentLevel.name}</Text>
+            <View style={styles.identityMetaRow}>
+              <Text style={styles.dialectBadge}>{dialectFlag} {dialectLabel} · {currentLevel.name}</Text>
+              {isPremium && (
+                <View style={styles.headerPremiumBadge}>
+                  <Crown color={theme.colors.accentWarm} size={11} />
+                  <Text style={styles.headerPremiumBadgeText}>PREMIUM</Text>
+                </View>
+              )}
+            </View>
           </View>
           <View style={styles.headerRight}>
             <Pressable
@@ -508,6 +514,19 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {isPremium && (
+          <View style={styles.premiumActiveCard}>
+            <View style={styles.premiumActiveIcon}>
+              <Crown color={theme.colors.accentWarm} size={17} />
+            </View>
+            <View style={styles.premiumActiveCopy}>
+              <Text style={styles.premiumActiveTitle}>Premium active</Text>
+              <Text style={styles.premiumActiveMeta}>Your complete Arabic journey is unlocked.</Text>
+            </View>
+            <Check color={theme.colors.accentSuccess} size={18} />
+          </View>
+        )}
 
         {/* Guest banner (guests only) */}
         {isGuest && !showExpiryWarning && (
@@ -762,11 +781,20 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1 },
   greeting: { fontSize: theme.fontSize.display, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
   greetingAhlan: { color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
-  dialectBadge: { fontSize: theme.fontSize.body, color: theme.colors.textSecondary, marginTop: theme.spacing.xs, fontWeight: theme.fontWeight.regular },
+  identityMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: theme.spacing.xs },
+  dialectBadge: { fontSize: theme.fontSize.body, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular },
+  headerPremiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: theme.radii.pill, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: `${theme.colors.accentWarm}16`, borderWidth: 1, borderColor: `${theme.colors.accentWarm}55` },
+  headerPremiumBadgeText: { color: theme.colors.accentWarm, fontSize: 9, fontWeight: theme.fontWeight.medium },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingTop: theme.spacing.xs },
   statPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderDefault, borderRadius: theme.radii.pill, paddingHorizontal: theme.spacing.md, paddingVertical: 6, gap: theme.spacing.xs },
   statPillDim: { opacity: 0.5 },
   statPillText: { color: theme.colors.textPrimary, fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium },
+
+  premiumActiveCard: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, padding: theme.spacing.md, marginTop: -theme.spacing.sm, marginBottom: theme.spacing.md, borderRadius: theme.radii.md, borderWidth: 1, borderColor: `${theme.colors.accentWarm}44`, backgroundColor: `${theme.colors.accentWarm}08` },
+  premiumActiveIcon: { width: 34, height: 34, borderRadius: theme.radii.xs, alignItems: 'center', justifyContent: 'center', backgroundColor: `${theme.colors.accentWarm}16` },
+  premiumActiveCopy: { flex: 1 },
+  premiumActiveTitle: { color: theme.colors.textPrimary, fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium },
+  premiumActiveMeta: { color: theme.colors.textSecondary, fontSize: theme.fontSize.caption, marginTop: 2 },
 
   // Banners
   guestBanner: { backgroundColor: theme.colors.bgSurface, borderLeftWidth: 3, borderLeftColor: theme.colors.accentPrimary, borderRadius: theme.radii.xs, padding: theme.spacing.md, marginBottom: theme.spacing.lg },

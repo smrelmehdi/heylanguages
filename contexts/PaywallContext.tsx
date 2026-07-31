@@ -1,6 +1,8 @@
+import * as Haptics from 'expo-haptics';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import PaywallModal from '../components/PaywallModal';
-import type { PremiumPaywallSource } from '../utils/premium';
+import PremiumSuccessModal from '../components/PremiumSuccessModal';
+import { shouldShowPremiumSuccess, type PremiumPaywallSource } from '../utils/premium';
 import { usePremium } from './PremiumContext';
 
 type OpenPaywallOptions = {
@@ -23,6 +25,7 @@ const PaywallContext = createContext<PaywallContextValue>({
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
   const {
+    isPremium,
     premiumPackage,
     premiumPrice,
     isPurchasing,
@@ -36,6 +39,7 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   } = usePremium();
   const [paywallSource, setPaywallSource] = useState<PremiumPaywallSource | null>(null);
   const [contentLabel, setContentLabel] = useState<string | undefined>();
+  const [isSuccessVisible, setIsSuccessVisible] = useState(false);
 
   const openPaywall = useCallback((source: PremiumPaywallSource, options?: OpenPaywallOptions) => {
     clearPremiumError();
@@ -52,12 +56,17 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
   }, [clearPremiumError, isPurchasing, isRestoring]);
 
   const handlePurchase = useCallback(async () => {
+    const wasPremium = isPremium;
     const result = await purchasePremium();
     if (result === 'success') {
       setPaywallSource(null);
       setContentLabel(undefined);
+      if (shouldShowPremiumSuccess(wasPremium, result)) {
+        setIsSuccessVisible(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
     }
-  }, [purchasePremium]);
+  }, [isPremium, purchasePremium]);
 
   const handleRestore = useCallback(async () => {
     const result = await restorePurchases();
@@ -90,6 +99,10 @@ export function PaywallProvider({ children }: { children: React.ReactNode }) {
         onPurchase={handlePurchase}
         onRestore={handleRestore}
         onRefresh={refreshCustomerInfo}
+      />
+      <PremiumSuccessModal
+        visible={isSuccessVisible}
+        onClose={() => setIsSuccessVisible(false)}
       />
     </PaywallContext.Provider>
   );

@@ -16,10 +16,12 @@ import {
   getRevenueCatApiKey,
   getRevenueCatIdentityAction,
   hasPremiumEntitlement,
+  isAlreadyPurchasedError,
   isAnonymousRevenueCatUser,
   isSafePublicRevenueCatKey,
   isUserCancelledPurchase,
   selectMonthlyPackage,
+  shouldInvalidateRevenueCatIdentity,
   withTimeout,
   type PremiumActionResult,
 } from '../utils/premium';
@@ -173,9 +175,9 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const [managementURL, setManagementURL] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const applyCustomerInfo = useCallback((customerInfo: CustomerInfo) => {
+  const applyCustomerInfo = useCallback((customerInfo: CustomerInfo, source = 'customer info') => {
     if (!mountedRef.current) return;
-    logPremiumDebug('active entitlement identifiers', Object.keys(customerInfo.entitlements.active));
+    logPremiumDebug(`${source} entitlement identifiers`, Object.keys(customerInfo.entitlements.active));
     setIsPremium(hasPremiumEntitlement(customerInfo));
     setManagementURL(customerInfo.managementURL);
   }, []);
@@ -214,6 +216,54 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const confirmPremiumEntitlement = useCallback(async (
+    client: PurchasesClient,
+    identityToken: number,
+    initialCustomerInfo: CustomerInfo | null,
+    allowRestore: boolean
+  ) => {
+    let latestCustomerInfo = initialCustomerInfo;
+    let confirmedCustomerInfo = hasPremiumEntitlement(initialCustomerInfo)
+      ? initialCustomerInfo
+      : null;
+
+    if (initialCustomerInfo) {
+      logPremiumDebug('purchase result entitlement identifiers', Object.keys(initialCustomerInfo.entitlements.active));
+    }
+
+    try {
+      const refreshedCustomerInfo = await withTimeout(client.getCustomerInfo());
+      latestCustomerInfo = refreshedCustomerInfo;
+      logPremiumDebug('post-purchase refresh entitlement identifiers', Object.keys(refreshedCustomerInfo.entitlements.active));
+      if (hasPremiumEntitlement(refreshedCustomerInfo)) confirmedCustomerInfo = refreshedCustomerInfo;
+    } catch (refreshError) {
+      logPremiumError('post-purchase customer info refresh failed', refreshError);
+    }
+
+    if (!identityGuardRef.current.isCurrent(identityToken) || !identitySettledRef.current) {
+      logPremiumDebug('stale purchase confirmation ignored');
+      return null;
+    }
+
+    if (!confirmedCustomerInfo && allowRestore) {
+      try {
+        const restoredCustomerInfo = await withTimeout(client.restorePurchases());
+        latestCustomerInfo = restoredCustomerInfo;
+        logPremiumDebug('purchase recovery entitlement identifiers', Object.keys(restoredCustomerInfo.entitlements.active));
+        if (hasPremiumEntitlement(restoredCustomerInfo)) confirmedCustomerInfo = restoredCustomerInfo;
+      } catch (restoreError) {
+        logPremiumError('purchase recovery failed', restoreError);
+      }
+    }
+
+    if (!identityGuardRef.current.isCurrent(identityToken) || !identitySettledRef.current) {
+      logPremiumDebug('stale purchase recovery ignored');
+      return null;
+    }
+
+    return confirmedCustomerInfo ?? latestCustomerInfo;
+  }, []);
+
   const refreshCustomerInfo = useCallback(async () => {
     const client = purchasesRef.current;
     if (!client || !configuredRef.current || !identitySettledRef.current) return;
@@ -221,8 +271,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const customerInfo = await withTimeout(client.getCustomerInfo());
-      if (!identityGuardRef.current.isCurrent(identityToken) || !identitySettledRef.current) return;
-      applyCustomerInfo(customerInfo);
+      if (!identityGuardRef.current.isCurrent(identityToken) || !identitySettledRef.current) {
+        logPremiumDebug('stale refresh ignored');
+        return;
+      }
+      applyCustomerInfo(customerInfo, 'refresh');
       await refreshOfferings(client);
       if (!mountedRef.current || !identityGuardRef.current.isCurrent(identityToken)) return;
       setError(null);
@@ -234,12 +287,26 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     }
   }, [applyCustomerInfo, refreshOfferings]);
 
-  const transitionIdentity = useCallback((nextUserId: string | null, client: PurchasesClient) => {
-    const token = identityGuardRef.current.begin();
+  const transitionIdentity = useCallback((
+    nextUserId: string | null,
+    client: PurchasesClient,
+    reason: string
+  ) => {
     const identityChanged = currentRevenueCatUserRef.current !== nextUserId;
-    identitySettledRef.current = false;
-    if (identityChanged) clearCustomerState();
-    if (mountedRef.current) setIsLoading(true);
+    const invalidatesIdentity = shouldInvalidateRevenueCatIdentity(
+      currentRevenueCatUserRef.current,
+      nextUserId,
+      identitySettledRef.current
+    );
+    const token = invalidatesIdentity
+      ? identityGuardRef.current.begin()
+      : identityGuardRef.current.current();
+    logPremiumDebug('identity change reason', [reason, identityChanged ? 'identity-changed' : 'same-identity']);
+    if (invalidatesIdentity) {
+      identitySettledRef.current = false;
+      if (identityChanged) clearCustomerState();
+      if (mountedRef.current) setIsLoading(true);
+    }
 
     const runTransition = async () => {
       if (!identityGuardRef.current.isCurrent(token)) return;
@@ -257,9 +324,12 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
           customerInfo = await withTimeout(client.getCustomerInfo());
         }
 
-        if (!identityGuardRef.current.isCurrent(token) || !mountedRef.current) return;
+        if (!identityGuardRef.current.isCurrent(token) || !mountedRef.current) {
+          logPremiumDebug('stale identity result ignored');
+          return;
+        }
         identitySettledRef.current = true;
-        applyCustomerInfo(customerInfo);
+        applyCustomerInfo(customerInfo, 'identity');
         try {
           await refreshOfferings(client);
           if (!identityGuardRef.current.isCurrent(token) || !mountedRef.current) return;
@@ -273,12 +343,14 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       } catch (identityError) {
         if (!identityGuardRef.current.isCurrent(token) || !mountedRef.current) return;
         logPremiumError('identity transition failed', identityError);
-        identitySettledRef.current = false;
-        if (identityChanged) clearCustomerState();
+        if (invalidatesIdentity) {
+          identitySettledRef.current = false;
+          if (identityChanged) clearCustomerState();
+        }
         setAvailabilityStatus('store_unavailable');
         setError('Premium status could not be refreshed. Please try again.');
       } finally {
-        if (identityGuardRef.current.isCurrent(token) && mountedRef.current) {
+        if (invalidatesIdentity && identityGuardRef.current.isCurrent(token) && mountedRef.current) {
           setIsLoading(false);
         }
       }
@@ -339,20 +411,27 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
         purchasesRef.current = client;
 
         const listener: CustomerInfoUpdateListener = customerInfo => {
-          if (mounted && identitySettledRef.current) applyCustomerInfo(customerInfo);
+          if (mounted && identitySettledRef.current) {
+            logPremiumDebug('customer info listener update');
+            applyCustomerInfo(customerInfo, 'listener');
+          } else {
+            logPremiumDebug('customer info listener update ignored while identity changes');
+          }
         };
         customerInfoListenerRef.current = listener;
         client.addCustomerInfoUpdateListener(listener);
 
         const currentAppUserId = await withTimeout(client.getAppUserID());
         if (!mounted) return;
+        logPremiumDebug('current RevenueCat app user ID', [currentAppUserId]);
         currentRevenueCatUserRef.current = isAnonymousRevenueCatUser(currentAppUserId)
           ? null
           : currentAppUserId;
         configuredRef.current = true;
         setIsConfigured(true);
         const { data: { session } } = await supabase.auth.getSession();
-        await transitionIdentity(session?.user.id ?? null, client);
+        logPremiumDebug('auth user ID', [session?.user.id ?? 'guest']);
+        await transitionIdentity(session?.user.id ?? null, client, 'initialization');
       } catch (initError) {
         if (!mounted) return;
         logPremiumError('initialization failed', initError);
@@ -378,11 +457,12 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   }, [applyCustomerInfo, transitionIdentity]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const client = purchasesRef.current;
       if (!client || !configuredRef.current) return;
       if (!session?.user.id) clearStoreState();
-      transitionIdentity(session?.user.id ?? null, client).catch(() => {});
+      logPremiumDebug('auth user ID', [session?.user.id ?? 'guest']);
+      transitionIdentity(session?.user.id ?? null, client, `auth:${event}`).catch(() => {});
     });
 
     return () => subscription.unsubscribe();
@@ -390,6 +470,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
+      logPremiumDebug('app state transition', [state]);
       if (state === 'active') refreshCustomerInfo().catch(() => {});
     });
     return () => subscription.remove();
@@ -404,20 +485,42 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       return 'error';
     }
     const identityToken = identityGuardRef.current.current();
+    let checkoutAppUserId: string | null = null;
 
     try {
       setOperation('purchasing');
       setError(null);
-      const result = await withTimeout(client.purchasePackage(premiumPackage));
-      let customerInfo = result.customerInfo;
       try {
-        customerInfo = await withTimeout(client.getCustomerInfo());
-      } catch (refreshError) {
-        logPremiumError('post-purchase customer info refresh failed', refreshError);
+        checkoutAppUserId = await withTimeout(client.getAppUserID());
+        logPremiumDebug('purchase started', [checkoutAppUserId]);
+      } catch (userIdError) {
+        logPremiumError('purchase user ID lookup failed', userIdError);
+        logPremiumDebug('purchase started');
       }
-      if (!identityGuardRef.current.isCurrent(identityToken)) return 'error';
+      // Store checkout is user-driven and can remain open well beyond a network timeout.
+      const result = await client.purchasePackage(premiumPackage);
+      logPremiumDebug('purchase result received');
+      let returnedAppUserId: string | null = null;
+      try {
+        returnedAppUserId = await withTimeout(client.getAppUserID());
+        logPremiumDebug('post-purchase RevenueCat app user ID', [returnedAppUserId]);
+      } catch (userIdError) {
+        logPremiumError('post-purchase user ID lookup failed', userIdError);
+      }
+      if (checkoutAppUserId && returnedAppUserId && checkoutAppUserId !== returnedAppUserId) {
+        logPremiumDebug('stale purchase result ignored after RevenueCat identity changed');
+        if (mountedRef.current) setError('Your account changed during checkout. Please restore your purchase.');
+        return 'error';
+      }
+      const customerInfo = await confirmPremiumEntitlement(
+        client,
+        identityToken,
+        result.customerInfo,
+        true
+      );
+      if (!customerInfo) return 'error';
       if (!mountedRef.current) return hasPremiumEntitlement(customerInfo) ? 'success' : 'no_entitlement';
-      applyCustomerInfo(customerInfo);
+      applyCustomerInfo(customerInfo, 'purchase confirmation');
       if (!hasPremiumEntitlement(customerInfo)) {
         setError('Your purchase was received, but Premium is not active yet. Please retry or contact support.');
         return 'no_entitlement';
@@ -426,6 +529,17 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     } catch (purchaseError) {
       logPremiumError('purchase failed', purchaseError);
       if (isUserCancelledPurchase(purchaseError)) return 'cancelled';
+      if (isAlreadyPurchasedError(purchaseError)) {
+        logPremiumDebug('already purchased response received; recovering entitlement');
+        const customerInfo = await confirmPremiumEntitlement(client, identityToken, null, true);
+        if (!customerInfo) return 'error';
+        if (mountedRef.current) applyCustomerInfo(customerInfo, 'already purchased recovery');
+        if (hasPremiumEntitlement(customerInfo)) return 'success';
+        if (mountedRef.current) {
+          setError('Your store subscription could not be verified yet. Tap Restore Purchases or contact support.');
+        }
+        return 'no_entitlement';
+      }
       const message = getFriendlyPurchaseError(purchaseError);
       if (message && mountedRef.current) setError(message);
       return 'error';
@@ -433,7 +547,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       storeOperationRef.current.finish('purchasing');
       if (mountedRef.current) setOperation('idle');
     }
-  }, [applyCustomerInfo, premiumPackage]);
+  }, [applyCustomerInfo, confirmPremiumEntitlement, premiumPackage]);
 
   const restorePurchases = useCallback(async () => {
     if (!storeOperationRef.current.tryStart('restoring')) return 'error';
@@ -448,9 +562,17 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     try {
       setOperation('restoring');
       setError(null);
-      const customerInfo = await withTimeout(client.restorePurchases());
+      const restoredCustomerInfo = await withTimeout(client.restorePurchases());
+      logPremiumDebug('restore result entitlement identifiers', Object.keys(restoredCustomerInfo.entitlements.active));
       if (!identityGuardRef.current.isCurrent(identityToken)) return 'error';
-      applyCustomerInfo(customerInfo);
+      const customerInfo = await confirmPremiumEntitlement(
+        client,
+        identityToken,
+        restoredCustomerInfo,
+        false
+      );
+      if (!customerInfo) return 'error';
+      applyCustomerInfo(customerInfo, 'restore confirmation');
       const restored = hasPremiumEntitlement(customerInfo);
       if (!restored) {
         if (mountedRef.current) setError('No active subscription found.');
@@ -465,7 +587,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       storeOperationRef.current.finish('restoring');
       if (mountedRef.current) setOperation('idle');
     }
-  }, [applyCustomerInfo]);
+  }, [applyCustomerInfo, confirmPremiumEntitlement]);
 
   const clearPremiumError = useCallback(() => {
     if (mountedRef.current) setError(null);
