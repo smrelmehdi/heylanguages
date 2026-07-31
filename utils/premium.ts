@@ -1,4 +1,4 @@
-import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
+import type { CustomerInfo, PurchasesOfferings } from 'react-native-purchases';
 
 export const PREMIUM_ENTITLEMENT_ID = 'premium';
 export const DEFAULT_OFFERING_ID = 'default';
@@ -24,9 +24,14 @@ type PublicRevenueCatEnvironment = {
   EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?: string;
 };
 
+const runtimeRevenueCatEnvironment: PublicRevenueCatEnvironment = {
+  EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+  EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+};
+
 export function getRevenueCatApiKey(
   platform: string,
-  environment: PublicRevenueCatEnvironment = process.env
+  environment: PublicRevenueCatEnvironment = runtimeRevenueCatEnvironment
 ) {
   if (platform === 'ios') return environment.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim() || null;
   if (platform === 'android') return environment.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim() || null;

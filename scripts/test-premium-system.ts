@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  DEFAULT_OFFERING_ID,
-  ANDROID_MONTHLY_PRODUCT_ID,
-  IOS_MONTHLY_PRODUCT_ID,
-  PREMIUM_ENTITLEMENT_ID,
-  createConfigureOnce,
-  createExclusiveOperation,
-  createLatestOperationGuard,
-  getDefaultOffering,
-  getPaywallSourceForContentType,
-  getRevenueCatApiKey,
-  getRevenueCatIdentityAction,
-  hasPremiumEntitlement,
-  isAnonymousRevenueCatUser,
-  isSafePublicRevenueCatKey,
-  isUserCancelledPurchase,
-  selectMonthlyPackage,
+    ANDROID_MONTHLY_PRODUCT_ID,
+    DEFAULT_OFFERING_ID,
+    IOS_MONTHLY_PRODUCT_ID,
+    PREMIUM_ENTITLEMENT_ID,
+    createConfigureOnce,
+    createExclusiveOperation,
+    createLatestOperationGuard,
+    getDefaultOffering,
+    getPaywallSourceForContentType,
+    getRevenueCatApiKey,
+    getRevenueCatIdentityAction,
+    hasPremiumEntitlement,
+    isAnonymousRevenueCatUser,
+    isSafePublicRevenueCatKey,
+    isUserCancelledPurchase,
+    selectMonthlyPackage,
 } from '../utils/premium';
 
 let getContentAccess: typeof import('../utils/access').getContentAccess;
@@ -104,6 +104,13 @@ test('platform keys are selected independently', () => {
   };
   assert.equal(getRevenueCatApiKey('ios', env), 'appl_public');
   assert.equal(getRevenueCatApiKey('android', env), 'goog_public');
+});
+
+test('runtime key mapping uses direct static process.env references', () => {
+  const source = fs.readFileSync('utils/premium.ts', 'utf8');
+  assert.match(source, /EXPO_PUBLIC_REVENUECAT_IOS_API_KEY:\s*process\.env\.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY/);
+  assert.match(source, /EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY:\s*process\.env\.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY/);
+  assert.doesNotMatch(source, /environment:\s*PublicRevenueCatEnvironment\s*=\s*process\.env/);
 });
 
 test('secret-looking keys are rejected', () => {
