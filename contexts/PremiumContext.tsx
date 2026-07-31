@@ -12,6 +12,7 @@ import {
   createExclusiveOperation,
   createLatestOperationGuard,
   getDefaultOffering,
+  getMonthlyProductId,
   getRevenueCatApiKey,
   getRevenueCatIdentityAction,
   hasPremiumEntitlement,
@@ -54,6 +55,7 @@ type PremiumContextValue = {
   purchasePremium: () => Promise<PremiumActionResult>;
   restorePurchases: () => Promise<PremiumActionResult>;
   refreshCustomerInfo: () => Promise<void>;
+  clearPremiumError: () => void;
 };
 
 const PremiumContext = createContext<PremiumContextValue>({
@@ -71,6 +73,7 @@ const PremiumContext = createContext<PremiumContextValue>({
   purchasePremium: async () => 'error',
   restorePurchases: async () => 'error',
   refreshCustomerInfo: async () => {},
+  clearPremiumError: () => {},
 });
 
 function isSupportedPurchasesPlatform() {
@@ -92,6 +95,11 @@ function logPremiumError(scope: string, error: unknown) {
   if (__DEV__) {
     console.warn(`[premium] ${scope}: ${errorCode(error) || 'unknown error'}`);
   }
+}
+
+function logPremiumDebug(scope: string, values?: string[]) {
+  if (!__DEV__) return;
+  console.info(`[premium] ${scope}${values?.length ? `: ${values.join(', ')}` : ''}`);
 }
 
 function errorCode(error: unknown) {
@@ -167,6 +175,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
   const applyCustomerInfo = useCallback((customerInfo: CustomerInfo) => {
     if (!mountedRef.current) return;
+    logPremiumDebug('active entitlement identifiers', Object.keys(customerInfo.entitlements.active));
     setIsPremium(hasPremiumEntitlement(customerInfo));
     setManagementURL(customerInfo.managementURL);
   }, []);
@@ -188,6 +197,12 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     if (!mountedRef.current) return;
     const defaultOffering = getDefaultOffering(nextOfferings);
     const selectedPackage = selectMonthlyPackage(nextOfferings, Platform.OS);
+    logPremiumDebug('offering identifiers returned', Object.keys(nextOfferings.all));
+    logPremiumDebug(
+      'package product identifiers returned',
+      defaultOffering?.availablePackages.map(item => item.product.identifier) ?? []
+    );
+    logPremiumDebug('expected product identifier', [getMonthlyProductId(Platform.OS) ?? 'unsupported-platform']);
     setOfferings(nextOfferings);
     setPremiumPackage(selectedPackage);
     if (!defaultOffering) {
@@ -202,7 +217,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const refreshCustomerInfo = useCallback(async () => {
     const client = purchasesRef.current;
     if (!client || !configuredRef.current || !identitySettledRef.current) return;
-    const identityToken = identityGuardRef.current.begin();
+    const identityToken = identityGuardRef.current.current();
 
     try {
       const customerInfo = await withTimeout(client.getCustomerInfo());
@@ -320,6 +335,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
           return nextClient;
         });
         if (!mounted) return;
+        logPremiumDebug('RevenueCat configured successfully');
         purchasesRef.current = client;
 
         const listener: CustomerInfoUpdateListener = customerInfo => {
@@ -394,8 +410,10 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const result = await withTimeout(client.purchasePackage(premiumPackage));
       let customerInfo = result.customerInfo;
-      if (!hasPremiumEntitlement(customerInfo)) {
+      try {
         customerInfo = await withTimeout(client.getCustomerInfo());
+      } catch (refreshError) {
+        logPremiumError('post-purchase customer info refresh failed', refreshError);
       }
       if (!identityGuardRef.current.isCurrent(identityToken)) return 'error';
       if (!mountedRef.current) return hasPremiumEntitlement(customerInfo) ? 'success' : 'no_entitlement';
@@ -435,7 +453,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       applyCustomerInfo(customerInfo);
       const restored = hasPremiumEntitlement(customerInfo);
       if (!restored) {
-        if (mountedRef.current) setError('No active premium subscription was found.');
+        if (mountedRef.current) setError('No active subscription found.');
         return 'no_entitlement';
       }
       return 'success';
@@ -448,6 +466,10 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       if (mountedRef.current) setOperation('idle');
     }
   }, [applyCustomerInfo]);
+
+  const clearPremiumError = useCallback(() => {
+    if (mountedRef.current) setError(null);
+  }, []);
 
   const value = useMemo<PremiumContextValue>(() => ({
     isPremium,
@@ -464,6 +486,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     purchasePremium,
     restorePurchases,
     refreshCustomerInfo,
+    clearPremiumError,
   }), [
     isPremium,
     isLoading,
@@ -477,6 +500,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     purchasePremium,
     restorePurchases,
     refreshCustomerInfo,
+    clearPremiumError,
   ]);
 
   return (

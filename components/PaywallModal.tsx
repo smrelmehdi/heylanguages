@@ -1,4 +1,4 @@
-import { Crown, Lock, X } from 'lucide-react-native';
+import { Check, Crown, Lock, X } from 'lucide-react-native';
 import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEGAL_URLS } from '../constants/legal';
 import { theme } from '../constants/theme';
@@ -7,9 +7,7 @@ import type { PremiumAvailabilityStatus } from '../contexts/PremiumContext';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  contentLabel: string;
-  /** If true, only show the premium option (no ad unlock available) */
-  premiumOnly?: boolean;
+  contentLabel?: string;
   price?: string | null;
   isPurchasing?: boolean;
   isRestoring?: boolean;
@@ -25,7 +23,6 @@ export default function PaywallModal({
   visible,
   onClose,
   contentLabel,
-  premiumOnly = false,
   price,
   isPurchasing = false,
   isRestoring = false,
@@ -38,6 +35,18 @@ export default function PaywallModal({
 }: Props) {
   const purchaseLabel = price ? `Start Premium - ${price} / month` : 'Start Premium';
   const isBusy = isPurchasing || isRestoring;
+  const isInitializing = availabilityStatus === 'initializing';
+  const canRetry =
+    availabilityStatus === 'missing_default_offering' ||
+    availabilityStatus === 'missing_monthly_product' ||
+    availabilityStatus === 'store_unavailable';
+  const benefits = [
+    'Access every lesson and scenario',
+    'Gulf, Egyptian, and MSA learning paths',
+    'Unlimited premium practice',
+    'Offline audio packs',
+    'Premium conversation features',
+  ];
   const unavailableText =
     availabilityStatus === 'initializing' ? 'Loading Premium...' :
     availabilityStatus === 'missing_api_key' || availabilityStatus === 'invalid_api_key' ||
@@ -81,11 +90,11 @@ export default function PaywallModal({
               <Lock color={theme.colors.accentPrimary} size={28} />
             </View>
 
-            <Text style={styles.title}>Unlock "{contentLabel}"</Text>
+            <Text style={styles.title}>Unlock all of HeyYusuf</Text>
             <Text style={styles.subtitle}>
-              {premiumOnly
-                ? 'This lesson is available with a Premium membership.'
-                : 'Premium unlocks all lessons, offline packs, and premium practice.'}
+              {contentLabel
+                ? `${contentLabel} is included with Premium.`
+                : 'Build real Arabic confidence with the complete learning experience.'}
             </Text>
 
             <View style={[styles.option, styles.optionPremium]}>
@@ -94,15 +103,23 @@ export default function PaywallModal({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.optionTitlePremium}>HeyYusuf Premium</Text>
-                <Text style={styles.optionMeta}>
-                  Unlock every lesson, offline packs, and premium practice.
-                </Text>
+                {benefits.map(benefit => (
+                  <View key={benefit} style={styles.benefitRow}>
+                    <Check color={theme.colors.accentSuccess} size={15} />
+                    <Text style={styles.optionMeta}>{benefit}</Text>
+                  </View>
+                ))}
               </View>
             </View>
 
             {error && <Text style={styles.errorText} accessibilityRole="alert">{error}</Text>}
 
-            {isPremiumAvailable ? (
+            {isInitializing ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator color={theme.colors.accentPrimary} />
+                <Text style={styles.unavailableText}>Loading Premium options...</Text>
+              </View>
+            ) : isPremiumAvailable ? (
               <Pressable
                 style={[styles.primaryButton, isBusy && styles.buttonDisabled]}
                 onPress={onPurchase}
@@ -119,7 +136,7 @@ export default function PaywallModal({
             ) : (
               <View style={styles.unavailableBox}>
                 <Text style={styles.unavailableText}>{unavailableText}</Text>
-                {onRefresh && (
+                {onRefresh && canRetry && (
                   <Pressable
                     style={styles.secondaryButton}
                     onPress={onRefresh}
@@ -140,7 +157,7 @@ export default function PaywallModal({
             <Pressable
               style={styles.restoreButton}
               onPress={onRestore}
-              disabled={isBusy}
+              disabled={isBusy || isInitializing}
               accessibilityRole="button"
               accessibilityLabel="Restore Purchases"
             >
@@ -271,9 +288,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   optionMeta: {
+    flex: 1,
     fontSize: 12,
     color: theme.colors.textTertiary,
     lineHeight: 16,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
   },
   errorText: {
     width: '100%',
@@ -307,6 +331,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
+    marginTop: 4,
+  },
+  loadingBox: {
+    width: '100%',
+    minHeight: 84,
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     marginTop: 4,
   },
   unavailableText: {

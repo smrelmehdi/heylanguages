@@ -27,7 +27,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MilestoneModal from '../../components/MilestoneModal';
-import PaywallModal from '../../components/PaywallModal';
 import SignUpPrompt from '../../components/SignUpPrompt';
 import StreakModal from '../../components/StreakModal';
 import Yusuf, { useMood } from '../../components/Yusuf';
@@ -35,7 +34,7 @@ import { getLevelFromXP } from '../../constants/levels';
 import { theme } from '../../constants/theme';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { useDialect } from '../../contexts/DialectContext';
-import { usePremium } from '../../contexts/PremiumContext';
+import { usePaywall } from '../../contexts/PaywallContext';
 import { useXP } from '../../contexts/XPContext';
 import { TESTING_UNLOCK_ALL } from '../../utils/access';
 import { getDialectCurriculum, isSupportedCurriculumDialect, type CurriculumItem } from '../../data/curriculum';
@@ -46,6 +45,7 @@ import { getResolvableDueCount } from '../../utils/srs';
 import type { StreakData } from '../../utils/streak';
 import { clearPendingMilestone, getLocalStreakData, getPendingMilestone } from '../../utils/streak';
 import { supabase } from '../../utils/supabase';
+import { getPaywallSourceForContentType } from '../../utils/premium';
 
 let lastHomeScrollY = 0;
 
@@ -148,20 +148,8 @@ export default function HomeScreen() {
 
   // Freemium state — XP and premium come from XPContext (shared, no extra fetch)
   const { xp: xpFromContext, isPremium: isPremiumFromContext, getAccess } = useXP();
-  const {
-    premiumPackage,
-    premiumPrice,
-    isPurchasing,
-    isRestoring,
-    availabilityStatus,
-    error: premiumError,
-    purchasePremium,
-    restorePurchases,
-    refreshCustomerInfo,
-  } = usePremium();
+  const { openPaywall } = usePaywall();
   const [isPremium, setIsPremium] = useState(false);
-  const [paywallVisible, setPaywallVisible] = useState(false);
-  const [paywallContent, setPaywallContent] = useState<{ id: string; label: string; premiumOnly: boolean } | null>(null);
 
   const [yusufMood, setYusufMood] = useMood('waving');
   const [yusufWhisper, setYusufWhisper] = useState<string | undefined>(undefined);
@@ -380,19 +368,8 @@ export default function HomeScreen() {
   const showPaywall = (item: CurriculumItem) => {
     const tier = getFreemiumTier(item);
     if (tier === 'accessible') return false; // caller should proceed
-    setPaywallContent({ id: item.contentId, label: item.title, premiumOnly: tier === 'premium_only' });
-    setPaywallVisible(true);
+    openPaywall(getPaywallSourceForContentType(item.contentType), { contentLabel: item.title });
     return true; // caller should stop
-  };
-
-  const handlePurchasePremium = async () => {
-    const result = await purchasePremium();
-    if (result === 'success') setPaywallVisible(false);
-  };
-
-  const handleRestorePurchases = async () => {
-    const result = await restorePurchases();
-    if (result === 'success') setPaywallVisible(false);
   };
 
   const questComplete = lessonsToday >= 1;
@@ -591,7 +568,13 @@ export default function HomeScreen() {
 
         <Pressable
           style={[styles.offlineStatusCard, currentDialectOfflineReady && styles.offlineStatusCardReady]}
-          onPress={() => router.push('/(tabs)/profile' as any)}
+          onPress={() => {
+            if (isPremium) {
+              router.push('/(tabs)/profile' as any);
+            } else {
+              openPaywall('offline_audio', { contentLabel: 'Offline audio packs' });
+            }
+          }}
         >
           <View style={styles.offlineStatusHeader}>
             <View style={[styles.offlineStatusIconWell, currentDialectOfflineReady && styles.offlineStatusIconWellReady]}>
@@ -693,21 +676,6 @@ export default function HomeScreen() {
         onClose={() => setShowMilestoneModal(false)}
       />
 
-      <PaywallModal
-        visible={paywallVisible && !TESTING_UNLOCK_ALL}
-        onClose={() => setPaywallVisible(false)}
-        contentLabel={paywallContent?.label ?? ''}
-        premiumOnly={paywallContent?.premiumOnly ?? false}
-        price={premiumPrice}
-        isPurchasing={isPurchasing}
-        isRestoring={isRestoring}
-        isPremiumAvailable={availabilityStatus === 'ready' && Boolean(premiumPackage)}
-        availabilityStatus={availabilityStatus}
-        error={premiumError}
-        onPurchase={handlePurchasePremium}
-        onRestore={handleRestorePurchases}
-        onRefresh={refreshCustomerInfo}
-      />
     </SafeAreaView>
   );
 }

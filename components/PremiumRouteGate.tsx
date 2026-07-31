@@ -1,15 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
+import { usePaywall } from '../contexts/PaywallContext';
 import { usePremium } from '../contexts/PremiumContext';
 import { getContentAccess, TESTING_UNLOCK_ALL, type ContentType } from '../utils/access';
 import { getDialectContentMeta } from '../utils/content-resolver';
 import { supabase } from '../utils/supabase';
-import PaywallModal from './PaywallModal';
 
 type Props = {
   contentId: string | null;
@@ -24,19 +24,8 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
   const { dialect } = useDialect();
   const [completedContentIds, setCompletedContentIds] = useState<Set<string>>(new Set());
   const [progressLoaded, setProgressLoaded] = useState(false);
-  const {
-    isPremium,
-    isLoading,
-    premiumPackage,
-    premiumPrice,
-    isPurchasing,
-    isRestoring,
-    availabilityStatus,
-    error,
-    purchasePremium,
-    restorePurchases,
-    refreshCustomerInfo,
-  } = usePremium();
+  const { isPremium, isLoading } = usePremium();
+  const { openPaywall } = usePaywall();
 
   useFocusEffect(
     useCallback(() => {
@@ -101,13 +90,11 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
     router.replace('/(tabs)' as any);
   };
 
-  const handlePurchase = async () => {
-    await purchasePremium();
-  };
-
-  const handleRestore = async () => {
-    await restorePurchases();
-  };
+  useEffect(() => {
+    if (progressLoaded && !isLoading && access.reason === 'premium_required') {
+      openPaywall('route_gate', { contentLabel });
+    }
+  }, [access.reason, contentLabel, isLoading, openPaywall, progressLoaded]);
 
   if (access.allowed) {
     return <>{children}</>;
@@ -140,22 +127,20 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
   }
 
   return (
-    <View style={styles.loading}>
-      <PaywallModal
-        visible
-        onClose={goHome}
-        contentLabel={contentLabel}
-        premiumOnly
-        price={premiumPrice}
-        isPurchasing={isPurchasing}
-        isRestoring={isRestoring}
-        isPremiumAvailable={availabilityStatus === 'ready' && Boolean(premiumPackage)}
-        availabilityStatus={availabilityStatus}
-        error={error}
-        onPurchase={handlePurchase}
-        onRestore={handleRestore}
-        onRefresh={refreshCustomerInfo}
-      />
+    <View style={styles.locked}>
+      <Text style={styles.lockTitle}>Premium required</Text>
+      <Text style={styles.lockText}>{contentLabel} is included with HeyYusuf Premium.</Text>
+      <Pressable
+        style={styles.homeButton}
+        onPress={() => openPaywall('route_gate', { contentLabel })}
+        accessibilityRole="button"
+        accessibilityLabel="View HeyYusuf Premium"
+      >
+        <Text style={styles.homeButtonText}>View Premium</Text>
+      </Pressable>
+      <Pressable style={styles.backButton} onPress={goHome}>
+        <Text style={styles.backButtonText}>Back to Home</Text>
+      </Pressable>
     </View>
   );
 }
@@ -197,5 +182,14 @@ const styles = StyleSheet.create({
     color: theme.colors.bgBase,
     fontSize: theme.fontSize.body,
     fontWeight: theme.fontWeight.medium,
+  },
+  backButton: {
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+  },
+  backButtonText: {
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.body,
   },
 });

@@ -9,6 +9,14 @@ export const REVENUECAT_REQUEST_TIMEOUT_MS = 15_000;
 export type RevenueCatPlatform = 'ios' | 'android';
 export type PremiumActionResult = 'success' | 'cancelled' | 'no_entitlement' | 'error';
 export type RevenueCatIdentityAction = 'refresh' | 'login' | 'logout';
+export type PremiumPaywallSource =
+  | 'profile_membership'
+  | 'offline_audio'
+  | 'locked_lesson'
+  | 'locked_scenario'
+  | 'premium_practice'
+  | 'home_upgrade'
+  | 'route_gate';
 
 type PublicRevenueCatEnvironment = {
   [key: string]: string | undefined;
@@ -52,6 +60,12 @@ export function selectMonthlyPackage(offerings: PurchasesOfferings | null, platf
   const productId = getMonthlyProductId(platform);
   if (!offering || !productId) return null;
   return offering.availablePackages.find(item => item.product.identifier === productId) ?? null;
+}
+
+export function getPaywallSourceForContentType(contentType: string): PremiumPaywallSource {
+  if (contentType === 'lesson') return 'locked_lesson';
+  if (contentType === 'scenario') return 'locked_scenario';
+  return 'premium_practice';
 }
 
 export function getRevenueCatIdentityAction(

@@ -8,6 +8,7 @@ import { AppState } from 'react-native';
 import 'react-native-reanimated';
 import SplashScreen from '../components/SplashScreen';
 import { DialectProvider } from '../contexts/DialectContext';
+import { PaywallProvider } from '../contexts/PaywallContext';
 import { PremiumProvider } from '../contexts/PremiumContext';
 import { XPProvider } from '../contexts/XPContext';
 import '../global.css';
@@ -117,8 +118,9 @@ function RootLayoutNav() {
 
   return (
     <PremiumProvider>
-      <XPProvider>
-        <DialectProvider>
+      <PaywallProvider>
+        <XPProvider>
+          <DialectProvider>
           {/* TEMP: offline gate disabled for simulator testing until native expo-network build is available. */}
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <Stack>
@@ -171,8 +173,9 @@ function RootLayoutNav() {
               />
             )}
           </ThemeProvider>
-        </DialectProvider>
-      </XPProvider>
+          </DialectProvider>
+        </XPProvider>
+      </PaywallProvider>
     </PremiumProvider>
   );
 }

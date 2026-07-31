@@ -9,6 +9,7 @@ import { LEGAL_URLS } from '../../constants/legal';
 import { theme } from '../../constants/theme';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { useDialect } from '../../contexts/DialectContext';
+import { usePaywall } from '../../contexts/PaywallContext';
 import { usePremium } from '../../contexts/PremiumContext';
 import { useXP } from '../../contexts/XPContext';
 import { version } from '../../package.json';
@@ -27,7 +28,8 @@ export default function ProfileScreen() {
   const [streakCount, setStreakCount] = useState(0);
   const { dialect: contextDialect, setDialect: setContextDialect } = useDialect();
   const { xp: xpTotal, isPremium } = useXP();
-  const { restorePurchases, isRestoring, error: premiumError, managementURL } = usePremium();
+  const { restorePurchases, isLoading: isPremiumLoading, isRestoring, error: premiumError, managementURL } = usePremium();
+  const { openPaywall } = usePaywall();
   const { offlinePacks, downloadStates, downloadPack, removePack, getPackAssetCount } = useConnectivity();
   const [scenariosCompleted, setScenariosCompleted] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
@@ -219,10 +221,10 @@ export default function ProfileScreen() {
     const result = await restorePurchases();
     if (result === 'error') return;
     Alert.alert(
-      result === 'success' ? 'Premium restored' : 'No premium found',
+      result === 'success' ? 'Premium restored' : 'No active subscription found',
       result === 'success'
         ? 'Your premium access is active on this device.'
-        : 'No active premium subscription was found for this store account.'
+        : 'No active subscription was found for this store account.'
     );
   };
 
@@ -331,7 +333,12 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Premium</Text>
         <View style={styles.settingsCard}>
-          <View style={styles.settingRow}>
+          <Pressable
+            style={styles.settingRow}
+            onPress={() => openPaywall('profile_membership', { contentLabel: 'Membership' })}
+            accessibilityRole="button"
+            accessibilityLabel="Open HeyYusuf Premium"
+          >
             <View style={styles.settingLeft}>
               <View style={styles.settingIcon}>
                 <Crown color="#F59E0B" size={16} />
@@ -351,18 +358,20 @@ export default function ProfileScreen() {
             <Text style={[styles.premiumStatus, isPremium && styles.premiumStatusActive]}>
               {isPremium ? 'Active' : 'Free'}
             </Text>
-          </View>
+          </Pressable>
 
           <Pressable
             style={[styles.settingRow, !managementURL && styles.settingRowLast]}
             onPress={handleRestorePurchases}
-            disabled={isRestoring}
+            disabled={isRestoring || isPremiumLoading}
           >
             <View style={styles.settingLeft}>
               <View style={styles.settingIcon}>
                 <RefreshCw color={theme.colors.accentPrimary} size={16} />
               </View>
-              <Text style={styles.settingLabel}>{isRestoring ? 'Restoring...' : 'Restore Purchases'}</Text>
+              <Text style={styles.settingLabel}>
+                {isPremiumLoading ? 'Checking Premium...' : isRestoring ? 'Restoring...' : 'Restore Purchases'}
+              </Text>
             </View>
             <ChevronRight color={theme.colors.textTertiary} size={16} />
           </Pressable>
@@ -436,7 +445,12 @@ export default function ProfileScreen() {
           <View style={styles.offlineTeaserCard}>
             <Text style={styles.offlineTeaserTitle}>Offline packs are premium only</Text>
             <Text style={styles.offlineTeaserText}>Members can prepare Gulf, Egyptian, and MSA audio packs for offline use. Free users need an internet connection.</Text>
-            <Pressable style={styles.offlineTeaserButton} onPress={() => Alert.alert('Premium feature', 'Offline dialect packs unlock with an active premium membership.')}>
+            <Pressable
+              style={styles.offlineTeaserButton}
+              onPress={() => openPaywall('offline_audio', { contentLabel: 'Offline audio packs' })}
+              accessibilityRole="button"
+              accessibilityLabel="Explore HeyYusuf Premium"
+            >
               <Text style={styles.offlineTeaserButtonText}>Explore Premium</Text>
             </Pressable>
           </View>

@@ -9,6 +9,7 @@ import {
   createExclusiveOperation,
   createLatestOperationGuard,
   getDefaultOffering,
+  getPaywallSourceForContentType,
   getRevenueCatApiKey,
   getRevenueCatIdentityAction,
   hasPremiumEntitlement,
@@ -196,6 +197,13 @@ test('localized package price remains the display source', () => {
   assert.equal(selectMonthlyPackage(offerings, 'android')?.product.priceString, '$4.99');
 });
 
+test('locked content types map to explicit paywall sources', () => {
+  assert.equal(getPaywallSourceForContentType('lesson'), 'locked_lesson');
+  assert.equal(getPaywallSourceForContentType('scenario'), 'locked_scenario');
+  assert.equal(getPaywallSourceForContentType('quiz'), 'premium_practice');
+  assert.equal(getPaywallSourceForContentType('writing'), 'premium_practice');
+});
+
 test('purchase and restore cannot overlap', () => {
   const operation = createExclusiveOperation<'purchasing' | 'restoring'>();
   assert.equal(operation.tryStart('purchasing'), true);
@@ -222,6 +230,15 @@ test('stale identity result cannot become current', () => {
   const gulf = guard.begin();
   assert.equal(guard.isCurrent(egyptian), false);
   assert.equal(guard.isCurrent(gulf), true);
+});
+
+test('foreground refresh does not invalidate an in-flight purchase identity', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const start = source.indexOf('const refreshCustomerInfo = useCallback');
+  const end = source.indexOf('const transitionIdentity', start);
+  const refreshSource = source.slice(start, end);
+  assert.match(refreshSource, /identityGuardRef\.current\.current\(\)/);
+  assert.doesNotMatch(refreshSource, /identityGuardRef\.current\.begin\(\)/);
 });
 
 test('repeated listener events do not change entitlement semantics', () => {
@@ -323,10 +340,83 @@ test('offering failure does not revoke a settled entitlement identity', () => {
   assert.ok(settled >= 0 && offeringRefresh > settled && offeringCatch > offeringRefresh);
 });
 
-test('purchase closes only through explicit success result', () => {
+test('purchase closes the centralized paywall only after explicit success', () => {
+  const source = fs.readFileSync('contexts/PaywallContext.tsx', 'utf8');
+  assert.match(source, /const result = await purchasePremium\(\)/);
+  assert.match(source, /if \(result === 'success'\)/);
+  assert.doesNotMatch(source, /if \(result\)/);
+});
+
+test('Membership opens the centralized paywall', () => {
+  const source = fs.readFileSync('app/(tabs)/profile.tsx', 'utf8');
+  assert.match(source, /openPaywall\('profile_membership'/);
+  assert.match(source, /accessibilityLabel="Open HeyYusuf Premium"/);
+});
+
+test('Explore Premium opens the centralized paywall', () => {
+  const source = fs.readFileSync('app/(tabs)/profile.tsx', 'utf8');
+  assert.match(source, /openPaywall\('offline_audio'/);
+  assert.match(source, /Explore Premium/);
+});
+
+test('locked Home and direct-route content use the centralized paywall', () => {
   const home = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
-  assert.match(home, /result === 'success'/);
-  assert.doesNotMatch(home, /if \(unlocked\) setPaywallVisible/);
+  const gate = fs.readFileSync('components/PremiumRouteGate.tsx', 'utf8');
+  assert.match(home, /openPaywall\(getPaywallSourceForContentType\(item\.contentType\)/);
+  assert.match(gate, /openPaywall\('route_gate'/);
+});
+
+test('only the app-level controller renders PaywallModal', () => {
+  const home = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
+  const gate = fs.readFileSync('components/PremiumRouteGate.tsx', 'utf8');
+  const controller = fs.readFileSync('contexts/PaywallContext.tsx', 'utf8');
+  assert.doesNotMatch(home, /PaywallModal/);
+  assert.doesNotMatch(gate, /PaywallModal/);
+  assert.match(controller, /<PaywallModal/);
+});
+
+test('restore readiness does not depend on offerings or a product package', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const start = source.indexOf('const restorePurchases = useCallback');
+  const end = source.indexOf('const clearPremiumError', start);
+  const restoreSource = source.slice(start, end);
+  assert.match(restoreSource, /client\.restorePurchases\(\)/);
+  assert.doesNotMatch(restoreSource, /premiumPackage/);
+  assert.doesNotMatch(restoreSource, /offerings/);
+});
+
+test('purchase refreshes CustomerInfo and applies the premium entitlement', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const start = source.indexOf('const purchasePremium = useCallback');
+  const end = source.indexOf('const restorePurchases', start);
+  const purchaseSource = source.slice(start, end);
+  assert.match(purchaseSource, /client\.purchasePackage\(premiumPackage\)/);
+  assert.match(purchaseSource, /client\.getCustomerInfo\(\)/);
+  assert.match(purchaseSource, /applyCustomerInfo\(customerInfo\)/);
+  assert.match(purchaseSource, /hasPremiumEntitlement\(customerInfo\)/);
+});
+
+test('purchase cancellation leaves the paywall recoverable without an error', () => {
+  const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
+  const start = source.indexOf('const purchasePremium = useCallback');
+  const end = source.indexOf('const restorePurchases', start);
+  const purchaseSource = source.slice(start, end);
+  assert.match(purchaseSource, /if \(isUserCancelledPurchase\(purchaseError\)\) return 'cancelled'/);
+});
+
+test('missing product and offering states expose retry without fake pricing', () => {
+  const source = fs.readFileSync('components/PaywallModal.tsx', 'utf8');
+  assert.match(source, /availabilityStatus === 'missing_monthly_product'/);
+  assert.match(source, /availabilityStatus === 'missing_default_offering'/);
+  assert.match(source, /onRefresh && canRetry/);
+  assert.doesNotMatch(source, /\$[0-9]+\.[0-9]{2}/);
+});
+
+test('generic premium conversion Alerts are removed', () => {
+  const profile = fs.readFileSync('app/(tabs)/profile.tsx', 'utf8');
+  const home = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
+  assert.doesNotMatch(profile, /Alert\.alert\('Premium feature'/);
+  assert.doesNotMatch(home, /Alert\.alert\('Premium feature'/);
 });
 
 test('purchase without entitlement remains recoverable', () => {
@@ -337,7 +427,7 @@ test('purchase without entitlement remains recoverable', () => {
 
 test('restore distinguishes no entitlement from failure', () => {
   const source = fs.readFileSync('contexts/PremiumContext.tsx', 'utf8');
-  assert.match(source, /No active premium subscription was found/);
+  assert.match(source, /No active subscription found/);
   assert.match(source, /return 'no_entitlement'/);
   assert.match(source, /return 'error'/);
 });
