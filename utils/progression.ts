@@ -45,6 +45,9 @@ export function getCompletionKeyCandidates(dialect: string, contentId: string | 
       'quiz_u1',
     );
   }
+  if (item.dialect === 'gulf' && item.contentId === 'first_arabic_challenge') {
+    candidates.push(buildCompletionKey('gulf', 'unit-1', 'quiz_u1'), 'quiz_u1');
+  }
   // Legacy unqualified progress belongs to Gulf only. This preserves existing
   // users without letting Gulf completion unlock Egyptian/MSA content.
   if (item.dialect === 'gulf') {

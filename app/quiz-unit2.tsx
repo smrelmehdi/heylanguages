@@ -31,6 +31,7 @@ import QuizResults from '../components/quiz/QuizResults';
 import SceneReplay from '../components/quiz/SceneReplay';
 import TransliterationInput from '../components/quiz/TransliterationInput';
 import PhraseArrangement from '../components/quiz/PhraseArrangement';
+import MeaningSelect from '../components/quiz/MeaningSelect';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
 import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/quiz-types';
@@ -50,6 +51,7 @@ import {
   type QuizAnswerResult,
 } from '../utils/quiz-scoring';
 import { buildMsaBigReviewQuestions, buildMsaFirstArabicChallengeQuestions } from '../data/msa-unit1-quizzes';
+import { buildGulfBigReviewQuestions, buildGulfFirstArabicChallengeQuestions } from '../data/gulf-unit1-quizzes';
 
 type Phase = 'intro' | 'quiz' | 'redrill' | 'results';
 
@@ -1637,10 +1639,10 @@ export default function QuizUnit2Screen() {
     }
 
     if (requestedUnit === 'u1-review' || requestedUnit === 'u1-challenge') {
-      if (dialect !== 'msa' || !unit1Mission?.quizQuestions?.length) return null;
-      const selected = requestedUnit === 'u1-review'
-        ? buildMsaBigReviewQuestions(attemptSeed)
-        : buildMsaFirstArabicChallengeQuestions(attemptSeed);
+      if ((dialect !== 'msa' && dialect !== 'gulf') || !unit1Mission?.quizQuestions?.length) return null;
+      const selected = dialect === 'gulf'
+        ? requestedUnit === 'u1-review' ? buildGulfBigReviewQuestions(attemptSeed) : buildGulfFirstArabicChallengeQuestions(attemptSeed)
+        : requestedUnit === 'u1-review' ? buildMsaBigReviewQuestions(attemptSeed) : buildMsaFirstArabicChallengeQuestions(attemptSeed);
       return {
         attempt,
         questions: selected,
@@ -2126,6 +2128,9 @@ export default function QuizUnit2Screen() {
                 onAnswer={handleAnswer}
               />
             )}
+            {currentQuestion.format === 'meaning_select' && (
+              <MeaningSelect key={`ms-${currentIndex}`} question={currentQuestion} answerResult={answerResult} onAnswer={handleAnswer} />
+            )}
 
           </Animated.View>
 
@@ -2178,6 +2183,7 @@ function formatBadgeLabel(format: string): string {
     case 'transliteration_type': return '⌨️ Type It';
     case 'arabic_select':        return '✍️ Read Arabic';
     case 'phrase_arrangement':   return '🧩 Arrange the Phrase';
+    case 'meaning_select':       return '📖 Choose the Meaning';
     default:                     return '';
   }
 }

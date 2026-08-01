@@ -8,14 +8,16 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "development"
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION": "v2"
       }
     },
     "development-simulator": {
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "development"
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION": "v2"
       },
       "ios": {
         "simulator": true
@@ -25,7 +27,8 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "preview",
-        "EXPO_PUBLIC_MSA_UNIT1_CURRICULUM_VERSION": "v2"
+        "EXPO_PUBLIC_MSA_UNIT1_CURRICULUM_VERSION": "v2",
+        "EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION": "v2"
       }
     },
     "production": {

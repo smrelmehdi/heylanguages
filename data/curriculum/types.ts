@@ -37,6 +37,8 @@ export interface DialectMissionContent {
   objective?: string;
   completionMessage?: string;
   audioMode?: MissionAudioMode;
+  /** Enables recording/evaluation independently of lesson audio playback. */
+  pronunciationEnabled?: boolean;
   /** Phase 1 keeps legacy review output unchanged; future missions opt in explicitly. */
   reviewable?: boolean;
 }

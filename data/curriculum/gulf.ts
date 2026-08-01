@@ -47,8 +47,22 @@ import {
 import type { CurriculumItem, CurriculumUnit, DialectCurriculum } from './types';
 import { buildSharedWritingItems } from './shared';
 import { buildLegacyUnit1CurriculumUnit } from './unit1';
+import { buildUnit1MissionItems } from './unit1';
+import { GULF_UNIT1_DEFINITIONS } from '../gulf-unit1';
 
 const dialect = 'gulf' as const;
+export type GulfUnit1CurriculumVersion = 'legacy' | 'v2';
+export const GULF_UNIT1_V2_MISSION_IDS = GULF_UNIT1_DEFINITIONS.map(definition => definition.missionId);
+export function resolveGulfUnit1CurriculumVersion({ requestedVersion = process.env.EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION, appEnv = process.env.EXPO_PUBLIC_APP_ENV, isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true }: { requestedVersion?: string; appEnv?: string; isLocalDevelopment?: boolean } = {}): GulfUnit1CurriculumVersion {
+  if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
+  if (appEnv === 'development' || appEnv === 'preview') return 'v2';
+  return isLocalDevelopment ? 'v2' : 'legacy';
+}
+export function buildGulfUnit1CurriculumUnit(version: GulfUnit1CurriculumVersion = resolveGulfUnit1CurriculumVersion()): CurriculumUnit {
+  const legacy = buildLegacyUnit1CurriculumUnit({ dialect, acceptedTransliterationProfile:'gulf', quizScreen:'quiz', quizSubtitle:'Test what you learned · +150 XP' });
+  if (version === 'legacy') return legacy;
+  return { ...legacy, items: buildUnit1MissionItems(dialect, GULF_UNIT1_DEFINITIONS, 'gulf').map(item => ({ ...item, unit1BlueprintRole:'native_mission' })) };
+}
 
 const SCENARIO_HOME_HREFS: Record<string, string> = {
   Cafe: '/scenario-intro?type=Cafe',
@@ -159,12 +173,7 @@ const quiz = (
 export const GULF_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
-    buildLegacyUnit1CurriculumUnit({
-      dialect,
-      acceptedTransliterationProfile: 'gulf',
-      quizScreen: 'quiz',
-      quizSubtitle: 'Test what you learned · +150 XP',
-    }),
+    buildGulfUnit1CurriculumUnit(),
     {
       dialect,
       unitId: 'unit-2',

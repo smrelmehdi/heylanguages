@@ -530,9 +530,9 @@ export default function LessonScreen() {
               targetSize === 'medium' && styles.arabicMedium,
               targetSize === 'long' && styles.arabicLong,
             ]}
-            adjustsFontSizeToFit
+            adjustsFontSizeToFit={targetSize !== 'short'}
             numberOfLines={targetLineLimit}
-            minimumFontScale={0.65}
+            minimumFontScale={0.8}
           >
             {stripTashkeel(displayedArabic)}
           </Text>
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   progressLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'right', marginTop: 4 },
   wordCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 18, minHeight: 220 },
   contextLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 },
-  arabicBig: { fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 66, marginBottom: 8, paddingHorizontal: 4, writingDirection: 'rtl' },
+  arabicBig: { width: '100%', alignSelf: 'stretch', flexShrink: 0, fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 66, marginBottom: 8, paddingHorizontal: 4, writingDirection: 'rtl' },
   arabicMedium: { fontSize: 42, lineHeight: 52 },
   arabicLong: { fontSize: 32, lineHeight: 42 },
   roman: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular, marginBottom: 6, lineHeight: 24 },

@@ -56,6 +56,7 @@ export function resolveCurriculumItem(
   item: CurriculumItem,
   content: DialectContent,
 ): ResolvedContent | null {
+  if (content.dialect && content.dialect !== item.dialect) return null;
   const missionContent = item.contentRef
     ? getMissionContentForItem(item, content) ?? undefined
     : undefined;
@@ -123,6 +124,9 @@ export function getDialectContentMeta(
   );
   if (direct) return direct;
   if (dialect === 'msa' && (normalized === 'dubai_challenge' || normalized === 'quiz_u1')) {
+    return items.find(item => item.contentId === 'first_arabic_challenge' && (!contentType || item.contentType === contentType)) ?? null;
+  }
+  if (dialect === 'gulf' && normalized === 'quiz_u1') {
     return items.find(item => item.contentId === 'first_arabic_challenge' && (!contentType || item.contentType === contentType)) ?? null;
   }
   return null;

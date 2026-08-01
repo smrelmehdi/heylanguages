@@ -5,6 +5,7 @@ export type QuizFormat =
   | 'emoji_match'
   | 'transliteration_type'   // Tier 3+: type the transliteration from memory
   | 'arabic_select'          // Tier 4+: read Arabic script, no transliteration hints
+  | 'meaning_select'
   | 'phrase_arrangement';
 
 interface BaseQuestion {
@@ -85,6 +86,12 @@ export interface PhraseArrangementQuestion extends BaseQuestion {
   correctTokens: string[];
   transliteration: string;
 }
+export interface MeaningSelectQuestion extends BaseQuestion {
+  format: 'meaning_select';
+  arabic: string;
+  transliteration: string;
+  options: { meaning: string; isCorrect: boolean }[];
+}
 
 export type QuizQuestion =
   | SceneReplayQuestion
@@ -93,4 +100,5 @@ export type QuizQuestion =
   | EmojiMatchQuestion
   | TransliterationTypeQuestion
   | ArabicSelectQuestion
+  | MeaningSelectQuestion
   | PhraseArrangementQuestion;

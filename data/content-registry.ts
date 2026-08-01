@@ -12,6 +12,7 @@ import {
     TAXI_DIALOGUE_EG,
 } from './egyptian-dialogues';
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
+import { GULF_UNIT1_MISSIONS } from './gulf-unit1';
 import { EGYPTIAN_UNIT6_SCENARIOS, EGYPTIAN_UNIT6_SCENARIOS_BY_NAME } from './egyptian-unit6';
 import { EGYPTIAN_UNIT7_LESSONS } from './egyptian-work';
 import { EGYPTIAN_UNIT8_SCENARIOS, EGYPTIAN_UNIT8_SCENARIOS_BY_NAME } from './egyptian-emergencies';
@@ -87,6 +88,7 @@ import {
 export type { DialogueTurn };
 
 export interface DialectContent {
+  dialect?: 'gulf' | 'egyptian' | 'msa';
   voiceId: string;
   /** Legacy lesson buckets remain available until the old Unit 1 quiz is retired. */
   lessons: Record<string, Word[]>;
@@ -204,6 +206,7 @@ const COMING_SOON_CONTENT: DialectContent = {
 };
 
 const MSA_CONTENT: DialectContent = {
+  dialect: 'msa',
   voiceId: 'xvhpbk8otnNHtT3fjCpr',   // Omar
   lessons: {
     basic: BASIC_WORDS_MSA,
@@ -267,17 +270,17 @@ const MSA_CONTENT: DialectContent = {
 
 const CONTENT_REGISTRY: Record<string, DialectContent> = {
   gulf: {
+    dialect: 'gulf',
     voiceId: 'rUaPbzcZIu8df8iNL9WZ',
     lessons: {
       basic: BASIC_WORDS,
       greetings: GREETINGS_WORDS,
       intro: INTRO_WORDS,
     },
-    missions: createLegacyUnit1MissionContent({
-      basicWords: BASIC_WORDS,
-      greetings: GREETINGS_WORDS,
-      intro: INTRO_WORDS,
-    }),
+    missions: createMissionContentRegistry([
+      ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS, greetings: GREETINGS_WORDS, intro: INTRO_WORDS })),
+      ...GULF_UNIT1_MISSIONS,
+    ]),
     scenarios: {
       Cafe:            CAFE_DIALOGUE,
       Taxi:            TAXI_DIALOGUE,
@@ -324,6 +327,7 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
   },
   msa: MSA_CONTENT,
   egyptian: {
+    dialect: 'egyptian',
     voiceId: 'LXrTqFIgiubkrMkwvOUr',
     lessons: { basic: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG },
     missions: createLegacyUnit1MissionContent({

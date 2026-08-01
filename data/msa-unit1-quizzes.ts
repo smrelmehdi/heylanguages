@@ -31,7 +31,7 @@ export function createSeededQuizRandomizer(seed: string): Randomizer {
   };
 }
 
-function shuffled<T>(values: readonly T[], random: Randomizer) {
+export function shuffled<T>(values: readonly T[], random: Randomizer) {
   const result = [...values];
   for (let index = result.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(random() * (index + 1));
@@ -47,7 +47,7 @@ function choices(correctId: string, distractorIds: [string, string, string]): Ch
   });
 }
 
-function shuffleMultipleChoiceOptions(questions: readonly QuizQuestion[], random: Randomizer): QuizQuestion[] {
+export function shuffleMultipleChoiceOptions(questions: readonly QuizQuestion[], random: Randomizer): QuizQuestion[] {
   let previousPosition = -1;
   let streak = 0;
   return questions.map(question => {
