@@ -317,9 +317,14 @@ const styles = StyleSheet.create({
   },
   feedbackText: { fontSize: 14, fontWeight: theme.fontWeight.medium },
   feedbackCorrectAnswer: {
-    fontSize: 13,
+    fontSize: theme.fontSize.body,
+    lineHeight: 18,
+    fontWeight: theme.fontWeight.medium,
     color: theme.colors.textSecondary,
     fontStyle: 'italic',
+    textAlign: 'left',
+    writingDirection: 'ltr',
+    flexShrink: 1,
   },
 
   submitBtn: {

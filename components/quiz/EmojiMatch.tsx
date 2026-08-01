@@ -282,11 +282,13 @@ const styles = StyleSheet.create({
   },
   transliterationText: {
     marginTop: 3,
-    color: theme.colors.textTertiary,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: 'right',
+    color: theme.colors.textSecondary,
+    fontSize: theme.fontSize.body,
+    lineHeight: 18,
+    fontWeight: theme.fontWeight.medium,
+    textAlign: 'left',
     writingDirection: 'ltr',
+    flexShrink: 1,
   },
   stateMarker: {
     width: 30,

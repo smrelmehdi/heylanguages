@@ -116,7 +116,7 @@ export default function ListeningChallenge({ question, answerResult, onAnswer, s
           let bg: string = theme.colors.bgSurface;
           let border: string = theme.colors.borderDefault;
           let textColor: string = theme.colors.textPrimary;
-          let romanColor: string = theme.colors.textTertiary;
+          let romanColor: string = theme.colors.textSecondary;
 
           if (answerResult !== 'none' && selected !== null) {
             if (opt.isCorrect) {
@@ -167,5 +167,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center',
   },
   optionArabic: { fontSize: 17, fontWeight: theme.fontWeight.medium, textAlign: 'center' },
-  optionRoman: { fontSize: theme.fontSize.caption, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },
+  optionRoman: { fontSize: theme.fontSize.body, lineHeight: 18, fontWeight: theme.fontWeight.medium, textAlign: 'center', writingDirection: 'ltr', fontStyle: 'italic', marginTop: 3, flexShrink: 1 },
 });

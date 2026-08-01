@@ -72,7 +72,7 @@ export default function FillConversation({ question, answerResult, onAnswer, sho
           let bg: string = theme.colors.bgSurface;
           let border: string = theme.colors.borderDefault;
           let textColor: string = theme.colors.textPrimary;
-          let romanColor: string = theme.colors.textTertiary;
+          let romanColor: string = theme.colors.textSecondary;
 
           if (answerResult !== 'none' && selectedIndex !== null) {
             if (opt.isCorrect) {
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   bubbleArabic: { fontSize: 16, fontWeight: theme.fontWeight.medium },
   yusufText: { color: theme.colors.textPrimary },
   npcText: { color: theme.colors.textPrimary },
-  bubbleRoman: { fontSize: theme.fontSize.label, fontStyle: 'italic', marginTop: 2 },
+  bubbleRoman: { fontSize: theme.fontSize.body, lineHeight: 18, fontWeight: theme.fontWeight.medium, fontStyle: 'italic', marginTop: 3, writingDirection: 'ltr', textAlign: 'left', flexShrink: 1 },
   yusufRoman: { color: theme.colors.textAccent, opacity: 0.8 },
   npcRoman: { color: theme.colors.textSecondary },
   blankPlaceholder: { fontSize: 20, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 4, paddingVertical: 4 },
@@ -178,5 +178,5 @@ const styles = StyleSheet.create({
   options: { gap: 10 },
   option: { minHeight: 56, borderRadius: theme.radii.sm, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
   optionArabic: { fontSize: 16, fontWeight: theme.fontWeight.medium, textAlign: 'center' },
-  optionRoman: { fontSize: theme.fontSize.caption, textAlign: 'center', fontStyle: 'italic', marginTop: 2 },
+  optionRoman: { fontSize: theme.fontSize.body, lineHeight: 18, fontWeight: theme.fontWeight.medium, textAlign: 'center', writingDirection: 'ltr', fontStyle: 'italic', marginTop: 3, flexShrink: 1 },
 });
