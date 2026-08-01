@@ -1,8 +1,9 @@
 import { supabase } from './supabase';
 import { getConnectivitySnapshot } from './connectivity-state';
+import { classifyUnusableSpeech, NO_SPEECH_FEEDBACK } from './pronunciation-validation';
 
 export type PronunciationResult = {
-  result: 'pass' | 'close' | 'fail' | 'unavailable';
+  result: 'pass' | 'close' | 'fail' | 'no_speech' | 'unusable_audio' | 'unavailable';
   feedback: string;
   score?: number;
   transcript?: string;
@@ -15,6 +16,9 @@ type EvaluateSpeechResponse = {
   feedback?: unknown;
   score?: unknown;
   transcript?: unknown;
+  confidence?: unknown;
+  noSpeechProbability?: unknown;
+  durationSeconds?: unknown;
   error?: unknown;
 };
 
@@ -24,7 +28,7 @@ const FALLBACK_RESULT: PronunciationResult = {
 };
 
 function normalizeResult(value: unknown): PronunciationResult['result'] {
-  return value === 'pass' || value === 'close' || value === 'fail' || value === 'unavailable'
+  return value === 'pass' || value === 'close' || value === 'fail' || value === 'no_speech' || value === 'unusable_audio' || value === 'unavailable'
     ? value
     : 'fail';
 }
@@ -112,10 +116,21 @@ export async function evaluatePronunciation(
       return FALLBACK_RESULT;
     }
 
-    const score = normalizeScore(data?.score);
     const transcript = typeof data?.transcript === 'string' ? data.transcript.trim() : undefined;
+    const serverResult = normalizeResult(data?.result);
+    const unusable = serverResult === 'no_speech' || serverResult === 'unusable_audio'
+      ? serverResult
+      : classifyUnusableSpeech(transcript ?? '', targetText, {
+          confidence: normalizeScore(data?.confidence),
+          noSpeechProbability: typeof data?.noSpeechProbability === 'number' ? data.noSpeechProbability : undefined,
+          durationSeconds: typeof data?.durationSeconds === 'number' ? data.durationSeconds : undefined,
+        });
+    if (unusable) {
+      return { result: unusable, feedback: NO_SPEECH_FEEDBACK };
+    }
+    const score = normalizeScore(data?.score);
     const result = {
-      result: normalizeResult(data?.result),
+      result: serverResult,
       feedback:
         typeof data?.feedback === 'string' && data.feedback.trim().length > 0
           ? data.feedback.trim()

@@ -1,3 +1,5 @@
+import { classifyUnusableSpeech, NO_SPEECH_FEEDBACK } from '../../../utils/pronunciation-validation.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -15,10 +17,13 @@ type ErrorCode =
   | 'transcription_failed';
 
 type EvaluationResult = {
-  result: 'pass' | 'close' | 'fail';
+  result: 'pass' | 'close' | 'fail' | 'no_speech' | 'unusable_audio';
   feedback: string;
-  score: number;
-  transcript: string;
+  score?: number;
+  transcript?: string;
+  confidence?: number;
+  noSpeechProbability?: number;
+  durationSeconds?: number;
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -225,11 +230,20 @@ function evaluateTranscript(transcript: string, targetText: string, context: str
   };
 }
 
-async function transcribeAudio(file: File, openAiApiKey: string): Promise<string> {
+type Transcription = {
+  text: string;
+  confidence?: number;
+  noSpeechProbability?: number;
+  durationSeconds?: number;
+};
+
+async function transcribeAudio(file: File, openAiApiKey: string): Promise<Transcription> {
   const transcriptionForm = new FormData();
   transcriptionForm.append('file', file, file.name || 'recording.m4a');
   transcriptionForm.append('model', 'whisper-1');
   transcriptionForm.append('language', 'ar');
+  transcriptionForm.append('response_format', 'verbose_json');
+  transcriptionForm.append('timestamp_granularities[]', 'segment');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
@@ -249,7 +263,32 @@ async function transcribeAudio(file: File, openAiApiKey: string): Promise<string
     throw new Error(`OpenAI transcription failed with status ${response.status}`);
   }
 
-  return typeof data?.text === 'string' ? data.text.trim() : '';
+  const segments = Array.isArray(data?.segments) ? data.segments : [];
+  const weighted = segments.reduce(
+    (summary: { duration: number; logProbability: number; noSpeech: number }, segment: any) => {
+      const duration = Math.max(0, Number(segment?.end) - Number(segment?.start)) || 0;
+      return {
+        duration: summary.duration + duration,
+        logProbability: summary.logProbability + (Number.isFinite(segment?.avg_logprob) ? segment.avg_logprob * duration : 0),
+        noSpeech: summary.noSpeech + (Number.isFinite(segment?.no_speech_prob) ? segment.no_speech_prob * duration : 0),
+      };
+    },
+    { duration: 0, logProbability: 0, noSpeech: 0 },
+  );
+  const durationSeconds = Number.isFinite(data?.duration) ? data.duration : weighted.duration || undefined;
+  const confidence = weighted.duration > 0
+    ? Math.max(0, Math.min(1, Math.exp(weighted.logProbability / weighted.duration)))
+    : undefined;
+  const noSpeechProbability = weighted.duration > 0
+    ? Math.max(0, Math.min(1, weighted.noSpeech / weighted.duration))
+    : undefined;
+
+  return {
+    text: typeof data?.text === 'string' ? data.text.trim() : '',
+    confidence,
+    noSpeechProbability,
+    durationSeconds,
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -296,14 +335,33 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  if (file.size < 512) {
+    return jsonResponse({ result: 'unusable_audio', feedback: NO_SPEECH_FEEDBACK });
+  }
+
   const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAiApiKey) {
     return errorResponse(500, 'missing_openai_key', 'OPENAI_API_KEY is not configured.');
   }
 
   try {
-    const transcript = await transcribeAudio(file, openAiApiKey);
-    const evalResult = evaluateTranscript(transcript, targetText, context, dialect);
+    const transcription = await transcribeAudio(file, openAiApiKey);
+    const unusable = classifyUnusableSpeech(transcription.text, targetText, {
+      confidence: transcription.confidence,
+      noSpeechProbability: transcription.noSpeechProbability,
+      durationSeconds: transcription.durationSeconds,
+      fileSizeBytes: file.size,
+    });
+    if (unusable) {
+      return jsonResponse({
+        result: unusable,
+        feedback: NO_SPEECH_FEEDBACK,
+        confidence: transcription.confidence,
+        noSpeechProbability: transcription.noSpeechProbability,
+        durationSeconds: transcription.durationSeconds,
+      });
+    }
+    const evalResult = evaluateTranscript(transcription.text, targetText, context, dialect);
     // Enrich failed feedback with the English meaning when available
     if (hint && evalResult.result === 'fail') {
       evalResult.feedback = `Not quite. The phrase means "${hint}". Listen once and try again.`;

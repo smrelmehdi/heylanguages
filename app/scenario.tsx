@@ -46,7 +46,7 @@ import { supabase } from '../utils/supabase';
 import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 type RecordingState = 'idle' | 'recording' | 'playing' | 'feedback';
-type ScenarioEvalStatus = 'passed' | 'close' | 'failed' | 'unavailable';
+type ScenarioEvalStatus = 'passed' | 'close' | 'failed' | 'no_speech' | 'unusable_audio' | 'unavailable';
 type ScenarioEvalResult = {
   status: ScenarioEvalStatus;
   score?: number;
@@ -387,6 +387,8 @@ function getEvalTitle(status: ScenarioEvalStatus): string {
     case 'passed': return 'Nice!';
     case 'close': return 'Almost';
     case 'failed': return 'Try again';
+    case 'no_speech':
+    case 'unusable_audio': return 'Try again';
     case 'unavailable': return 'Not checked';
   }
 }
@@ -983,9 +985,13 @@ export default function ScenarioScreen() {
               ? 'passed'
               : evaluation.result === 'close'
                 ? 'close'
-                : evaluation.result === 'unavailable'
-                  ? 'unavailable'
-                : 'failed';
+                : evaluation.result === 'no_speech'
+                  ? 'no_speech'
+                : evaluation.result === 'unusable_audio'
+                    ? 'unusable_audio'
+                    : evaluation.result === 'unavailable'
+                      ? 'unavailable'
+                      : 'failed';
 
         if (typeof score === 'number') {
           setScenarioScores(prev => ({ ...prev, [currentIndex]: score }));
@@ -1003,7 +1009,7 @@ export default function ScenarioScreen() {
           status,
           score,
           feedback: adjustedFeedback,
-          transcript: evaluation.transcript,
+          transcript: status === 'no_speech' || status === 'unusable_audio' ? undefined : evaluation.transcript,
         });
       } else {
         if (__DEV__) {

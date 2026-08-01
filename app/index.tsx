@@ -20,7 +20,8 @@ import { theme } from '../constants/theme';
 import { useDialect } from '../contexts/DialectContext';
 import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { evaluatePronunciation, type PronunciationResult } from '../utils/pronunciation';
-import { playLocalAudio, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode } from '../utils/tts';
+import { NO_SPEECH_FEEDBACK } from '../utils/pronunciation-validation';
+import { prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode } from '../utils/tts';
 import { isEnabledOnboardingDialect, resolveOnboardingDialect } from '../utils/onboarding-dialect';
 
 function useTypewriter(text: string, speed = 30) {
@@ -100,7 +101,6 @@ export default function OnboardingWizard() {
   const [feedback, setFeedback] = useState('');
   const [pronScore, setPronScore] = useState<number | null>(null);
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showSelfAssess, setShowSelfAssess] = useState(false);
   const [isEvaluatingSpeech, setIsEvaluatingSpeech] = useState(false);
 
@@ -220,20 +220,6 @@ export default function OnboardingWizard() {
     return 45;
   };
 
-  const playRecording = async () => {
-    if (!recordingUri || isPlaying) return;
-    setIsPlaying(true);
-    try {
-      await playLocalAudio({ uri: recordingUri }, {
-        owner: audioOwner,
-        onComplete: () => setIsPlaying(false),
-      });
-    } catch (e) {
-      console.warn('Playback error:', e);
-      setIsPlaying(false);
-    }
-  };
-
   const handlePressIn = () => {
     setIsListening(true);
     setRecordingUri(null);
@@ -315,9 +301,12 @@ export default function OnboardingWizard() {
         resolveOnboardingDialect(dialect),
         'onboarding',
       );
-      setPronScore(result.score ?? scoreForResult(result.result));
+      const unusable = result.result === 'no_speech' || result.result === 'unusable_audio';
+      setPronScore(unusable ? null : result.score ?? scoreForResult(result.result));
       setFeedback(
-        result.result === 'fail' && result.score === undefined
+        unusable
+          ? result.feedback
+          : result.result === 'fail' && result.score === undefined
           ? "Nice first try - welcome to HeyYusuf."
           : result.feedback,
       );
@@ -451,18 +440,13 @@ export default function OnboardingWizard() {
       case 6:
         return showSelfAssess ? (
           <View style={styles.controlsWrapper}>
-            <Pressable style={styles.replayBtn} onPress={playRecording}>
-              <Text style={styles.replayBtnText}>
-                {isPlaying ? '▶ Playing...' : '🔊 Play my recording'}
-              </Text>
-            </Pressable>
             <View style={styles.finalActions}>
               <Pressable
                 style={[styles.primaryButton, isEvaluatingSpeech && { opacity: 0.6 }]}
                 disabled={isEvaluatingSpeech}
                 onPress={() => {
                   if (isEvaluatingSpeech) return;
-                  if (pronScore === null) setPronScore(45);
+                  if (pronScore === null && feedback !== NO_SPEECH_FEEDBACK) setPronScore(45);
                   if (!feedback) setFeedback("Nice first try - welcome to HeyYusuf.");
                   setShowSelfAssess(false);
                   setStep(7);

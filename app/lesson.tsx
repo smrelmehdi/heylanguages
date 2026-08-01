@@ -21,6 +21,7 @@ import { resolveContent } from '../utils/content-resolver';
 import { buildCompletionKey } from '../utils/progression';
 import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
+import { getLessonCapabilities, getLessonEvaluationPayload } from '../utils/lesson-pronunciation';
 import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 export default function LessonScreen() {
@@ -157,7 +158,9 @@ export default function LessonScreen() {
   const WORDS: Word[] = resolvedContent?.lessonWords ?? [];
   const missionContent = resolvedContent?.missionContent;
   const lessonRounds = missionContent?.lessonRounds ?? [];
-  const isAudioDisabled = missionContent?.audioMode === 'none';
+  const lessonCapabilities = getLessonCapabilities(missionContent);
+  const isAudioDisabled = !lessonCapabilities.playbackEnabled;
+  const isPronunciationEnabled = lessonCapabilities.pronunciationEnabled;
   const isComingSoon = WORDS.length === 0;
 
   const lessonTitle = resolvedContent?.item.title ?? (
@@ -222,11 +225,11 @@ export default function LessonScreen() {
   };
 
   useEffect(() => {
-    if (isAudioDisabled) return;
+    if (!isPronunciationEnabled) return;
     requestRecordingPermissionsAsync().then(({ granted }) => {
       if (!granted) setMicPermissionDenied(true);
     });
-  }, [isAudioDisabled]);
+  }, [isPronunciationEnabled]);
 
   useEffect(() => {
     return () => {
@@ -322,8 +325,8 @@ export default function LessonScreen() {
       if (!uri) { setIsEvaluating(false); return; }
       stableUri = `${FileSystem.cacheDirectory}lesson-eval-${Date.now()}.m4a`;
       await FileSystem.copyAsync({ from: uri, to: stableUri });
-      const evalTarget = currentWord.evalTarget ?? currentWord.audioText ?? currentWord.arabic;
-      const result = await evaluatePronunciation(stableUri, evalTarget, dialect, 'lesson');
+      const evaluation = getLessonEvaluationPayload(currentWord, dialect, missionContent?.pronunciationEnabled === true);
+      const result = await evaluatePronunciation(stableUri, evaluation.targetText, evaluation.dialect, evaluation.context);
       setEvalResult(result);
       if (result.result === 'pass') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -547,9 +550,9 @@ export default function LessonScreen() {
           )}
         </View>
 
-        <Text style={styles.hint}>
-          {isEvaluating ? 'Checking...' : isRecording ? 'Recording...' : micPermissionDenied ? 'Microphone access needed' : isAudioDisabled ? 'Speaking practice is optional. Continue when ready.' : 'Listen first, then hold to repeat'}
-        </Text>
+        {isPronunciationEnabled && <Text style={styles.hint}>
+          {isEvaluating ? 'Checking...' : isRecording ? 'Recording...' : micPermissionDenied ? 'Microphone access needed' : isAudioDisabled ? 'Hold to speak, then release to check' : 'Listen first, then hold to repeat'}
+        </Text>}
 
         {/* Controls */}
         <View style={styles.controls}>
@@ -562,7 +565,7 @@ export default function LessonScreen() {
             </View>
           )}
 
-          {!isAudioDisabled && <View style={styles.primaryActionItem}>
+          {isPronunciationEnabled && <View style={styles.primaryActionItem}>
             {micPermissionDenied ? (
               <Pressable
                 style={[styles.micBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderDefault }]}
@@ -614,6 +617,9 @@ export default function LessonScreen() {
                  evalResult.result === 'close' ? '≈ Almost there' :
                  evalResult.result === 'fail' ? 'Try again' : 'Not checked'}
               </Text>
+              {(evalResult.result === 'no_speech' || evalResult.result === 'unusable_audio') ? (
+                <Text style={styles.evalStripHeard}>{evalResult.feedback}</Text>
+              ) : null}
               {evalResult.transcript ? (
                 <Text style={styles.evalStripHeard} numberOfLines={1}>
                   {`Heard: "${evalResult.transcript}"`}
