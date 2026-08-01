@@ -1,5 +1,7 @@
 import type { Word } from '../constants/words';
 import { BASIC_WORDS, GREETINGS_WORDS, INTRO_WORDS } from '../constants/words';
+import type { DialectMissionContent } from './curriculum/types';
+import { createLegacyUnit1MissionContent, createMissionContentRegistry } from './curriculum/unit1';
 import {
     AIRPORT_DIALOGUE_EG,
     BARBERSHOP_DIALOGUE_EG,
@@ -66,17 +68,29 @@ import { MSA_UNIT7_LESSONS } from './msa-work';
 import { MSA_UNIT8_SCENARIOS, MSA_UNIT8_SCENARIOS_BY_NAME } from './msa-emergencies';
 import { MSA_UNIT9_LESSONS } from './msa-social';
 import { MSA_UNIT10_SCENARIOS, MSA_UNIT10_SCENARIOS_BY_NAME } from './msa-friends';
+import {
+  MSA_DESCRIBE_THE_WORLD_MISSION,
+  MSA_EVERYDAY_OBJECTS_MISSION,
+  MSA_FIRST_ARABIC_WORDS_MISSION,
+  MSA_FOOD_AND_DRINKS_MISSION,
+  MSA_NUMBERS_AND_MONEY_MISSION,
+  MSA_PEOPLE_AROUND_YOU_MISSION,
+  MSA_POLITE_LIKE_A_LOCAL_MISSION,
+  MSA_WHERE_HERE_THERE_MISSION,
+  MSA_INTRODUCE_YOURSELF_MISSION,
+  MSA_HOW_ARE_YOU_MISSION,
+  MSA_BIG_REVIEW_MISSION,
+  MSA_FIRST_CAFE_CONVERSATION_MISSION,
+  MSA_FIRST_ARABIC_CHALLENGE_MISSION,
+} from './msa-unit1';
 
 export type { DialogueTurn };
 
 export interface DialectContent {
   voiceId: string;
-  lessons: {
-    basic: Word[];
-    greetings: Word[];
-    intro: Word[];
-    [lessonId: string]: Word[];
-  };
+  /** Legacy lesson buckets remain available until the old Unit 1 quiz is retired. */
+  lessons: Record<string, Word[]>;
+  missions: Record<string, DialectMissionContent>;
   scenarios: Record<string, DialogueTurn[]>;
   sceneImages: Record<string, any>;
   availableLessons: string[];
@@ -181,7 +195,8 @@ const MSA_SCENE_IMAGES: Record<string, any> = {
 
 const COMING_SOON_CONTENT: DialectContent = {
   voiceId: 'rUaPbzcZIu8df8iNL9WZ',
-  lessons: { basic: [], greetings: [], intro: [] },
+  lessons: {},
+  missions: {},
   scenarios: {},
   sceneImages: {},
   availableLessons: [],
@@ -199,6 +214,26 @@ const MSA_CONTENT: DialectContent = {
     ...Object.fromEntries(MSA_UNIT7_LESSONS.map(item => [item.contentId, item.words])),
     ...Object.fromEntries(MSA_UNIT9_LESSONS.map(item => [item.contentId, item.words])),
   },
+  missions: createMissionContentRegistry([
+    ...Object.values(createLegacyUnit1MissionContent({
+      basicWords: BASIC_WORDS_MSA,
+      greetings: GREETINGS_WORDS_MSA,
+      intro: INTRO_WORDS_MSA,
+    })),
+    MSA_FIRST_ARABIC_WORDS_MISSION,
+    MSA_POLITE_LIKE_A_LOCAL_MISSION,
+    MSA_PEOPLE_AROUND_YOU_MISSION,
+    MSA_EVERYDAY_OBJECTS_MISSION,
+    MSA_FOOD_AND_DRINKS_MISSION,
+    MSA_DESCRIBE_THE_WORLD_MISSION,
+    MSA_NUMBERS_AND_MONEY_MISSION,
+    MSA_WHERE_HERE_THERE_MISSION,
+    MSA_INTRODUCE_YOURSELF_MISSION,
+    MSA_HOW_ARE_YOU_MISSION,
+    MSA_BIG_REVIEW_MISSION,
+    MSA_FIRST_CAFE_CONVERSATION_MISSION,
+    MSA_FIRST_ARABIC_CHALLENGE_MISSION,
+  ]),
   scenarios: {
     Cafe:        CAFE_DIALOGUE_MSA,
     Taxi:        TAXI_DIALOGUE_MSA,
@@ -238,6 +273,11 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       greetings: GREETINGS_WORDS,
       intro: INTRO_WORDS,
     },
+    missions: createLegacyUnit1MissionContent({
+      basicWords: BASIC_WORDS,
+      greetings: GREETINGS_WORDS,
+      intro: INTRO_WORDS,
+    }),
     scenarios: {
       Cafe:            CAFE_DIALOGUE,
       Taxi:            TAXI_DIALOGUE,
@@ -286,6 +326,11 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
   egyptian: {
     voiceId: 'LXrTqFIgiubkrMkwvOUr',
     lessons: { basic: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG },
+    missions: createLegacyUnit1MissionContent({
+      basicWords: BASIC_WORDS_EG,
+      greetings: GREETINGS_WORDS_EG,
+      intro: INTRO_WORDS_EG,
+    }),
     scenarios: {
       Cafe:        CAFE_DIALOGUE_EG,
       Taxi:        TAXI_DIALOGUE_EG,

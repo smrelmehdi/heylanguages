@@ -108,6 +108,7 @@ function createReviewContent(): DialectContent {
   return {
     voiceId: 'test',
     lessons: { basic: [], greetings: [], intro: [] },
+    missions: {},
     scenarios: { TestScenario: turns },
     sceneImages: {},
     availableLessons: [],

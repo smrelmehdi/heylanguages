@@ -1,5 +1,13 @@
-import { getDialectContent } from '../data/content-registry';
-import { getDialectCurriculum, isSupportedCurriculumDialect, type CurriculumContentType, type CurriculumItem, type ResolvedContent, type SupportedDialect } from '../data/curriculum';
+import { getDialectContent, type DialectContent } from '../data/content-registry';
+import {
+  getDialectCurriculum,
+  isSupportedCurriculumDialect,
+  type CurriculumContentType,
+  type CurriculumItem,
+  type DialectMissionContent,
+  type ResolvedContent,
+  type SupportedDialect,
+} from '../data/curriculum';
 
 type ResolveContentInput = {
   dialect: string;
@@ -26,6 +34,69 @@ export function normalizePublicContentId(contentId: string | null | undefined) {
   return contentId;
 }
 
+export function getCurriculumMissionId(item: CurriculumItem) {
+  return item.missionId ?? item.contentId;
+}
+
+export function getMissionContentForItem(
+  item: CurriculumItem,
+  content: DialectContent,
+): DialectMissionContent | null {
+  if (!item.contentRef) return null;
+  if (!item.missionId || item.missionId !== item.contentId) return null;
+  if (item.contentRef.source !== 'dialect-mission') return null;
+  const missionContent = content.missions[item.contentRef.key];
+  if (!missionContent) return null;
+  if (missionContent.missionId !== getCurriculumMissionId(item)) return null;
+  if (!item.missionKind || missionContent.missionKind !== item.missionKind) return null;
+  return missionContent;
+}
+
+export function resolveCurriculumItem(
+  item: CurriculumItem,
+  content: DialectContent,
+): ResolvedContent | null {
+  const missionContent = item.contentRef
+    ? getMissionContentForItem(item, content) ?? undefined
+    : undefined;
+  if (item.contentRef && !missionContent) return null;
+
+  if (item.missionKind === 'guided_dialogue' || item.missionKind === 'scenario') {
+    const dialogue = missionContent?.dialogue ?? [];
+    if (dialogue.length === 0) return null;
+    return {
+      item,
+      missionContent,
+      dialogue,
+      sceneImage: content.sceneImages[item.sceneImageId ?? item.sceneImageKey ?? item.scenarioName ?? ''],
+    };
+  }
+
+  if (item.contentType === 'lesson') {
+    const lessonWords = missionContent?.lessonWords ?? item.lessonWords;
+    if (!lessonWords || lessonWords.length === 0) return null;
+    return { item, missionContent, lessonWords };
+  }
+
+  if (item.contentType === 'scenario') {
+    if (!item.scenarioName) return null;
+    const dialogue = content.scenarios[item.scenarioName] ?? [];
+    if (dialogue.length === 0) return null;
+    return {
+      item,
+      missionContent,
+      dialogue,
+      sceneImage: content.sceneImages[item.sceneImageId ?? item.sceneImageKey ?? item.scenarioName],
+    };
+  }
+
+  return { item, missionContent };
+}
+
+export function shouldReserveScenarioImageSpace(item: CurriculumItem, sceneImage: unknown) {
+  return item.missionKind !== 'guided_dialogue' || Boolean(sceneImage);
+}
+
 export function getDialectCurriculumItems(dialect: string, includeUnavailable = false): CurriculumItem[] {
   const supportedDialect = normalizeDialect(dialect);
   if (!supportedDialect) return [];
@@ -45,14 +116,25 @@ export function getDialectContentMeta(
 ) {
   const normalized = normalizePublicContentId(contentId);
   if (!normalized) return null;
-  return getDialectCurriculumItems(dialect, true).find(item =>
-    item.contentId === normalized && (!contentType || item.contentType === contentType)
-  ) ?? null;
+  const items = getDialectCurriculumItems(dialect, true);
+  const direct = items.find(item =>
+    (item.contentId === normalized || item.missionId === normalized)
+      && (!contentType || item.contentType === contentType)
+  );
+  if (direct) return direct;
+  if (dialect === 'msa' && (normalized === 'dubai_challenge' || normalized === 'quiz_u1')) {
+    return items.find(item => item.contentId === 'first_arabic_challenge' && (!contentType || item.contentType === contentType)) ?? null;
+  }
+  return null;
 }
 
 export function isContentAvailableForDialect(dialect: string, contentId: string | null | undefined, contentType?: CurriculumContentType) {
   const item = getDialectContentMeta(dialect, contentId, contentType);
-  return Boolean(item && item.availability !== 'unavailable');
+  return Boolean(
+    item
+      && item.availability !== 'unavailable'
+      && resolveCurriculumItem(item, getDialectContent(dialect)),
+  );
 }
 
 export function getMissingContentDiagnostic(input: ResolveContentInput): MissingContentDiagnostic | null {
@@ -66,6 +148,9 @@ export function getMissingContentDiagnostic(input: ResolveContentInput): Missing
   }
   if (item.availability === 'unavailable') {
     return { ...input, dialect, reason: 'Curriculum item is marked unavailable for this dialect.' };
+  }
+  if (!resolveCurriculumItem(item, getDialectContent(dialect))) {
+    return { ...input, dialect, reason: 'Dialect mission content is missing or incompatible.' };
   }
   return null;
 }
@@ -92,24 +177,5 @@ export function resolveContent(input: ResolveContentInput): ResolvedContent | nu
 
   const item = getDialectContentMeta(dialect, input.contentId, input.contentType);
   if (!item) return null;
-  const content = getDialectContent(dialect);
-
-  if (item.contentType === 'lesson') {
-    const lessonWords = item.lessonWords ?? (item.lessonKey ? content.lessons[item.lessonKey] : undefined);
-    if (!lessonWords || lessonWords.length === 0) return null;
-    return { item, lessonWords };
-  }
-
-  if (item.contentType === 'scenario') {
-    if (!item.scenarioName) return null;
-    const dialogue = content.scenarios[item.scenarioName] ?? [];
-    if (dialogue.length === 0) return null;
-    return {
-      item,
-      dialogue,
-      sceneImage: content.sceneImages[item.sceneImageId ?? item.sceneImageKey ?? item.scenarioName],
-    };
-  }
-
-  return { item };
+  return resolveCurriculumItem(item, getDialectContent(dialect));
 }

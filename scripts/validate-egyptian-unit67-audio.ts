@@ -73,7 +73,7 @@ const targetPathSet = new Set(targetPaths);
 const duplicateReferences = targetPaths.filter((path, index) => targetPaths.indexOf(path) !== index);
 
 // audio-catalog installs a Node asset hook before these runtime curriculum imports.
-const { getDialectProgressionItems } = require('../utils/content-resolver') as typeof import('../utils/content-resolver');
+const { getDialectProgressionItems, resolveCurriculumItem } = require('../utils/content-resolver') as typeof import('../utils/content-resolver');
 const { getDialectContent } = require('../data/content-registry') as typeof import('../data/content-registry');
 const egyptianContent = getDialectContent('egyptian');
 const offlinePaths: string[] = [];
@@ -81,16 +81,15 @@ const missingRuntimeAudio: string[] = [];
 getDialectProgressionItems('egyptian')
   .filter(item => item.unitId === 'unit-6' || item.unitId === 'unit-7')
   .forEach(item => {
-    if (item.contentType === 'lesson') {
-      const words = item.lessonWords ?? (item.lessonKey ? egyptianContent.lessons[item.lessonKey] : undefined) ?? [];
-      words.forEach(word => {
+    const resolved = resolveCurriculumItem(item, egyptianContent);
+    if (resolved?.lessonWords) {
+      resolved.lessonWords.forEach(word => {
         if (word.audioPath) offlinePaths.push(word.audioPath);
         if (!word.audio) missingRuntimeAudio.push(word.audioPath ?? `${item.contentId}:unknown`);
       });
     }
-    if (item.contentType === 'scenario' && item.scenarioName) {
-      const turns = egyptianContent.scenarios[item.scenarioName] ?? [];
-      turns.forEach(turn => {
+    if (resolved?.dialogue) {
+      resolved.dialogue.forEach(turn => {
         if (turn.audioPath) offlinePaths.push(turn.audioPath);
         if (!turn.audio) missingRuntimeAudio.push(turn.audioPath ?? `${item.contentId}:unknown`);
       });

@@ -20,6 +20,11 @@ export function getQuizPassed(correctCount: number, totalQuestions: number) {
   return totalQuestions > 0 && correctCount >= getPassingScore(totalQuestions);
 }
 
+export function getQuizPassedAtThreshold(correctCount: number, totalQuestions: number, passingScore?: number) {
+  const required = passingScore ?? getPassingScore(totalQuestions);
+  return totalQuestions > 0 && required > 0 && required <= totalQuestions && correctCount >= required;
+}
+
 export function getPersistableQuizXp(
   correctCount: number,
   totalQuestions: number,

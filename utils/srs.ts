@@ -1,6 +1,38 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type QuizSrsResult = 'correct' | 'wrong';
+export type MissionSrsSkill = 'listening' | 'recognition' | 'transliteration' | 'production' | 'scenario_usage';
+
+export type MissionSrsIdentity = {
+  languagePair: string;
+  dialect: string;
+  unitId: string;
+  missionId: string;
+  skill: MissionSrsSkill;
+  variantId: string;
+};
+
+export type MissionVocabularySrsIdentity = Omit<MissionSrsIdentity, 'variantId'> & {
+  conceptId: string;
+};
+
+/** Stable future-facing IDs; existing quiz IDs intentionally remain unchanged in Phase 1. */
+export function buildMissionSrsItemId(identity: MissionSrsIdentity) {
+  return [
+    'mission',
+    identity.languagePair,
+    identity.dialect,
+    identity.unitId,
+    identity.missionId,
+    identity.skill,
+    identity.variantId,
+  ].map(part => encodeURIComponent(part)).join(':');
+}
+
+export function buildMissionVocabularySrsItemId(identity: MissionVocabularySrsIdentity) {
+  const { conceptId, ...missionIdentity } = identity;
+  return buildMissionSrsItemId({ ...missionIdentity, variantId: conceptId });
+}
 
 export interface QuizSrsEntry {
   itemId: string;

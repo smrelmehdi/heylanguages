@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import type { QuizTierInfo } from '../../utils/quiz-level';
@@ -24,7 +24,7 @@ const FORMAT_PILLS: Record<string, string> = {
 export default function QuizIntro({ title, tier, questionCount, maxXp, isLoading = false, onStart }: Props) {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{questionCount} questions · ~{Math.ceil(questionCount * 0.4)} min</Text>
 
@@ -71,14 +71,14 @@ export default function QuizIntro({ title, tier, questionCount, maxXp, isLoading
         >
           <Text style={styles.startBtnText}>{isLoading ? 'Preparing…' : 'يلا نبدأ! Start Quiz'}</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl, gap: 14 },
+  content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl, paddingBottom: theme.spacing.xxl + 16, gap: 14 },
   title: { fontSize: 26, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'center' },
   subtitle: { fontSize: theme.fontSize.body, color: theme.colors.textTertiary },
 

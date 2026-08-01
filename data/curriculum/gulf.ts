@@ -46,6 +46,7 @@ import {
 } from '../../constants/words';
 import type { CurriculumItem, CurriculumUnit, DialectCurriculum } from './types';
 import { buildSharedWritingItems } from './shared';
+import { buildLegacyUnit1CurriculumUnit } from './unit1';
 
 const dialect = 'gulf' as const;
 
@@ -89,7 +90,7 @@ const lesson = (
   title: string,
   commercialAccess: 'free' | 'premium',
   lessonWords?: CurriculumItem['lessonWords'],
-  lessonKey?: CurriculumItem['lessonKey'],
+  contentRef?: CurriculumItem['contentRef'],
   subtitle?: string,
 ): CurriculumItem => ({
   dialect,
@@ -103,7 +104,7 @@ const lesson = (
   availability: 'available',
   commercialAccess,
   lessonWords,
-  lessonKey,
+  contentRef,
   acceptedTransliterationProfile: 'gulf',
 });
 
@@ -158,18 +159,12 @@ const quiz = (
 export const GULF_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
-    {
+    buildLegacyUnit1CurriculumUnit({
       dialect,
-      unitId: 'unit-1',
-      title: 'Unit 1: First Words',
-      availability: 'available',
-      items: [
-        lesson('unit-1', 'basic_words', 'Basic Words', 'free', undefined, 'basic', '3 mins'),
-        lesson('unit-1', 'greetings', 'Common Greetings', 'free', undefined, 'greetings', '3 mins'),
-        lesson('unit-1', 'intro', 'Introduce Yourself', 'free', undefined, 'intro', '4 mins'),
-        quiz('unit-1', 'quiz_u1', 'Unit 1 Quiz', undefined, 'quiz', 'free', 'Test what you learned · +150 XP'),
-      ],
-    },
+      acceptedTransliterationProfile: 'gulf',
+      quizScreen: 'quiz',
+      quizSubtitle: 'Test what you learned · +150 XP',
+    }),
     {
       dialect,
       unitId: 'unit-2',

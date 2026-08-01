@@ -2,9 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAlphabetAudioForDialect } from '../data/alphabet-audio-by-dialect';
-import { getDialectContent } from '../data/content-registry';
+import { getDialectContent, type DialectContent } from '../data/content-registry';
+import type { CurriculumItem } from '../data/curriculum';
 import { MSA_WRITING_EXAMPLE_WORDS } from '../data/msa-alphabet-audio';
-import { getDialectProgressionItems } from './content-resolver';
+import { getDialectProgressionItems, resolveCurriculumItem } from './content-resolver';
 
 export type OfflineDialect = 'gulf' | 'egyptian' | 'msa';
 
@@ -106,8 +107,11 @@ export function createEmptyOfflinePackMap(): OfflinePackMap {
   };
 }
 
-function buildManifestFiles(dialect: OfflineDialect): OfflinePackManifestFile[] {
-  const content = getDialectContent(dialect);
+export function buildOfflineManifestFilesForCurriculum(
+  dialect: OfflineDialect,
+  items: readonly CurriculumItem[] = getDialectProgressionItems(dialect),
+  content: DialectContent = getDialectContent(dialect),
+): OfflinePackManifestFile[] {
   const files = new Map<number, OfflinePackManifestFile>();
 
   const maybeAdd = (audio: unknown, audioPath?: unknown) => {
@@ -120,15 +124,10 @@ function buildManifestFiles(dialect: OfflineDialect): OfflinePackManifestFile[] 
     });
   };
 
-  getDialectProgressionItems(dialect).forEach(item => {
-    if (item.contentType === 'lesson') {
-      const words = item.lessonWords ?? (item.lessonKey ? content.lessons[item.lessonKey] : undefined) ?? [];
-      words.forEach(word => maybeAdd(word.audio, word.audioPath));
-    }
-    if (item.contentType === 'scenario' && item.scenarioName) {
-      const turns = content.scenarios[item.scenarioName] ?? [];
-      turns.forEach(turn => maybeAdd(turn.audio, turn.audioPath));
-    }
+  items.forEach(item => {
+    const resolved = resolveCurriculumItem(item, content);
+    resolved?.lessonWords?.forEach(word => maybeAdd(word.audio, word.audioPath));
+    resolved?.dialogue?.forEach(turn => maybeAdd(turn.audio, turn.audioPath));
     if (item.contentType === 'writing') {
       getAlphabetAudioForDialect(dialect).forEach(letter => maybeAdd(letter.audio, letter.audioPath));
       if (dialect === 'msa') {
@@ -145,7 +144,7 @@ const manifestCache = new Map<OfflineDialect, OfflinePackManifest>();
 export function getOfflineDialectManifest(dialect: OfflineDialect): OfflinePackManifest {
   const cached = manifestCache.get(dialect);
   if (cached) return cached;
-  const files = buildManifestFiles(dialect);
+  const files = buildOfflineManifestFilesForCurriculum(dialect);
   const signature = files.map(file => {
     const asset = Asset.fromModule(file.assetId);
     return `${file.logicalPath}:${asset.hash || asset.name || file.assetId}`;

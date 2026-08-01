@@ -8,12 +8,26 @@ export type {
   CurriculumAvailability,
   CurriculumContentType,
   CurriculumItem,
+  CurriculumContentReference,
   CurriculumRoute,
   CurriculumUnit,
+  DialectMissionContent,
   DialectCurriculum,
+  MissionCurriculumItem,
+  MissionKind,
   ResolvedContent,
   SupportedDialect,
 } from './types';
+
+export {
+  buildLegacyUnit1CurriculumUnit,
+  buildUnit1MissionItems,
+  createLegacyUnit1MissionContent,
+  createMissionContentRegistry,
+  getMissionContentType,
+  LEGACY_UNIT1_MISSION_IDS,
+} from './unit1';
+export type { LegacyUnit1MissionId, Unit1MissionDefinition } from './unit1';
 
 export const CURRICULUM_BY_DIALECT: Record<SupportedDialect, DialectCurriculum> = {
   gulf: GULF_CURRICULUM,

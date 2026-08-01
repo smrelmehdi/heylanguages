@@ -12,9 +12,10 @@ interface Props {
   answerResult: 'none' | 'correct' | 'wrong';
   onAnswer: (result: QuizAnswerResult) => void;
   showTranslit?: boolean;
+  allowTranslitReveal?: boolean;
 }
 
-export default function FillConversation({ question, answerResult, onAnswer, showTranslit = true }: Props) {
+export default function FillConversation({ question, answerResult, onAnswer, showTranslit = true, allowTranslitReveal = true }: Props) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [translitRevealed, setTranslitRevealed] = useState(false);
 
@@ -59,7 +60,7 @@ export default function FillConversation({ question, answerResult, onAnswer, sho
       </View>
 
       {/* Transliteration reveal for Tier 3+ */}
-      {!showTranslit && !translitRevealed && answerResult === 'none' && (
+      {!showTranslit && allowTranslitReveal && !translitRevealed && answerResult === 'none' && (
         <Pressable style={styles.revealBtn} onPress={() => setTranslitRevealed(true)}>
           <Text style={styles.revealBtnText}>👁 Reveal transliteration</Text>
         </Pressable>

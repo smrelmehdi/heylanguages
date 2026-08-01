@@ -30,6 +30,7 @@ import QuizProgress from '../components/quiz/QuizProgress';
 import QuizResults from '../components/quiz/QuizResults';
 import SceneReplay from '../components/quiz/SceneReplay';
 import TransliterationInput from '../components/quiz/TransliterationInput';
+import PhraseArrangement from '../components/quiz/PhraseArrangement';
 import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
 import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/quiz-types';
@@ -45,9 +46,10 @@ import {
   getPassingScore,
   getQuestionAttemptXp,
   getQuizMaxXp,
-  getQuizPassed,
+  getQuizPassedAtThreshold,
   type QuizAnswerResult,
 } from '../utils/quiz-scoring';
+import { buildMsaBigReviewQuestions, buildMsaFirstArabicChallengeQuestions } from '../data/msa-unit1-quizzes';
 
 type Phase = 'intro' | 'quiz' | 'redrill' | 'results';
 
@@ -108,7 +110,7 @@ const UNIT10_SCENARIOS = [
   'FriendsBirthday',
   'FriendsFarewell',
 ];
-const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
+const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', 'u1-review', 'u1-challenge', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
 let currentAttemptSelectionSeed = 'initial';
 
 type WordLessonEntry = {
@@ -1542,11 +1544,14 @@ export default function QuizUnit2Screen() {
     ? getPhase1ReviewAttemptScope(dialect)
     : `${dialect}:${requestedUnit}`;
   const routeContentId = getQuizContentId(requestedUnit);
+  const unit1Mission = routeContentId ? content.missions[routeContentId] : undefined;
+  const missionPassingScore = unit1Mission?.passingScore;
   const isSupportedQuizUnit = SUPPORTED_TIERED_QUIZ_UNITS.has(requestedUnit);
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
+  const passingScore = missionPassingScore ?? getPassingScore(allQuestions.length);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answerResult, setAnswerResult] = useState<'none' | 'correct' | 'wrong'>('none');
   const [xpEarned, setXpEarned] = useState(0);
@@ -1593,6 +1598,8 @@ export default function QuizUnit2Screen() {
   }, [currentIndex]);
 
   const quizTitle =
+    requestedUnit === 'u1-review' ? 'Big Review' :
+    requestedUnit === 'u1-challenge' ? 'Your First Arabic Challenge' :
     requestedUnit === 'review' ? 'Review Quiz' :
     requestedUnit === '1'   ? 'Unit 1 Quiz' :
     requestedUnit === '2'   ? 'Unit 2 Quiz' :
@@ -1626,6 +1633,20 @@ export default function QuizUnit2Screen() {
         tierInfo: getQuizTierInfo(1),
         srsSummary: await getQuizSrsSummary(selected.map(q => q.id)),
         maxXp: 0,
+      };
+    }
+
+    if (requestedUnit === 'u1-review' || requestedUnit === 'u1-challenge') {
+      if (dialect !== 'msa' || !unit1Mission?.quizQuestions?.length) return null;
+      const selected = requestedUnit === 'u1-review'
+        ? buildMsaBigReviewQuestions(attemptSeed)
+        : buildMsaFirstArabicChallengeQuestions(attemptSeed);
+      return {
+        attempt,
+        questions: selected,
+        tierInfo: getQuizTierInfo(1),
+        srsSummary: await getQuizSrsSummary(selected.map(question => question.id)),
+        maxXp: getQuizMaxXp(selected),
       };
     }
 
@@ -1839,7 +1860,7 @@ export default function QuizUnit2Screen() {
       if (isLastQuestion) {
         if (!isRedrillRef.current) {
           const initialCorrectCount = correctIdsRef.current.size;
-          const initialPassed = getQuizPassed(initialCorrectCount, allQuestions.length);
+          const initialPassed = getQuizPassedAtThreshold(initialCorrectCount, allQuestions.length, missionPassingScore);
           const frozenResult: InitialAttemptResult = {
             correctCount: initialCorrectCount,
             score: Math.round((initialCorrectCount / allQuestions.length) * 100),
@@ -1877,7 +1898,9 @@ export default function QuizUnit2Screen() {
 
   // ── Save to DB ───────────────────────────────────────────────────────────
   const saveQuizCompletion = async (result: InitialAttemptResult): Promise<number> => {
-    const unitId = requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
+    const unitId = requestedUnit === 'u1-review' || requestedUnit === 'u1-challenge'
+      ? 'unit-1'
+      : requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
     if (!routeContentId) return 0;
     const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);
     const persisted = await persistQuizPass({
@@ -1956,7 +1979,7 @@ export default function QuizUnit2Screen() {
         <QuizResults
           correct={initialResult?.correctCount ?? 0}
           total={allQuestions.length}
-          passingScore={getPassingScore(allQuestions.length)}
+          passingScore={passingScore}
           passed={initialResult?.passed ?? false}
           xpEarned={initialResult?.attemptXp ?? 0}
           maxXp={maxXp}
@@ -1967,6 +1990,7 @@ export default function QuizUnit2Screen() {
           missedCount={initialResult?.missedCount ?? 0}
           correctedCount={correctedPracticeCount}
           srsSummary={srsSummary}
+          completionMessage={unit1Mission?.completionMessage}
           onPracticeMistakes={handlePracticeMistakes}
           onRetryFull={handleRetryFullQuiz}
           onHome={() => router.replace('/(tabs)')}
@@ -2056,7 +2080,8 @@ export default function QuizUnit2Screen() {
                 question={currentQuestion}
                 answerResult={answerResult}
                 onAnswer={handleAnswer}
-                showTranslit={tierInfo.showTranslit}
+                showTranslit={currentQuestion.hideTransliterationBeforeAnswer ? false : tierInfo.showTranslit}
+                allowTranslitReveal={!currentQuestion.hideTransliterationBeforeAnswer}
               />
             )}
             {currentQuestion.format === 'listening' && (
@@ -2088,6 +2113,14 @@ export default function QuizUnit2Screen() {
             {currentQuestion.format === 'arabic_select' && (
               <ArabicSelect
                 key={`as-${currentIndex}`}
+                question={currentQuestion}
+                answerResult={answerResult}
+                onAnswer={handleAnswer}
+              />
+            )}
+            {currentQuestion.format === 'phrase_arrangement' && (
+              <PhraseArrangement
+                key={`pa-${currentIndex}`}
                 question={currentQuestion}
                 answerResult={answerResult}
                 onAnswer={handleAnswer}
@@ -2144,6 +2177,7 @@ function formatBadgeLabel(format: string): string {
     case 'emoji_match':          return '🔗 Meaning Match';
     case 'transliteration_type': return '⌨️ Type It';
     case 'arabic_select':        return '✍️ Read Arabic';
+    case 'phrase_arrangement':   return '🧩 Arrange the Phrase';
     default:                     return '';
   }
 }

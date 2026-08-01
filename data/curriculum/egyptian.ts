@@ -31,6 +31,7 @@ import { EGYPTIAN_UNIT8_SCENARIOS } from '../egyptian-emergencies';
 import { EGYPTIAN_UNIT9_LESSONS } from '../egyptian-social';
 import { EGYPTIAN_UNIT10_SCENARIOS } from '../egyptian-friends';
 import { getEgyptianSceneImageIds } from '../egyptian-scene-images';
+import { buildLegacyUnit1CurriculumUnit } from './unit1';
 
 const dialect = 'egyptian' as const;
 
@@ -49,7 +50,7 @@ const lesson = (
   unitId: string,
   contentId: string,
   title: string,
-  lessonKey: CurriculumItem['lessonKey'],
+  contentRef: CurriculumItem['contentRef'],
   lessonWords?: CurriculumItem['lessonWords'],
   commercialAccess: 'free' | 'premium' = 'free',
   subtitle?: string,
@@ -64,7 +65,7 @@ const lesson = (
   homeHref: `/lesson?type=${contentId}`,
   availability: 'available',
   commercialAccess,
-  lessonKey,
+  contentRef,
   lessonWords,
   acceptedTransliterationProfile: 'egyptian',
 });
@@ -128,18 +129,12 @@ const quiz = (
 export const EGYPTIAN_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
-    {
+    buildLegacyUnit1CurriculumUnit({
       dialect,
-      unitId: 'unit-1',
-      title: 'Unit 1: First Words',
-      availability: 'available',
-      items: [
-        lesson('unit-1', 'basic_words', 'Basic Words', 'basic'),
-        lesson('unit-1', 'greetings', 'Common Greetings', 'greetings'),
-        lesson('unit-1', 'intro', 'Introduce Yourself', 'intro'),
-        quiz('unit-1', 'quiz_u1', 'Unit 1 Quiz', undefined, 'quiz'),
-      ],
-    },
+      acceptedTransliterationProfile: 'egyptian',
+      quizScreen: 'quiz',
+      quizSubtitle: 'Test what you learned · +150 XP',
+    }),
     {
       dialect,
       unitId: 'unit-2',

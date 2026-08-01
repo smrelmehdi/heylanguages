@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, Volume2 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumRouteGate from '../components/PremiumRouteGate';
 import { theme } from '../constants/theme';
@@ -155,6 +155,9 @@ export default function LessonScreen() {
     contentType: 'lesson',
   });
   const WORDS: Word[] = resolvedContent?.lessonWords ?? [];
+  const missionContent = resolvedContent?.missionContent;
+  const lessonRounds = missionContent?.lessonRounds ?? [];
+  const isAudioDisabled = missionContent?.audioMode === 'none';
   const isComingSoon = WORDS.length === 0;
 
   const lessonTitle = resolvedContent?.item.title ?? (
@@ -163,10 +166,11 @@ export default function LessonScreen() {
     LESSON_TITLES[typeStr] ?? 'Basic Words'
   );
 
-  const lessonSubtitle =
+  const lessonSubtitle = missionContent?.objective ?? (
     typeStr === 'intro'     ? 'Talk About Yourself'     :
     typeStr === 'greetings' ? 'Meeting People in Dubai' :
-    LESSON_SUBTITLES[typeStr] ?? 'A Day in Dubai';
+    LESSON_SUBTITLES[typeStr] ?? 'A Day in Dubai'
+  );
 
   const currentWord = WORDS[currentIndex] ?? { arabic: '', transliteration: '', english: '', context: '', audio: undefined };
   const displayedArabic = currentWord.displayArabic ?? currentWord.arabic;
@@ -178,6 +182,22 @@ export default function LessonScreen() {
     'long';
   const targetLineLimit = targetSize === 'short' ? 1 : targetSize === 'medium' ? 2 : 3;
   const progress = WORDS.length > 0 ? currentIndex / WORDS.length : 0;
+  const currentRound = (() => {
+    let startIndex = 0;
+    for (let roundIndex = 0; roundIndex < lessonRounds.length; roundIndex += 1) {
+      const round = lessonRounds[roundIndex];
+      const endIndex = startIndex + round.words.length;
+      if (currentIndex >= startIndex && currentIndex < endIndex) {
+        return { round, roundIndex };
+      }
+      startIndex = endIndex;
+    }
+    return null;
+  })();
+  const progressLabel = currentRound
+    ? `Round ${currentRound.roundIndex + 1} of ${lessonRounds.length} | ${currentIndex + 1} / ${WORDS.length}`
+    : `${currentIndex + 1} / ${WORDS.length}`;
+  const canAdvanceWithoutRecording = isAudioDisabled || hasAttempted;
   const publicCompletionId = resolvedContent?.item.contentId ?? (typeStr && typeStr !== 'basic' ? typeStr : 'basic_words');
   const unitId = resolvedContent?.item.unitId ?? 'unit-1';
   const completionKey = buildCompletionKey(dialect, unitId, publicCompletionId);
@@ -202,9 +222,13 @@ export default function LessonScreen() {
   };
 
   useEffect(() => {
+    if (isAudioDisabled) return;
     requestRecordingPermissionsAsync().then(({ granted }) => {
       if (!granted) setMicPermissionDenied(true);
     });
+  }, [isAudioDisabled]);
+
+  useEffect(() => {
     return () => {
       releaseAudioPlaybackOwner(audioOwner);
       restorePlaybackAudioMode('lesson-unmount', audioOwner).catch(() => {});
@@ -212,6 +236,7 @@ export default function LessonScreen() {
   }, []);
 
   const playWordAudio = async () => {
+    if (isAudioDisabled) return;
     const unit4Audio = getUnit4Audio(typeStr, currentIndex);
     const source = unit4Audio ? 'unit-4-local' : currentWord.audio ? 'existing-local' : 'fallback';
     const localAudioPath = unit4Audio?.path;
@@ -240,13 +265,13 @@ export default function LessonScreen() {
 
   useEffect(() => {
     setEvalResult(null);
-    if (isComingSoon) return;
+    if (isComingSoon || isAudioDisabled) return;
     const timer = setTimeout(() => { playWordAudio().catch(console.warn); }, 300);
     return () => {
       clearTimeout(timer);
       stopAudio(audioOwner);
     };
-  }, [currentIndex, dialect, currentAudioText, currentWord.audio, typeStr, isComingSoon]);
+  }, [currentIndex, dialect, currentAudioText, currentWord.audio, typeStr, isComingSoon, isAudioDisabled]);
 
   const handleSpeak = () => {
     playWordAudio().catch(console.warn);
@@ -403,10 +428,12 @@ export default function LessonScreen() {
       <PremiumRouteGate contentId={routeContentId} contentType="lesson" contentLabel={lessonTitle}>
         <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.completionContainer}>
+        <ScrollView contentContainerStyle={styles.completionContainer} showsVerticalScrollIndicator={false}>
           <Text style={styles.completionEmoji}>🎉</Text>
           <Text style={styles.completionTitle}>ممتاز!</Text>
-          <Text style={styles.completionSub}>You learned {WORDS.length} new words</Text>
+          <Text style={styles.completionSub}>
+            {missionContent?.completionMessage ?? `You learned ${WORDS.length} new words`}
+          </Text>
           <View style={styles.completionStats}>
             <View style={styles.statItem}>
               <Text style={styles.statVal}>20</Text>
@@ -421,7 +448,7 @@ export default function LessonScreen() {
           <Pressable style={styles.doneButton} onPress={goHomeAfterCompletion}>
             <Text style={styles.doneButtonText}>Back to Home</Text>
           </Pressable>
-        </View>
+        </ScrollView>
 
         <Modal visible={showLevelUp} transparent animationType="fade">
           <View style={styles.levelUpOverlay}>
@@ -462,9 +489,23 @@ export default function LessonScreen() {
         }}>
           <ArrowLeft color={theme.colors.textPrimary} size={18} />
         </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.lessonName}>{lessonTitle}</Text>
-          <Text style={styles.lessonSub}>{lessonSubtitle}</Text>
+        <View style={[styles.headerCenter, lessonRounds.length > 0 && styles.missionHeaderCenter]}>
+          <Text
+            style={[styles.lessonName, lessonRounds.length > 0 && styles.missionLessonName]}
+            numberOfLines={lessonRounds.length > 0 ? 2 : undefined}
+            adjustsFontSizeToFit={lessonRounds.length > 0}
+            minimumFontScale={0.7}
+          >
+            {lessonTitle}
+          </Text>
+          <Text
+            style={styles.lessonSub}
+            numberOfLines={lessonRounds.length > 0 ? 1 : undefined}
+            adjustsFontSizeToFit={lessonRounds.length > 0}
+            minimumFontScale={0.75}
+          >
+            {lessonSubtitle}
+          </Text>
         </View>
         <View style={styles.xpPill}>
           <Text style={styles.xpText}>First +{COMPLETION_XP.lesson} XP</Text>
@@ -477,7 +518,7 @@ export default function LessonScreen() {
           <View style={styles.progressBg}>
             <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
           </View>
-          <Text style={styles.progressLabel}>{currentIndex + 1} / {WORDS.length}</Text>
+          <Text style={styles.progressLabel}>{progressLabel}</Text>
         </View>
 
         {/* Word card */}
@@ -507,19 +548,21 @@ export default function LessonScreen() {
         </View>
 
         <Text style={styles.hint}>
-          {isEvaluating ? 'Checking...' : isRecording ? 'Recording...' : micPermissionDenied ? 'Microphone access needed' : 'Listen first, then hold to repeat'}
+          {isEvaluating ? 'Checking...' : isRecording ? 'Recording...' : micPermissionDenied ? 'Microphone access needed' : isAudioDisabled ? 'Speaking practice is optional. Continue when ready.' : 'Listen first, then hold to repeat'}
         </Text>
 
         {/* Controls */}
         <View style={styles.controls}>
-          <View style={styles.actionItem}>
-            <Pressable style={styles.ctrlBtn} onPress={handleSpeak}>
-              <Volume2 color={theme.colors.accentPrimary} size={22} />
-            </Pressable>
-            <Text style={styles.actionLabel}>Listen</Text>
-          </View>
+          {!isAudioDisabled && (
+            <View style={styles.actionItem}>
+              <Pressable style={styles.ctrlBtn} onPress={handleSpeak}>
+                <Volume2 color={theme.colors.accentPrimary} size={22} />
+              </Pressable>
+              <Text style={styles.actionLabel}>Listen</Text>
+            </View>
+          )}
 
-          <View style={styles.primaryActionItem}>
+          {!isAudioDisabled && <View style={styles.primaryActionItem}>
             {micPermissionDenied ? (
               <Pressable
                 style={[styles.micBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.borderDefault }]}
@@ -545,16 +588,16 @@ export default function LessonScreen() {
               </Pressable>
             )}
             <Text style={styles.primaryActionLabel}>{micPermissionDenied ? 'Tap for info' : 'Hold to speak'}</Text>
-          </View>
+          </View>}
 
           <View style={styles.actionItem}>
             <Pressable
-              style={[styles.ctrlBtn, hasAttempted && styles.nextBtnActive]}
+              style={[styles.ctrlBtn, canAdvanceWithoutRecording && styles.nextBtnActive]}
               onPress={handleNext}
             >
-              <ChevronRight color={hasAttempted ? theme.colors.accentPrimary : theme.colors.textTertiary} size={22} />
+              <ChevronRight color={canAdvanceWithoutRecording ? theme.colors.accentPrimary : theme.colors.textTertiary} size={22} />
             </Pressable>
-            <Text style={[styles.actionLabel, hasAttempted && styles.actionLabelActive]}>Next</Text>
+            <Text style={[styles.actionLabel, canAdvanceWithoutRecording && styles.actionLabelActive]}>Next</Text>
           </View>
         </View>
 
@@ -594,7 +637,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 8 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.bgSurface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault },
   headerCenter: { alignItems: 'center' },
+  missionHeaderCenter: { flex: 1, paddingHorizontal: 8 },
   lessonName: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
+  missionLessonName: { textAlign: 'center' },
   lessonSub: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 1 },
   xpPill: { backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 5 },
   xpText: { fontSize: theme.fontSize.label, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5 },

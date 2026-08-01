@@ -19,6 +19,7 @@ import {
     BackHandler,
     Modal,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     View,
@@ -34,7 +35,7 @@ import { useXP } from '../contexts/XPContext';
 import { DIALECT_LABELS } from '../data/content-registry';
 import { stripTashkeel } from '../utils/arabic';
 import { getScenarioContentId } from '../utils/access';
-import { resolveContent } from '../utils/content-resolver';
+import { resolveContent, shouldReserveScenarioImageSpace } from '../utils/content-resolver';
 import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { feedbackLevelUp } from '../utils/feedback';
 import { evaluatePronunciation } from '../utils/pronunciation';
@@ -479,11 +480,11 @@ export default function ScenarioScreen() {
   const router = useRouter();
   const { type: typeParam } = useLocalSearchParams();
   const typeStr = Array.isArray(typeParam) ? typeParam[0] : typeParam;
-  const routeContentId = getScenarioContentId(typeStr);
   const isTaxi = typeStr === 'Taxi';
   const isHotel = typeStr === 'Hotel';
 
   const { content, dialect } = useDialect();
+  const routeContentId = getScenarioContentId(typeStr, dialect);
 
   console.log('scenario type:', typeStr);
 
@@ -494,6 +495,11 @@ export default function ScenarioScreen() {
   });
   const DIALOGUE = resolvedContent?.dialogue ?? [];
   const sceneImage = resolvedContent?.sceneImage ?? null;
+  const missionContent = resolvedContent?.missionContent;
+  const isAudioDisabled = missionContent?.audioMode === 'none';
+  const showSceneImage = resolvedContent
+    ? shouldReserveScenarioImageSpace(resolvedContent.item, sceneImage)
+    : false;
 
   const getSceneBadge = () => {
     const dialectLabel = DIALECT_LABELS[dialect] ?? 'Arabic';
@@ -565,7 +571,9 @@ export default function ScenarioScreen() {
   const currentTurnAudioText = currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
   const scenarioEvalTarget = currentTurn.evalTarget ?? currentTurn.audioText ?? currentTurn.displayArabic ?? currentTurn.arabic;
   const speakerRoleLabel = getSpeakerRoleLabel(typeStr);
-  const completionCopy = getScenarioCompletionCopy(typeStr);
+  const completionCopy = missionContent?.completionMessage
+    ? { headline: missionContent.completionMessage, subtitle: '' }
+    : getScenarioCompletionCopy(typeStr);
   const isUserTurn = currentTurn.type === 'user';
   const isWaiterTurn = currentTurn.type === 'waiter';
   const total = DIALOGUE.length;
@@ -639,6 +647,10 @@ export default function ScenarioScreen() {
     setRecordingState('idle');
     setShowNext(false);
     setScenarioEvalResult(null);
+    if (isAudioDisabled) {
+      setShowNext(true);
+      return;
+    }
     const timer = setTimeout(() => {
       handleAutoPlay().catch(console.warn);
     }, 300);
@@ -646,7 +658,7 @@ export default function ScenarioScreen() {
       clearTimeout(timer);
       stopAudio(audioOwner);
     };
-  }, [currentIndex, dialect, currentTurnAudioText, currentTurn.audio, isComingSoon]);
+  }, [currentIndex, dialect, currentTurnAudioText, currentTurn.audio, isComingSoon, isAudioDisabled]);
 
   // Restore saved progress for this dialect + scenario.
   useEffect(() => {
@@ -763,6 +775,7 @@ export default function ScenarioScreen() {
   }, [recordingState]);
 
   const handleAutoPlay = async () => {
+    if (isAudioDisabled) return;
     setIsSpeaking(true);
     try {
       await playLocalAudioWithTtsFallback(currentTurn.audio, currentTurnAudioText, content.voiceId, { owner: audioOwner });
@@ -772,6 +785,7 @@ export default function ScenarioScreen() {
   };
 
   const handleSpeak = async () => {
+    if (isAudioDisabled) return;
     if (isSpeaking) return;
     setIsSpeaking(true);
     try {
@@ -1163,7 +1177,7 @@ export default function ScenarioScreen() {
       </View>
 
       {/* Scene area */}
-      <View style={styles.sceneArea}>
+      {showSceneImage && <View style={[styles.sceneArea, isAudioDisabled && styles.guidedSceneArea]}>
         <CafeScene
           arabic={stripTashkeel(currentTurnDisplayArabic)}
           transliteration={currentTurn.transliteration}
@@ -1171,7 +1185,7 @@ export default function ScenarioScreen() {
           isUserTurn={isUserTurn}
           backgroundImage={sceneImage}
         />
-      </View>
+      </View>}
 
       {/* Completion overlay */}
       <Modal visible={completed} transparent animationType="fade">
@@ -1212,7 +1226,7 @@ export default function ScenarioScreen() {
       </Modal>
 
       {/* Bottom panel */}
-      <View style={styles.bottomPanel}>
+      <ScrollView style={styles.bottomPanel} contentContainerStyle={styles.bottomPanelContent} showsVerticalScrollIndicator={false}>
 
         <>
             {/* Progress row */}
@@ -1229,7 +1243,7 @@ export default function ScenarioScreen() {
             {/* Phrase card */}
             <View style={[styles.phraseCard, isWaiterTurn ? styles.waiterCard : styles.userCard]}>
               <Text style={isWaiterTurn ? styles.turnLabelWaiter : styles.turnLabelUser}>
-                {isWaiterTurn ? `🧑‍🍳 ${speakerRoleLabel}` : '🎙 Your turn — say it'}
+                {isWaiterTurn ? `🧑‍🍳 ${speakerRoleLabel}` : isAudioDisabled ? 'Your turn' : '🎙 Your turn — say it'}
               </Text>
               {currentTurn.context ? (
                 <Text style={styles.contextText}>{currentTurn.context}</Text>
@@ -1241,18 +1255,12 @@ export default function ScenarioScreen() {
               <Text style={styles.englishText}>{currentTurn.english}</Text>
             </View>
 
-            {isWaiterTurn ? (
+            {isWaiterTurn || isAudioDisabled ? (
               /* Waiter turn controls */
               <View style={styles.waiterControls}>
-                <Pressable
-                  style={[styles.iconButton, isSpeaking && { opacity: 0.6 }]}
-                  onPress={handleSpeak}
-                >
-                  {isSpeaking
-                    ? <ActivityIndicator size="small" color={theme.colors.textSecondary} />
-                    : <Volume2 color={theme.colors.textSecondary} size={20} />
-                  }
-                </Pressable>
+                {!isAudioDisabled && <Pressable style={[styles.iconButton, isSpeaking && { opacity: 0.6 }]} onPress={handleSpeak}>
+                  {isSpeaking ? <ActivityIndicator size="small" color={theme.colors.textSecondary} /> : <Volume2 color={theme.colors.textSecondary} size={20} />}
+                </Pressable>}
                 <Pressable style={styles.gotItButton} onPress={handleAdvance}>
                   <Text style={styles.gotItText}>Got it  →</Text>
                 </Pressable>
@@ -1353,7 +1361,7 @@ export default function ScenarioScreen() {
             )}
           </>
 
-      </View>
+      </ScrollView>
       </SafeAreaView>
     </PremiumRouteGate>
   );
@@ -1399,9 +1407,17 @@ const styles = StyleSheet.create({
   sceneArea: {
     flex: 0.52,
   },
+  guidedSceneArea: {
+    flex: 0.38,
+    minHeight: 140,
+    maxHeight: 240,
+  },
   bottomPanel: {
-    flex: 0.48,
+    flex: 1,
     backgroundColor: theme.colors.bgSurface,
+  },
+  bottomPanelContent: {
+    flexGrow: 1,
     paddingBottom: 24,
   },
   progressRow: {

@@ -1,7 +1,9 @@
 import type { DialectContent, DialogueTurn } from '../data/content-registry';
+import type { CurriculumItem } from '../data/curriculum';
 import type { QuizQuestion } from '../data/quiz-types';
-import { getDialectCurriculumItems } from './content-resolver';
+import { getDialectCurriculumItems, getMissionContentForItem } from './content-resolver';
 import { selectWithAttemptSeed, stableQuizHash } from './quiz-selection';
+import { buildMissionSrsItemId, type MissionSrsSkill } from './srs';
 
 const PHASE1_REVIEW_LANGUAGE_PAIR = 'en-ar';
 
@@ -109,6 +111,41 @@ function getScenarioSceneImage(content: DialectContent, dialect: string, scenari
     ?? null;
 }
 
+type ReviewDialogueEntry = {
+  name: string;
+  turns: DialogueTurn[];
+  item?: CurriculumItem;
+};
+
+function getReviewQuestionId(
+  dialect: string,
+  entry: ReviewDialogueEntry,
+  skill: MissionSrsSkill,
+  legacySuffix: string,
+  missionVariantId = legacySuffix,
+) {
+  if (!entry.item?.missionId) return `${dialect}_${entry.name}_${legacySuffix}`;
+  return buildMissionSrsItemId({
+    languagePair: PHASE1_REVIEW_LANGUAGE_PAIR,
+    dialect,
+    unitId: entry.item.unitId,
+    missionId: entry.item.missionId,
+    skill,
+    variantId: missionVariantId,
+  });
+}
+
+function getMissionReviewEntries(
+  content: DialectContent,
+  items: readonly CurriculumItem[],
+): ReviewDialogueEntry[] {
+  return items.flatMap(item => {
+    const mission = getMissionContentForItem(item, content);
+    if (!mission?.reviewable || !mission.dialogue?.length) return [];
+    return [{ name: item.missionId ?? item.contentId, turns: mission.dialogue, item }];
+  });
+}
+
 /**
  * Temporary Phase 1A review bank. Home and Daily Review must call this exact
  * builder with the same attempt seed so the badge only counts servable IDs.
@@ -117,13 +154,16 @@ export function buildPhase1ReviewQuestions(
   content: DialectContent,
   dialect: string,
   attemptSeed: string,
+  curriculumItems: readonly CurriculumItem[] = getDialectCurriculumItems(dialect),
 ): QuizQuestion[] {
   const { select, shuffle } = createSelection(attemptSeed);
   const scenarioNames = Object.keys(content.scenarios);
-  const scenarioEntries = scenarioNames
+  const legacyScenarioEntries: ReviewDialogueEntry[] = scenarioNames
     .map(name => ({ name, turns: content.scenarios[name] ?? [] }))
     .filter(entry => entry.turns.length > 0);
-  const allTurns = scenarioEntries.flatMap(entry => entry.turns);
+  const missionEntries = getMissionReviewEntries(content, curriculumItems);
+  const scenarioEntries = [...legacyScenarioEntries, ...missionEntries];
+  const allTurns = legacyScenarioEntries.flatMap(entry => entry.turns);
   const userTurns = allTurns.filter(turn => turn.type === 'user');
   const questions: QuizQuestion[] = [];
 
@@ -156,7 +196,9 @@ export function buildPhase1ReviewQuestions(
   };
 
   scenarioEntries.forEach(entry => {
-    const sceneImage = getScenarioSceneImage(content, dialect, entry.name);
+    const sceneImage = entry.item
+      ? content.sceneImages[entry.item.sceneImageId ?? entry.item.sceneImageKey ?? ''] ?? null
+      : getScenarioSceneImage(content, dialect, entry.name);
     const scenarioUserTurns = entry.turns.filter(turn => turn.type === 'user');
     const scenarioNpcTurns = entry.turns.filter(turn => turn.type !== 'user');
     const scenarioQuestionTurns = uniqueTurns([...scenarioUserTurns, ...scenarioNpcTurns]);
@@ -167,7 +209,7 @@ export function buildPhase1ReviewQuestions(
       const options = makeOptions(answerTurn, scenarioUserTurns);
       if (promptTurn.audio && options.length === 4) {
         questions.push({
-          id: `${dialect}_${entry.name}_scene`,
+          id: getReviewQuestionId(dialect, entry, 'scenario_usage', 'scene'),
           format: 'scene_replay',
           scenarioSource: entry.name.toLowerCase(),
           xpValue: 10,
@@ -193,7 +235,7 @@ export function buildPhase1ReviewQuestions(
       const options = makeOptions(blankTurn, scenarioUserTurns);
       if (options.length === 4) {
         questions.push({
-          id: `${dialect}_${entry.name}_fill`,
+          id: getReviewQuestionId(dialect, entry, 'scenario_usage', 'fill'),
           format: 'fill_conversation',
           scenarioSource: entry.name.toLowerCase(),
           xpValue: 10,
@@ -208,7 +250,13 @@ export function buildPhase1ReviewQuestions(
       const options = makeOptions(listeningTurn, scenarioQuestionTurns.filter(turn => turn.type === listeningTurn.type));
       if (options.length !== 4) return;
       questions.push({
-        id: `${dialect}_${entry.name}_listen_${stableQuizHash(turnKey(listeningTurn)).toString(36)}`,
+        id: getReviewQuestionId(
+          dialect,
+          entry,
+          'listening',
+          `listen_${stableQuizHash(turnKey(listeningTurn)).toString(36)}`,
+          `listen-${stableQuizHash(listeningTurn.audioPath ?? turnKey(listeningTurn)).toString(36)}`,
+        ),
         format: 'listening',
         scenarioSource: entry.name.toLowerCase(),
         xpValue: 10,
@@ -240,6 +288,25 @@ export function buildPhase1ReviewQuestions(
       pairs,
     });
   }
+
+  missionEntries.forEach(entry => {
+    const missionTurns = uniqueTurns(meaningfulTurns(entry.turns.filter(turn => turn.type === 'user')));
+    const missionPairs = select(missionTurns, 4, `${dialect}:${entry.name}:mission-match`, turnKey).map(turn => ({
+      arabic: displayTurnArabic(turn),
+      transliteration: turn.transliteration,
+      meaning: turn.english,
+    }));
+    if (missionPairs.length !== 4 || new Set(missionPairs.map(pair => pair.meaning.trim().toLowerCase())).size !== 4) {
+      return;
+    }
+    questions.push({
+      id: getReviewQuestionId(dialect, entry, 'recognition', 'match', 'match'),
+      format: 'emoji_match',
+      scenarioSource: entry.name.toLowerCase(),
+      xpValue: 10,
+      pairs: missionPairs,
+    });
+  });
 
   return questions;
 }

@@ -1,5 +1,20 @@
-import type { CurriculumItem, DialectCurriculum } from './types';
+import type { CurriculumItem, CurriculumUnit, DialectCurriculum, Unit1BlueprintRole } from './types';
 import { buildSharedWritingItems } from './shared';
+import {
+  MSA_DESCRIBE_THE_WORLD_DEFINITION,
+  MSA_EVERYDAY_OBJECTS_DEFINITION,
+  MSA_FIRST_ARABIC_WORDS_DEFINITION,
+  MSA_FOOD_AND_DRINKS_DEFINITION,
+  MSA_NUMBERS_AND_MONEY_DEFINITION,
+  MSA_PEOPLE_AROUND_YOU_DEFINITION,
+  MSA_POLITE_LIKE_A_LOCAL_DEFINITION,
+  MSA_WHERE_HERE_THERE_DEFINITION,
+  MSA_INTRODUCE_YOURSELF_DEFINITION,
+  MSA_HOW_ARE_YOU_DEFINITION,
+  MSA_BIG_REVIEW_DEFINITION,
+  MSA_FIRST_CAFE_CONVERSATION_DEFINITION,
+  MSA_FIRST_ARABIC_CHALLENGE_DEFINITION,
+} from '../msa-unit1';
 import { MSA_UNIT2_SCENARIOS } from '../msa-dialogues';
 import { MSA_UNIT4_LESSONS } from '../msa-numbers';
 import { MSA_UNIT5_LESSONS } from '../msa-grammar';
@@ -8,20 +23,107 @@ import { MSA_UNIT7_LESSONS } from '../msa-work';
 import { MSA_UNIT8_SCENARIOS } from '../msa-emergencies';
 import { MSA_UNIT9_LESSONS } from '../msa-social';
 import { MSA_UNIT10_SCENARIOS } from '../msa-friends';
+import { buildLegacyUnit1CurriculumUnit, buildUnit1MissionItems } from './unit1';
 
 const dialect = 'msa' as const;
+
+export type MsaUnit1CurriculumVersion = 'legacy' | 'v2';
+
+type MsaUnit1BlueprintEntry = {
+  missionId: string;
+  role: Unit1BlueprintRole;
+};
+
+/**
+ * Final MSA Unit 1 v2 order. Legacy rows remain in the legacy curriculum and
+ * content registry, but are intentionally not visible here.
+ */
+export const MSA_UNIT1_V2_BLUEPRINT: readonly MsaUnit1BlueprintEntry[] = [
+  { missionId: 'first_arabic_words', role: 'native_mission' },
+  { missionId: 'polite_like_a_local', role: 'native_mission' },
+  { missionId: 'people_around_you', role: 'native_mission' },
+  { missionId: 'everyday_objects', role: 'native_mission' },
+  { missionId: 'food_and_drinks', role: 'native_mission' },
+  { missionId: 'describe_the_world', role: 'native_mission' },
+  { missionId: 'numbers_and_money', role: 'native_mission' },
+  { missionId: 'where_here_there', role: 'native_mission' },
+  { missionId: 'introduce_yourself', role: 'native_mission' },
+  { missionId: 'how_are_you', role: 'native_mission' },
+  { missionId: 'big_review', role: 'native_mission' },
+  { missionId: 'first_cafe_conversation', role: 'native_mission' },
+  { missionId: 'first_arabic_challenge', role: 'native_mission' },
+];
+
+export function resolveMsaUnit1CurriculumVersion({
+  requestedVersion = process.env.EXPO_PUBLIC_MSA_UNIT1_CURRICULUM_VERSION,
+  appEnv = process.env.EXPO_PUBLIC_APP_ENV,
+  isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true,
+}: {
+  requestedVersion?: string;
+  appEnv?: string;
+  isLocalDevelopment?: boolean;
+} = {}): MsaUnit1CurriculumVersion {
+  if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
+  if (appEnv === 'development' || appEnv === 'preview') return 'v2';
+  return isLocalDevelopment ? 'v2' : 'legacy';
+}
+
+export function buildMsaUnit1CurriculumUnit(
+  version: MsaUnit1CurriculumVersion = resolveMsaUnit1CurriculumVersion(),
+): CurriculumUnit {
+  const legacyUnit = buildLegacyUnit1CurriculumUnit({
+    dialect,
+    acceptedTransliterationProfile: 'msa',
+    quizScreen: 'quiz-unit2',
+    quizUnit: '1',
+    quizSubtitle: 'Test what you learned',
+  });
+  if (version === 'legacy') return legacyUnit;
+
+  const nativeItems = buildUnit1MissionItems(
+    dialect,
+    [
+      MSA_FIRST_ARABIC_WORDS_DEFINITION,
+      MSA_POLITE_LIKE_A_LOCAL_DEFINITION,
+      MSA_PEOPLE_AROUND_YOU_DEFINITION,
+      MSA_EVERYDAY_OBJECTS_DEFINITION,
+      MSA_FOOD_AND_DRINKS_DEFINITION,
+      MSA_DESCRIBE_THE_WORLD_DEFINITION,
+      MSA_NUMBERS_AND_MONEY_DEFINITION,
+      MSA_WHERE_HERE_THERE_DEFINITION,
+      MSA_INTRODUCE_YOURSELF_DEFINITION,
+      MSA_HOW_ARE_YOU_DEFINITION,
+      MSA_BIG_REVIEW_DEFINITION,
+      MSA_FIRST_CAFE_CONVERSATION_DEFINITION,
+      MSA_FIRST_ARABIC_CHALLENGE_DEFINITION,
+    ],
+    'msa',
+  );
+  const itemsById = new Map(
+    nativeItems.map(item => [item.contentId, item]),
+  );
+
+  return {
+    ...legacyUnit,
+    items: MSA_UNIT1_V2_BLUEPRINT.map(entry => {
+      const item = itemsById.get(entry.missionId);
+      if (!item) throw new Error(`Missing MSA Unit 1 blueprint item: ${entry.missionId}`);
+      return { ...item, unit1BlueprintRole: entry.role };
+    }),
+  };
+}
 
 const lesson = (
   unitId: string,
   contentId: string,
   title: string,
   lessonWords?: CurriculumItem['lessonWords'],
-  lessonKey?: CurriculumItem['lessonKey'],
+  contentRef?: CurriculumItem['contentRef'],
   commercialAccess: 'free' | 'premium' = 'free',
 ): CurriculumItem => ({
   dialect, unitId, contentId, contentType: 'lesson', title, subtitle: contentId === 'intro' ? '4 mins' : '3 mins',
   route: { screen: 'lesson', params: { type: contentId } }, homeHref: `/lesson?type=${contentId}`,
-  availability: 'available', commercialAccess, lessonKey, lessonWords, acceptedTransliterationProfile: 'msa',
+  availability: 'available', commercialAccess, contentRef, lessonWords, acceptedTransliterationProfile: 'msa',
 });
 
 const scenario = (
@@ -57,12 +159,7 @@ const lessonItems = (
 export const MSA_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
-    { dialect, unitId: 'unit-1', title: 'Unit 1: First Words', availability: 'available', items: [
-      lesson('unit-1', 'basic_words', 'Basic Words', undefined, 'basic'),
-      lesson('unit-1', 'greetings', 'Common Greetings', undefined, 'greetings'),
-      lesson('unit-1', 'intro', 'Introduce Yourself', undefined, 'intro'),
-      quiz(1, 'free'),
-    ] },
+    buildMsaUnit1CurriculumUnit(),
     { dialect, unitId: 'unit-2', title: 'Unit 2: Everyday Situations', availability: 'available', items: [
       ...MSA_UNIT2_SCENARIOS.map(item => scenario('unit-2', item, 'free')),
       quiz(2, 'free'),

@@ -4,13 +4,16 @@ export type QuizFormat =
   | 'listening'
   | 'emoji_match'
   | 'transliteration_type'   // Tier 3+: type the transliteration from memory
-  | 'arabic_select';          // Tier 4+: read Arabic script, no transliteration hints
+  | 'arabic_select'          // Tier 4+: read Arabic script, no transliteration hints
+  | 'phrase_arrangement';
 
 interface BaseQuestion {
   id: string;
   format: QuizFormat;
   scenarioSource: string;
   xpValue: number;
+  category?: 'mini_situation' | 'best_reply' | 'phrase_arrangement' | 'translation' | 'mixed_situation';
+  hideTransliterationBeforeAnswer?: boolean;
 }
 
 export interface SceneReplayQuestion extends BaseQuestion {
@@ -75,10 +78,19 @@ export interface ArabicSelectQuestion extends BaseQuestion {
   options: { arabic: string; isCorrect: boolean }[];
 }
 
+export interface PhraseArrangementQuestion extends BaseQuestion {
+  format: 'phrase_arrangement';
+  prompt: string;
+  tokens: string[];
+  correctTokens: string[];
+  transliteration: string;
+}
+
 export type QuizQuestion =
   | SceneReplayQuestion
   | FillConversationQuestion
   | ListeningQuestion
   | EmojiMatchQuestion
   | TransliterationTypeQuestion
-  | ArabicSelectQuestion;
+  | ArabicSelectQuestion
+  | PhraseArrangementQuestion;

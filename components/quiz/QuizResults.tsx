@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { getPersistableQuizXp } from '../../utils/quiz-scoring';
@@ -18,6 +18,7 @@ interface Props {
   correctedCount?: number;
   missedCount?: number;
   srsSummary?: QuizSrsSummary | null;
+  completionMessage?: string;
   onPracticeMistakes: () => void;
   onRetryFull: () => void;
   onHome: () => void;
@@ -37,6 +38,7 @@ export default function QuizResults({
   correctedCount = 0,
   missedCount = 0,
   srsSummary,
+  completionMessage,
   onPracticeMistakes,
   onRetryFull,
   onHome,
@@ -50,11 +52,11 @@ export default function QuizResults({
     'Keep practicing 💪';
 
   const circleColor = passed ? theme.colors.accentPrimary : theme.colors.accentDanger;
-  const awardedAttemptXp = getPersistableQuizXp(correct, total, xpEarned, isReview);
+  const awardedAttemptXp = passed ? getPersistableQuizXp(correct, total, xpEarned, isReview) : 0;
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.grade}>{grade}</Text>
 
         {/* Stars */}
@@ -94,7 +96,7 @@ export default function QuizResults({
         {isReview ? (
           <Text style={styles.passMsg}>✓ Practice complete.</Text>
         ) : passed && !persistenceFailed ? (
-          <Text style={styles.passMsg}>✓ Quiz passed! Next lesson unlocked.</Text>
+          <Text style={styles.passMsg}>✓ {completionMessage ?? 'Quiz passed! Next lesson unlocked.'}</Text>
         ) : passed ? (
           <Text style={styles.failMsg}>Quiz passed, but progress could not be saved.</Text>
         ) : (
@@ -148,14 +150,14 @@ export default function QuizResults({
         <Pressable style={styles.secondaryBtn} onPress={onRetryFull}>
           <Text style={styles.secondaryBtnText}>Retry Full Quiz</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl },
+  content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: theme.spacing.xxl, paddingBottom: theme.spacing.xxl + 16 },
   grade: { fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 12 },
   stars: { flexDirection: 'row', gap: 4, marginBottom: 20 },
   star: { fontSize: 32 },

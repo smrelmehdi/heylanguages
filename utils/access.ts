@@ -235,7 +235,13 @@ export function getContentAccess({
 }: ContentAccessInput): ContentAccessResult {
   const normalized = normalizeContentId(contentId);
   const meta = getDialectContentMeta(dialect, normalized, contentType);
-  if (!normalized || !meta || meta.availability === 'unavailable' || (unitId && meta.unitId !== unitId)) {
+  if (
+    !normalized
+    || !meta
+    || meta.availability === 'unavailable'
+    || (unitId && meta.unitId !== unitId)
+    || !isContentAvailableForDialect(dialect, normalized, contentType)
+  ) {
     return { allowed: false, reason: 'unavailable' };
   }
 
@@ -266,9 +272,14 @@ export function getLessonContentId(type: string | undefined) {
   return normalized;
 }
 
-export function getScenarioContentId(type: string | undefined) {
+export function getScenarioContentId(type: string | undefined, dialect?: string) {
   if (!type) return null;
-  return SCENARIO_TYPE_TO_CONTENT_ID[type] ?? null;
+  const legacyContentId = SCENARIO_TYPE_TO_CONTENT_ID[type];
+  if (legacyContentId) return legacyContentId;
+  const missionContentId = normalizeContentId(type);
+  return dialect && getDialectContentMeta(dialect, missionContentId, 'scenario')?.missionId === missionContentId
+    ? missionContentId
+    : null;
 }
 
 export function getWritingContentId(family: string | undefined) {
@@ -281,6 +292,8 @@ export function getDialectKnownContentIds(dialect: string) {
 }
 
 export function getQuizContentId(unit: string | undefined) {
+  if (unit === 'u1-review') return 'big_review';
+  if (unit === 'u1-challenge') return 'first_arabic_challenge';
   if (!unit) return 'quiz_u1';
   if (unit === '2p1') return 'quiz_u2_p1';
   if (unit === '2p2') return 'quiz_u2_p2';

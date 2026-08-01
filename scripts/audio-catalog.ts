@@ -321,6 +321,7 @@ function buildAlphabetTargets(): AudioTarget[] {
 function buildMsaCurriculumTargets(): AudioTarget[] {
   const { MSA_CURRICULUM } = require('../data/curriculum/msa');
   const { getDialectContent } = require('../data/content-registry');
+  const { resolveCurriculumItem } = require('../utils/content-resolver') as typeof import('../utils/content-resolver');
   const { ALPHABET_AUDIO_MSA, MSA_WRITING_EXAMPLE_WORDS } = require('../data/msa-alphabet-audio');
   const content = getDialectContent('msa');
   const targets: AudioTarget[] = [];
@@ -329,12 +330,12 @@ function buildMsaCurriculumTargets(): AudioTarget[] {
   for (const unit of MSA_CURRICULUM.units) {
     const unitNumber = Number(unit.unitId.replace('unit-', ''));
     for (const item of unit.items) {
-      if (item.contentType === 'lesson') {
-        const words = item.lessonWords ?? (item.lessonKey ? content.lessons[item.lessonKey] : []) ?? [];
-        targets.push(...buildLessonTargets('msa', item.contentId, words, `msa/unit-${unitNumber}/${item.contentId}`)
+      const resolvedItem = resolveCurriculumItem(item, content);
+      if (resolvedItem?.lessonWords) {
+        targets.push(...buildLessonTargets('msa', item.contentId, resolvedItem.lessonWords, `msa/unit-${unitNumber}/${item.contentId}`)
           .map(target => ({ ...target, unit: unitNumber })));
-      } else if (item.contentType === 'scenario' && item.scenarioName) {
-        targets.push(...buildScenarioTargets('msa', item.contentId, content.scenarios[item.scenarioName] ?? [], `msa/unit-${unitNumber}/${item.contentId}`)
+      } else if (resolvedItem?.dialogue) {
+        targets.push(...buildScenarioTargets('msa', item.contentId, resolvedItem.dialogue, `msa/unit-${unitNumber}/${item.contentId}`)
           .map(target => ({ ...target, unit: unitNumber })));
       } else if (item.contentType === 'writing' && !alphabetAdded) {
         alphabetAdded = true;

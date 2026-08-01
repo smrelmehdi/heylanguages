@@ -1,5 +1,11 @@
-import { getDialectContentMeta, getDialectProgressionItems, normalizePublicContentId } from './content-resolver';
+import {
+  getCurriculumMissionId,
+  getDialectContentMeta,
+  getDialectProgressionItems,
+  normalizePublicContentId,
+} from './content-resolver';
 import type { SupportedDialect } from '../data/curriculum';
+import type { CurriculumItem } from '../data/curriculum';
 
 export type CompletionKeyParts = {
   dialect: SupportedDialect;
@@ -31,6 +37,14 @@ export function getCompletionKeyCandidates(dialect: string, contentId: string | 
   if (!item || item.availability === 'unavailable') return [];
   const canonical = buildCompletionKey(item.dialect, item.unitId, item.contentId);
   const candidates = [canonical];
+  if (item.dialect === 'msa' && item.contentId === 'first_arabic_challenge') {
+    candidates.push(
+      buildCompletionKey('msa', 'unit-1', 'dubai_challenge'),
+      buildCompletionKey('msa', 'unit-1', 'quiz_u1'),
+      'dubai_challenge',
+      'quiz_u1',
+    );
+  }
   // Legacy unqualified progress belongs to Gulf only. This preserves existing
   // users without letting Gulf completion unlock Egyptian/MSA content.
   if (item.dialect === 'gulf') {
@@ -54,12 +68,20 @@ export function isFirstContentCompletion(
 }
 
 export function getPreviousProgressionContentId(dialect: string, contentId: string | null | undefined) {
+  return getPreviousProgressionContentIdFromItems(getDialectProgressionItems(dialect), contentId);
+}
+
+export function getPreviousProgressionContentIdFromItems(
+  items: readonly CurriculumItem[],
+  contentId: string | null | undefined,
+) {
   const normalized = normalizePublicContentId(contentId);
   if (!normalized) return null;
-  const order = getDialectProgressionItems(dialect);
-  const index = order.findIndex(item => item.contentId === normalized);
+  const index = items.findIndex(item =>
+    item.contentId === normalized || getCurriculumMissionId(item) === normalized
+  );
   if (index < 0) return null;
-  return index > 0 ? order[index - 1]?.contentId ?? null : null;
+  return index > 0 ? items[index - 1]?.contentId ?? null : null;
 }
 
 export function getFirstProgressionContentId(dialect: string) {

@@ -1,4 +1,8 @@
 import { supabase } from './supabase';
+import { getDialectContent } from '../data/content-registry';
+import type { SupportedDialect } from '../data/curriculum';
+import { buildCurriculumWordUnitIndex, normalizeCurriculumMemoryWord } from './curriculum-memory';
+import { getDialectProgressionItems } from './content-resolver';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +102,23 @@ export const UNIT_WORDS: Record<string, number> = {
   'وَدَاع': 10, 'سَفَر': 10, 'تَذْكُرنِي': 10, 'نِفْتَقِدَك': 10, 'اَللَّه مَعَك': 10,
 };
 
+const MEMORY_DIALECTS: SupportedDialect[] = ['gulf', 'egyptian', 'msa'];
+let curriculumWordUnits: Map<string, number> | null = null;
+
+function getCurriculumWordUnits() {
+  if (curriculumWordUnits) return curriculumWordUnits;
+  curriculumWordUnits = buildCurriculumWordUnitIndex(MEMORY_DIALECTS.map(dialect => ({
+    items: getDialectProgressionItems(dialect),
+    content: getDialectContent(dialect),
+  })));
+
+  return curriculumWordUnits;
+}
+
+export function getMemoryWordUnit(word: string) {
+  return UNIT_WORDS[word] ?? getCurriculumWordUnits().get(normalizeCurriculumMemoryWord(word));
+}
+
 // ── fetchMemory ──────────────────────────────────────────────────────────────
 
 export async function fetchMemory(userId: string): Promise<UserMemory | null> {
@@ -145,7 +166,7 @@ export function buildMemoryPrompt(memory: UserMemory | null): string {
 
   // Weak word → unit hints (only emit for words we recognise in the curriculum)
   for (const w of memory.weak_words) {
-    const unit = UNIT_WORDS[w];
+    const unit = getMemoryWordUnit(w);
     if (unit) lines.push(`${w} appears in Unit ${unit} — suggest revisiting if relevant.`);
   }
 
