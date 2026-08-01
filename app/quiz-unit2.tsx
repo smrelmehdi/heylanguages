@@ -52,6 +52,7 @@ import {
 } from '../utils/quiz-scoring';
 import { buildMsaBigReviewQuestions, buildMsaFirstArabicChallengeQuestions } from '../data/msa-unit1-quizzes';
 import { buildGulfBigReviewQuestions, buildGulfFirstArabicChallengeQuestions } from '../data/gulf-unit1-quizzes';
+import { buildEgyptianBigReviewQuestions, buildEgyptianFirstArabicChallengeQuestions } from '../data/egyptian-unit1-quizzes';
 
 type Phase = 'intro' | 'quiz' | 'redrill' | 'results';
 
@@ -1601,7 +1602,7 @@ export default function QuizUnit2Screen() {
 
   const quizTitle =
     requestedUnit === 'u1-review' ? 'Big Review' :
-    requestedUnit === 'u1-challenge' ? 'Your First Arabic Challenge' :
+    requestedUnit === 'u1-challenge' ? (dialect === 'egyptian' ? 'Your First Egyptian Arabic Challenge' : 'Your First Arabic Challenge') :
     requestedUnit === 'review' ? 'Review Quiz' :
     requestedUnit === '1'   ? 'Unit 1 Quiz' :
     requestedUnit === '2'   ? 'Unit 2 Quiz' :
@@ -1639,10 +1640,12 @@ export default function QuizUnit2Screen() {
     }
 
     if (requestedUnit === 'u1-review' || requestedUnit === 'u1-challenge') {
-      if ((dialect !== 'msa' && dialect !== 'gulf') || !unit1Mission?.quizQuestions?.length) return null;
+      if ((dialect !== 'msa' && dialect !== 'gulf' && dialect !== 'egyptian') || !unit1Mission?.quizQuestions?.length) return null;
       const selected = dialect === 'gulf'
         ? requestedUnit === 'u1-review' ? buildGulfBigReviewQuestions(attemptSeed) : buildGulfFirstArabicChallengeQuestions(attemptSeed)
-        : requestedUnit === 'u1-review' ? buildMsaBigReviewQuestions(attemptSeed) : buildMsaFirstArabicChallengeQuestions(attemptSeed);
+        : dialect === 'egyptian'
+          ? requestedUnit === 'u1-review' ? buildEgyptianBigReviewQuestions(attemptSeed) : buildEgyptianFirstArabicChallengeQuestions(attemptSeed)
+          : requestedUnit === 'u1-review' ? buildMsaBigReviewQuestions(attemptSeed) : buildMsaFirstArabicChallengeQuestions(attemptSeed);
       return {
         attempt,
         questions: selected,

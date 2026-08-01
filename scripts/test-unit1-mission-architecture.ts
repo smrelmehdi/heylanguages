@@ -134,6 +134,9 @@ const { buildMsaBigReviewQuestions, buildMsaFirstArabicChallengeQuestions } = re
 const { GULF_UNIT1_MISSIONS, GULF_FIRST_CAFE_DIALOGUE } = require('../data/gulf-unit1') as typeof import('../data/gulf-unit1');
 const { buildGulfBigReviewQuestions, buildGulfFirstArabicChallengeQuestions } = require('../data/gulf-unit1-quizzes') as typeof import('../data/gulf-unit1-quizzes');
 const { buildGulfUnit1CurriculumUnit, resolveGulfUnit1CurriculumVersion } = require('../data/curriculum/gulf') as typeof import('../data/curriculum/gulf');
+const { buildEgyptianUnit1CurriculumUnit, resolveEgyptianUnit1CurriculumVersion } = require('../data/curriculum/egyptian') as typeof import('../data/curriculum/egyptian');
+const { EGYPTIAN_FIRST_CAFE_DIALOGUE } = require('../data/egyptian-unit1') as typeof import('../data/egyptian-unit1');
+const { buildEgyptianBigReviewQuestions, buildEgyptianFirstArabicChallengeQuestions } = require('../data/egyptian-unit1-quizzes') as typeof import('../data/egyptian-unit1-quizzes');
 
 const DIALECTS: SupportedDialect[] = ['gulf', 'egyptian', 'msa'];
 const LEGACY_LESSON_KEYS = ['basic', 'greetings', 'intro'] as const;
@@ -304,7 +307,7 @@ function testFirstArabicWordsMissionDataAndIsolation() {
   const egyptianContent = getDialectContent('egyptian');
   assert.equal(msaContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
   assert.notEqual(gulfContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
-  assert.equal(egyptianContent.missions.first_arabic_words, undefined);
+  assert.notEqual(egyptianContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
 
   const v2Item = buildMsaUnit1CurriculumUnit('v2').items[0];
   const resolved = resolveCurriculumItem(v2Item, msaContent);
@@ -385,7 +388,7 @@ function testPoliteLikeALocalMissionDataAndIsolation() {
   const egyptianContent = getDialectContent('egyptian');
   assert.equal(msaContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
   assert.notEqual(gulfContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
-  assert.equal(egyptianContent.missions.polite_like_a_local, undefined);
+  assert.notEqual(egyptianContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
 
   const v2Item = buildMsaUnit1CurriculumUnit('v2').items[1];
   assert.equal(v2Item.contentId, 'polite_like_a_local');
@@ -673,7 +676,7 @@ function testMissionsThreeThroughEightDataAndIsolation() {
 
     assert.equal(msaContent.missions[fixture.missionId], fixture.mission);
     assert.notEqual(gulfContent.missions[fixture.missionId], fixture.mission);
-    assert.equal(egyptianContent.missions[fixture.missionId], undefined);
+    assert.notEqual(egyptianContent.missions[fixture.missionId], fixture.mission);
 
     const item = v2Unit.items[fixtureIndex + 2];
     assert.equal(item.contentId, fixture.missionId);
@@ -1152,7 +1155,7 @@ function testFinalMissionsAndChallengeGate() {
   });
 
   assert.notEqual(getDialectContent('gulf').missions.introduce_yourself, MSA_INTRODUCE_YOURSELF_MISSION);
-  assert.equal(getDialectContent('egyptian').missions.first_arabic_challenge, undefined);
+  assert.notEqual(getDialectContent('egyptian').missions.first_arabic_challenge, MSA_FIRST_ARABIC_CHALLENGE_MISSION);
 
   const msaCurriculum = getDialectCurriculum('msa');
   const originalUnit = msaCurriculum.units[0];
@@ -1194,7 +1197,7 @@ function testGulfUnit1V2() {
     assert.equal(resolved?.missionContent?.audioMode, 'none');
     assert.equal(resolved?.missionContent, gulf.missions[item.contentId]);
     assert.notEqual(resolved?.missionContent, msa.missions[item.contentId]);
-    assert.equal(egyptian.missions[item.contentId], undefined);
+    assert.notEqual(egyptian.missions[item.contentId], gulf.missions[item.contentId]);
   });
   unit.items.forEach((item,index)=>assert.equal(gulf.missions[item.contentId].pronunciationEnabled,index<10?true:undefined));
   assert.ok(buildMsaUnit1CurriculumUnit('v2').items.every(item=>getDialectContent('msa').missions[item.contentId].pronunciationEnabled===undefined));
@@ -1246,6 +1249,24 @@ function testGulfUnit1V2() {
   assert.equal(/play(?:Local)?Audio[^\n]*audioRecorder\.uri/.test(lessonSource),false);
 }
 
+function testEgyptianUnit1V2Bridge() {
+  const unit = buildEgyptianUnit1CurriculumUnit('v2');
+  assert.deepEqual(unit.items.map(item => item.contentId), [...MSA_V2_NATIVE_MISSION_IDS]);
+  assert.deepEqual(buildEgyptianUnit1CurriculumUnit('legacy').items.map(item => item.contentId), [...LEGACY_UNIT1_MISSION_IDS]);
+  assert.equal(resolveEgyptianUnit1CurriculumVersion({ requestedVersion:'v2', appEnv:'production', isLocalDevelopment:true }), 'legacy');
+  assert.equal(EGYPTIAN_FIRST_CAFE_DIALOGUE.length, 14);
+  assert.equal(buildEgyptianBigReviewQuestions('architecture').length, 24);
+  assert.equal(buildEgyptianFirstArabicChallengeQuestions('architecture').length, 20);
+  unit.items.forEach((item, index) => {
+    const mission = getDialectContent('egyptian').missions[item.contentId];
+    assert.ok(mission);
+    assert.equal(mission.audioMode, 'none');
+    assert.equal(mission.pronunciationEnabled, index < 10 ? true : undefined);
+    assert.notEqual(mission, getDialectContent('msa').missions[item.contentId]);
+    assert.notEqual(mission, getDialectContent('gulf').missions[item.contentId]);
+  });
+}
+
 function main() {
   testMsaV2FlagSafetyAndBridge();
   testFirstArabicWordsMissionDataAndIsolation();
@@ -1259,6 +1280,7 @@ function main() {
   testCurrentReviewOutputIsUnchangedByAdapter();
   testFinalMissionsAndChallengeGate();
   testGulfUnit1V2();
+  testEgyptianUnit1V2Bridge();
   console.log('Unit 1 mission architecture regression tests passed.');
 }
 

@@ -129,6 +129,9 @@ export function getDialectContentMeta(
   if (dialect === 'gulf' && normalized === 'quiz_u1') {
     return items.find(item => item.contentId === 'first_arabic_challenge' && (!contentType || item.contentType === contentType)) ?? null;
   }
+  if (dialect === 'egyptian' && normalized === 'quiz_u1') {
+    return items.find(item => item.contentId === 'first_arabic_challenge' && (!contentType || item.contentType === contentType)) ?? null;
+  }
   return null;
 }
 

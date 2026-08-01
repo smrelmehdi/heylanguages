@@ -12,6 +12,7 @@ import {
     TAXI_DIALOGUE_EG,
 } from './egyptian-dialogues';
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
+import { EGYPTIAN_UNIT1_MISSIONS } from './egyptian-unit1';
 import { GULF_UNIT1_MISSIONS } from './gulf-unit1';
 import { EGYPTIAN_UNIT6_SCENARIOS, EGYPTIAN_UNIT6_SCENARIOS_BY_NAME } from './egyptian-unit6';
 import { EGYPTIAN_UNIT7_LESSONS } from './egyptian-work';
@@ -330,11 +331,10 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
     dialect: 'egyptian',
     voiceId: 'LXrTqFIgiubkrMkwvOUr',
     lessons: { basic: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG },
-    missions: createLegacyUnit1MissionContent({
-      basicWords: BASIC_WORDS_EG,
-      greetings: GREETINGS_WORDS_EG,
-      intro: INTRO_WORDS_EG,
-    }),
+    missions: createMissionContentRegistry([
+      ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG })),
+      ...EGYPTIAN_UNIT1_MISSIONS,
+    ]),
     scenarios: {
       Cafe:        CAFE_DIALOGUE_EG,
       Taxi:        TAXI_DIALOGUE_EG,
@@ -349,6 +349,7 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       ...EGYPTIAN_UNIT10_SCENARIOS_BY_NAME,
     },
     sceneImages: {
+      Cafe: GULF_SCENE_IMAGES.Cafe,
       'cairo-airport-entrance': require('../assets/images/cairo-airport-entrance.webp'),
       'cairo-airport-interior': require('../assets/images/cairo-airport-interior.webp'),
       'cairo-barbershop-entrance': require('../assets/images/cairo-barbershop-entrance.webp'),

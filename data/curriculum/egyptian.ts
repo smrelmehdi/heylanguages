@@ -1,4 +1,4 @@
-import type { CurriculumItem, DialectCurriculum } from './types';
+import type { CurriculumItem, CurriculumUnit, DialectCurriculum } from './types';
 import { buildSharedWritingItems } from './shared';
 import {
   NUMBERS_100_1000_WORDS_EG,
@@ -31,9 +31,22 @@ import { EGYPTIAN_UNIT8_SCENARIOS } from '../egyptian-emergencies';
 import { EGYPTIAN_UNIT9_LESSONS } from '../egyptian-social';
 import { EGYPTIAN_UNIT10_SCENARIOS } from '../egyptian-friends';
 import { getEgyptianSceneImageIds } from '../egyptian-scene-images';
-import { buildLegacyUnit1CurriculumUnit } from './unit1';
+import { buildLegacyUnit1CurriculumUnit, buildUnit1MissionItems } from './unit1';
+import { EGYPTIAN_UNIT1_DEFINITIONS } from '../egyptian-unit1';
 
 const dialect = 'egyptian' as const;
+export type EgyptianUnit1CurriculumVersion = 'legacy' | 'v2';
+export const EGYPTIAN_UNIT1_V2_MISSION_IDS = EGYPTIAN_UNIT1_DEFINITIONS.map(definition => definition.missionId);
+export function resolveEgyptianUnit1CurriculumVersion({ requestedVersion = process.env.EXPO_PUBLIC_EGYPTIAN_UNIT1_CURRICULUM_VERSION, appEnv = process.env.EXPO_PUBLIC_APP_ENV, isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true }: { requestedVersion?: string; appEnv?: string; isLocalDevelopment?: boolean } = {}): EgyptianUnit1CurriculumVersion {
+  if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
+  if (appEnv === 'development' || appEnv === 'preview') return 'v2';
+  return isLocalDevelopment ? 'v2' : 'legacy';
+}
+export function buildEgyptianUnit1CurriculumUnit(version: EgyptianUnit1CurriculumVersion = resolveEgyptianUnit1CurriculumVersion()): CurriculumUnit {
+  const legacy = buildLegacyUnit1CurriculumUnit({ dialect, acceptedTransliterationProfile:'egyptian', quizScreen:'quiz', quizSubtitle:'Test what you learned · +150 XP' });
+  if (version === 'legacy') return legacy;
+  return { ...legacy, items: buildUnit1MissionItems(dialect, EGYPTIAN_UNIT1_DEFINITIONS, 'egyptian').map(item => ({ ...item, unit1BlueprintRole:'native_mission' })) };
+}
 
 const SCENARIO_HOME_HREFS: Record<string, string> = {
   Cafe: '/scenario-intro?type=Cafe',
@@ -129,12 +142,7 @@ const quiz = (
 export const EGYPTIAN_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
-    buildLegacyUnit1CurriculumUnit({
-      dialect,
-      acceptedTransliterationProfile: 'egyptian',
-      quizScreen: 'quiz',
-      quizSubtitle: 'Test what you learned · +150 XP',
-    }),
+    buildEgyptianUnit1CurriculumUnit(),
     {
       dialect,
       unitId: 'unit-2',

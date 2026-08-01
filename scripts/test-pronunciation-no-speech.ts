@@ -30,6 +30,9 @@ for (const phrase of [
 for (const word of ['هيه', 'شو', 'هلا', 'زين']) {
   assert.equal(classifyUnusableSpeech(word, word, { confidence: 0.9, durationSeconds: 0.5 }), null, word);
 }
+for (const word of ['أيوه', 'إيه', 'لأ', 'كويس']) {
+  assert.equal(classifyUnusableSpeech(word, word, { confidence: 0.9, durationSeconds: 0.5 }), null, word);
+}
 assert.equal(classifyUnusableSpeech('أريد قهوة من فضلك', 'اريد قهوة من فضلك', { confidence: 0.8 }), null);
 assert.equal(normalizePronunciationTranscript('شكراً'), 'شكرا');
 assert.equal(NO_SPEECH_FEEDBACK, "I couldn't hear you. Try again.");
