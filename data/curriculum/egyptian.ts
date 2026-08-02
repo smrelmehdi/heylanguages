@@ -31,11 +31,13 @@ import { EGYPTIAN_UNIT8_SCENARIOS } from '../egyptian-emergencies';
 import { EGYPTIAN_UNIT9_LESSONS } from '../egyptian-social';
 import { EGYPTIAN_UNIT10_SCENARIOS } from '../egyptian-friends';
 import { getEgyptianSceneImageIds } from '../egyptian-scene-images';
-import { buildLegacyUnit1CurriculumUnit, buildUnit1MissionItems } from './unit1';
+import { buildLegacyUnit1CurriculumUnit, buildMissionItems, buildUnit1MissionItems } from './unit1';
 import { EGYPTIAN_UNIT1_DEFINITIONS } from '../egyptian-unit1';
+import { EGYPTIAN_UNIT2_V2_DEFINITIONS } from '../egyptian-unit2-v2';
 
 const dialect = 'egyptian' as const;
 export type EgyptianUnit1CurriculumVersion = 'legacy' | 'v2';
+export type EgyptianUnit2CurriculumVersion = 'legacy' | 'v2';
 export const EGYPTIAN_UNIT1_V2_MISSION_IDS = EGYPTIAN_UNIT1_DEFINITIONS.map(definition => definition.missionId);
 export function resolveEgyptianUnit1CurriculumVersion({ requestedVersion = process.env.EXPO_PUBLIC_EGYPTIAN_UNIT1_CURRICULUM_VERSION, appEnv = process.env.EXPO_PUBLIC_APP_ENV, isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true }: { requestedVersion?: string; appEnv?: string; isLocalDevelopment?: boolean } = {}): EgyptianUnit1CurriculumVersion {
   if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
@@ -47,6 +49,7 @@ export function buildEgyptianUnit1CurriculumUnit(version: EgyptianUnit1Curriculu
   if (version === 'legacy') return legacy;
   return { ...legacy, items: buildUnit1MissionItems(dialect, EGYPTIAN_UNIT1_DEFINITIONS, 'egyptian').map(item => ({ ...item, unit1BlueprintRole:'native_mission' })) };
 }
+export function resolveEgyptianUnit2CurriculumVersion({requestedVersion=process.env.EXPO_PUBLIC_EGYPTIAN_UNIT2_CURRICULUM_VERSION,appEnv=process.env.EXPO_PUBLIC_APP_ENV,isLocalDevelopment=(globalThis as typeof globalThis&{__DEV__?:boolean}).__DEV__===true}:{requestedVersion?:string;appEnv?:string;isLocalDevelopment?:boolean}={}):EgyptianUnit2CurriculumVersion{if(requestedVersion!=='v2'||appEnv==='production')return'legacy';if(appEnv==='development'||appEnv==='preview')return'v2';return isLocalDevelopment?'v2':'legacy';}
 
 const SCENARIO_HOME_HREFS: Record<string, string> = {
   Cafe: '/scenario-intro?type=Cafe',
@@ -139,62 +142,25 @@ const quiz = (
   acceptedTransliterationProfile: 'egyptian',
 });
 
+export function buildEgyptianUnit2CurriculumUnit(version:EgyptianUnit2CurriculumVersion=resolveEgyptianUnit2CurriculumVersion()):CurriculumUnit{
+  if(version==='v2')return{dialect,unitId:'unit-2',title:'Build Short Sentences',subtitle:'Combine words for everyday life at home.',availability:'available',items:buildMissionItems(dialect,'unit-2',EGYPTIAN_UNIT2_V2_DEFINITIONS,'egyptian')};
+  return{dialect,unitId:'unit-2',title:'Unit 2: Real Life Situations',availability:'available',items:[
+    scenario('cafe','Café Ordering','Cafe','free','unit-2',{description:'Order a drink, answer simple questions, and pay.',setting:'A café in Cairo',objective:'Order politely and understand a short café exchange.'}),
+    scenario('taxi','Taxi Ride','Taxi','free','unit-2',{description:'Give a destination, discuss the route, and pay the fare.',setting:'A taxi in Cairo',objective:'Use practical destination, direction, and fare language.'}),
+    scenario('hotel','Hotel Check-in','Hotel','free','unit-2',{description:'Check in and ask for essential hotel information.',setting:'A hotel reception in Cairo',objective:'Confirm a booking and understand basic room information.'}),quiz('unit-2','quiz_u2_p1','Unit 2 Quiz · Part 1','2p1','quiz-unit2'),
+    scenario('restaurant','Restaurant','Restaurant','free','unit-2',{description:'Order food and ask for the bill.',setting:'A restaurant in Cairo',objective:'Order a simple meal and complete the payment exchange.'}),
+    scenario('supermarket','Supermarket','Supermarket','free','unit-2',{description:'Find products, ask prices, and check out.',setting:'A supermarket in Cairo',objective:'Ask where products are and understand a simple checkout.'}),
+    scenario('pharmacy','Pharmacy','Pharmacy','free','unit-2',{description:'Describe a symptom and understand medicine instructions.',setting:'A pharmacy in Cairo',objective:'Ask for medicine and understand a basic dosage exchange.'}),
+    scenario('barbershop','Barbershop','Barbershop','free','unit-2',{description:'Ask for a haircut, describe the style, and pay at a barbershop in Cairo.',setting:'A barbershop in Cairo',objective:'Request a haircut and describe the sides, top, beard, and finishing preferences.',sceneImageId:'cairo-barbershop-interior',sceneEntranceImageId:'cairo-barbershop-entrance'}),quiz('unit-2','quiz_u2_p2','Unit 2 Quiz · Part 2','2p2','quiz-unit2'),
+    scenario('airport','Airport','Airport','free','unit-2',{description:'Check in, discuss baggage, and find the gate.',setting:'An airport check-in desk in Cairo',objective:'Handle a basic airport check-in exchange.'}),
+  ]};
+}
+
 export const EGYPTIAN_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
     buildEgyptianUnit1CurriculumUnit(),
-    {
-      dialect,
-      unitId: 'unit-2',
-      title: 'Unit 2: Real Life Situations',
-      availability: 'available',
-      items: [
-        scenario('cafe', 'Café Ordering', 'Cafe', 'free', 'unit-2', {
-          description: 'Order a drink, answer simple questions, and pay.',
-          setting: 'A café in Cairo',
-          objective: 'Order politely and understand a short café exchange.',
-        }),
-        scenario('taxi', 'Taxi Ride', 'Taxi', 'free', 'unit-2', {
-          description: 'Give a destination, discuss the route, and pay the fare.',
-          setting: 'A taxi in Cairo',
-          objective: 'Use practical destination, direction, and fare language.',
-        }),
-        scenario('hotel', 'Hotel Check-in', 'Hotel', 'free', 'unit-2', {
-          description: 'Check in and ask for essential hotel information.',
-          setting: 'A hotel reception in Cairo',
-          objective: 'Confirm a booking and understand basic room information.',
-        }),
-        quiz('unit-2', 'quiz_u2_p1', 'Unit 2 Quiz · Part 1', '2p1', 'quiz-unit2'),
-        scenario('restaurant', 'Restaurant', 'Restaurant', 'free', 'unit-2', {
-          description: 'Order food and ask for the bill.',
-          setting: 'A restaurant in Cairo',
-          objective: 'Order a simple meal and complete the payment exchange.',
-        }),
-        scenario('supermarket', 'Supermarket', 'Supermarket', 'free', 'unit-2', {
-          description: 'Find products, ask prices, and check out.',
-          setting: 'A supermarket in Cairo',
-          objective: 'Ask where products are and understand a simple checkout.',
-        }),
-        scenario('pharmacy', 'Pharmacy', 'Pharmacy', 'free', 'unit-2', {
-          description: 'Describe a symptom and understand medicine instructions.',
-          setting: 'A pharmacy in Cairo',
-          objective: 'Ask for medicine and understand a basic dosage exchange.',
-        }),
-        scenario('barbershop', 'Barbershop', 'Barbershop', 'free', 'unit-2', {
-          description: 'Ask for a haircut, describe the style, and pay at a barbershop in Cairo.',
-          setting: 'A barbershop in Cairo',
-          objective: 'Request a haircut and describe the sides, top, beard, and finishing preferences.',
-          sceneImageId: 'cairo-barbershop-interior',
-          sceneEntranceImageId: 'cairo-barbershop-entrance',
-        }),
-        quiz('unit-2', 'quiz_u2_p2', 'Unit 2 Quiz · Part 2', '2p2', 'quiz-unit2'),
-        scenario('airport', 'Airport', 'Airport', 'free', 'unit-2', {
-          description: 'Check in, discuss baggage, and find the gate.',
-          setting: 'An airport check-in desk in Cairo',
-          objective: 'Handle a basic airport check-in exchange.',
-        }),
-      ],
-    },
+    buildEgyptianUnit2CurriculumUnit(),
     {
       dialect,
       unitId: 'unit-3',

@@ -13,6 +13,7 @@ import {
 } from './egyptian-dialogues';
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
 import { EGYPTIAN_UNIT1_MISSIONS } from './egyptian-unit1';
+import { EGYPTIAN_UNIT2_V2_MISSIONS } from './egyptian-unit2-v2';
 import { GULF_UNIT1_MISSIONS } from './gulf-unit1';
 import { GULF_UNIT2_V2_MISSIONS } from './gulf-unit2-v2';
 import { EGYPTIAN_UNIT6_SCENARIOS, EGYPTIAN_UNIT6_SCENARIOS_BY_NAME } from './egyptian-unit6';
@@ -339,10 +340,13 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
     dialect: 'egyptian',
     voiceId: 'LXrTqFIgiubkrMkwvOUr',
     lessons: { basic: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG },
-    missions: createMissionContentRegistry([
-      ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG })),
-      ...EGYPTIAN_UNIT1_MISSIONS,
-    ]),
+    missions: {
+      ...createMissionContentRegistry([
+        ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG })),
+        ...EGYPTIAN_UNIT1_MISSIONS,
+      ]),
+      ...Object.fromEntries(EGYPTIAN_UNIT2_V2_MISSIONS.map(mission => [`unit2:${mission.missionId}`, mission])),
+    },
     scenarios: {
       Cafe:        CAFE_DIALOGUE_EG,
       Taxi:        TAXI_DIALOGUE_EG,
