@@ -345,7 +345,7 @@ export default function HomeScreen() {
   const effectiveIsGuest = TESTING_UNLOCK_ALL ? false : isGuest;
 
   const completedContentIds = () => Object.keys(scenarioProgress).filter(id => scenarioProgress[id]);
-  const isDone = (id: string) => hasCompletedContent(contextDialect, id, completedContentIds());
+  const isDone = (id: string, unitId?: string) => hasCompletedContent(contextDialect, id, completedContentIds(), unitId);
   const activeUnits = useMemo(() => {
     if (!isSupportedCurriculumDialect(contextDialect)) return [];
     return getDialectCurriculum(contextDialect).units
@@ -424,8 +424,8 @@ export default function HomeScreen() {
   };
 
   // Continue card — points to first incomplete lesson in the curriculum.
-  const completedInPath = activeCurriculumItems.filter(item => isDone(item.contentId)).length;
-  const nextInPath = activeCurriculumItems.find(item => !isDone(item.contentId)) ?? activeCurriculumItems[0];
+  const completedInPath = activeCurriculumItems.filter(item => isDone(item.contentId, item.unitId)).length;
+  const nextInPath = activeCurriculumItems.find(item => !isDone(item.contentId, item.unitId)) ?? activeCurriculumItems[0];
   const continuePercent = activeCurriculumItems.length > 0
     ? Math.round((completedInPath / activeCurriculumItems.length) * 100)
     : 0;
@@ -445,7 +445,7 @@ export default function HomeScreen() {
 
   const renderCurriculumItem = (item: CurriculumItem, itemIndex: number, itemCount: number) => {
     const access = getAccessForItem(item);
-    const done = isDone(item.contentId);
+    const done = isDone(item.contentId, item.unitId);
     const status = done ? 'completed' : access.allowed ? 'current' : 'locked';
     const isPremiumLocked = access.reason === 'premium_required';
     const meta = getCurriculumItemMeta(item, itemIndex, itemCount);
@@ -706,12 +706,13 @@ export default function HomeScreen() {
             <View key={unit.unitId}>
               <View style={styles.unitRow}>
                 <Text style={styles.unitTitle}>{unit.title}</Text>
+                {unit.subtitle ? <Text style={styles.unitSubtitle}>{unit.subtitle}</Text> : null}
               </View>
               {unit.items.map((item, index) => (
                 <View key={item.contentId}>
                   {renderCurriculumItem(item, index, itemCount)}
                   {index < itemCount - 1 && (
-                    <View style={[styles.lessonConnector, isDone(item.contentId) && styles.lessonConnectorDone]} />
+                    <View style={[styles.lessonConnector, isDone(item.contentId, item.unitId) && styles.lessonConnectorDone]} />
                   )}
                 </View>
               ))}
@@ -925,6 +926,7 @@ const styles = StyleSheet.create({
   // Unit header (restyled)
   unitRow: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
   unitTitle: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase' },
+  unitSubtitle: { marginTop: 4, fontSize: theme.fontSize.caption, color: theme.colors.textSecondary },
 
   // Lesson rows
   lessonRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, padding: theme.spacing.md, paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.sm, borderWidth: 1, borderColor: theme.colors.borderDefault, gap: theme.spacing.md },

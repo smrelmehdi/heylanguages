@@ -85,6 +85,7 @@ import {
   MSA_FIRST_CAFE_CONVERSATION_MISSION,
   MSA_FIRST_ARABIC_CHALLENGE_MISSION,
 } from './msa-unit1';
+import { MSA_UNIT2_V2_MISSIONS } from './msa-unit2-v2';
 
 export type { DialogueTurn };
 
@@ -218,7 +219,8 @@ const MSA_CONTENT: DialectContent = {
     ...Object.fromEntries(MSA_UNIT7_LESSONS.map(item => [item.contentId, item.words])),
     ...Object.fromEntries(MSA_UNIT9_LESSONS.map(item => [item.contentId, item.words])),
   },
-  missions: createMissionContentRegistry([
+  missions: {
+    ...createMissionContentRegistry([
     ...Object.values(createLegacyUnit1MissionContent({
       basicWords: BASIC_WORDS_MSA,
       greetings: GREETINGS_WORDS_MSA,
@@ -237,7 +239,9 @@ const MSA_CONTENT: DialectContent = {
     MSA_BIG_REVIEW_MISSION,
     MSA_FIRST_CAFE_CONVERSATION_MISSION,
     MSA_FIRST_ARABIC_CHALLENGE_MISSION,
-  ]),
+    ]),
+    ...Object.fromEntries(MSA_UNIT2_V2_MISSIONS.map(mission => [`unit2:${mission.missionId}`, mission])),
+  },
   scenarios: {
     Cafe:        CAFE_DIALOGUE_MSA,
     Taxi:        TAXI_DIALOGUE_MSA,

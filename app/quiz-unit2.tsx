@@ -36,6 +36,7 @@ import { theme } from '../constants/theme';
 import type { Word } from '../constants/words';
 import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/quiz-types';
 import { MSA_UNIT3_QUIZ_WORDS } from '../data/msa-alphabet-audio';
+import { buildMsaUnit2BigReviewQuestions, buildMsaUnit2ChallengeQuestions } from '../data/msa-unit2-quizzes';
 import { getDialectCurriculumItems } from '../utils/content-resolver';
 import { buildCompletionKey, parseCompletionKey } from '../utils/progression';
 import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope, isDedicatedReviewRoute } from '../utils/phase1-review';
@@ -113,7 +114,7 @@ const UNIT10_SCENARIOS = [
   'FriendsBirthday',
   'FriendsFarewell',
 ];
-const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', 'u1-review', 'u1-challenge', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
+const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', 'u1-review', 'u1-challenge', 'u2-review', 'u2-challenge', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
 let currentAttemptSelectionSeed = 'initial';
 
 type WordLessonEntry = {
@@ -141,16 +142,18 @@ function QuizAccessGate({
   isReview,
   contentId,
   contentLabel,
+  unitId,
   children,
 }: {
   isReview: boolean;
   contentId: string | null;
   contentLabel: string;
+  unitId?: string;
   children: ReactNode;
 }) {
   if (isReview) return <>{children}</>;
   return (
-    <PremiumRouteGate contentId={contentId} contentType="quiz" contentLabel={contentLabel}>
+    <PremiumRouteGate contentId={contentId} unitId={unitId} contentType="quiz" contentLabel={contentLabel}>
       {children}
     </PremiumRouteGate>
   );
@@ -1543,11 +1546,12 @@ export default function QuizUnit2Screen() {
   const { dialect, content } = useDialect();
   const { applyGuestXpSnapshot, refreshFromServer } = useXP();
   const requestedUnit = unit ?? '2p1';
+  const accessUnitId = requestedUnit.startsWith('u1-') ? 'unit-1' : requestedUnit.startsWith('u2-') || requestedUnit.startsWith('2p') || requestedUnit === '2' ? 'unit-2' : undefined;
   const attemptScope = requestedUnit === 'review'
     ? getPhase1ReviewAttemptScope(dialect)
     : `${dialect}:${requestedUnit}`;
   const routeContentId = getQuizContentId(requestedUnit);
-  const unit1Mission = routeContentId ? content.missions[routeContentId] : undefined;
+  const unit1Mission = routeContentId ? content.missions[requestedUnit.startsWith('u2-') ? `unit2:${routeContentId}` : routeContentId] : undefined;
   const missionPassingScore = unit1Mission?.passingScore;
   const isSupportedQuizUnit = SUPPORTED_TIERED_QUIZ_UNITS.has(requestedUnit);
 
@@ -1603,6 +1607,8 @@ export default function QuizUnit2Screen() {
   const quizTitle =
     requestedUnit === 'u1-review' ? 'Big Review' :
     requestedUnit === 'u1-challenge' ? (dialect === 'egyptian' ? 'Your First Egyptian Arabic Challenge' : 'Your First Arabic Challenge') :
+    requestedUnit === 'u2-review' ? 'Big Review' :
+    requestedUnit === 'u2-challenge' ? 'Your First Short-Sentence Challenge' :
     requestedUnit === 'review' ? 'Review Quiz' :
     requestedUnit === '1'   ? 'Unit 1 Quiz' :
     requestedUnit === '2'   ? 'Unit 2 Quiz' :
@@ -1653,6 +1659,14 @@ export default function QuizUnit2Screen() {
         srsSummary: await getQuizSrsSummary(selected.map(question => question.id)),
         maxXp: getQuizMaxXp(selected),
       };
+    }
+
+    if (requestedUnit === 'u2-review' || requestedUnit === 'u2-challenge') {
+      if (dialect !== 'msa' || !unit1Mission?.quizQuestions?.length) return null;
+      const selected = requestedUnit === 'u2-review'
+        ? buildMsaUnit2BigReviewQuestions(attemptSeed)
+        : buildMsaUnit2ChallengeQuestions(attemptSeed);
+      return { attempt, questions: selected, tierInfo: getQuizTierInfo(1), srsSummary: await getQuizSrsSummary(selected.map(question => question.id)), maxXp: getQuizMaxXp(selected) };
     }
 
     const completedRaw = await AsyncStorage.getItem('guest_progress');
@@ -1905,6 +1919,7 @@ export default function QuizUnit2Screen() {
   const saveQuizCompletion = async (result: InitialAttemptResult): Promise<number> => {
     const unitId = requestedUnit === 'u1-review' || requestedUnit === 'u1-challenge'
       ? 'unit-1'
+      : requestedUnit === 'u2-review' || requestedUnit === 'u2-challenge' ? 'unit-2'
       : requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
     if (!routeContentId) return 0;
     const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);
@@ -1963,7 +1978,7 @@ export default function QuizUnit2Screen() {
 
   if (phase === 'intro') {
     return (
-      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
+      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle} unitId={accessUnitId}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizIntro
           title={quizTitle}
@@ -1979,7 +1994,7 @@ export default function QuizUnit2Screen() {
 
   if (phase === 'results') {
     return (
-      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
+      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle} unitId={accessUnitId}>
         <Stack.Screen options={{ headerShown: false }} />
         <QuizResults
           correct={initialResult?.correctCount ?? 0}
@@ -2007,14 +2022,14 @@ export default function QuizUnit2Screen() {
   const currentQuestion = questions[currentIndex];
   if (!currentQuestion) {
     return (
-      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
+      <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle} unitId={accessUnitId}>
         <Stack.Screen options={{ headerShown: false }} />
       </QuizAccessGate>
     );
   }
 
   return (
-    <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle}>
+    <QuizAccessGate isReview={requestedUnit === 'review'} contentId={routeContentId} contentLabel={quizTitle} unitId={accessUnitId}>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container}>
 

@@ -24,10 +24,13 @@ import { MSA_UNIT8_SCENARIOS } from '../msa-emergencies';
 import { MSA_UNIT9_LESSONS } from '../msa-social';
 import { MSA_UNIT10_SCENARIOS } from '../msa-friends';
 import { buildLegacyUnit1CurriculumUnit, buildUnit1MissionItems } from './unit1';
+import { buildMissionItems } from './unit1';
+import { MSA_UNIT2_V2_DEFINITIONS } from '../msa-unit2-v2';
 
 const dialect = 'msa' as const;
 
 export type MsaUnit1CurriculumVersion = 'legacy' | 'v2';
+export type MsaUnit2CurriculumVersion = 'legacy' | 'v2';
 
 type MsaUnit1BlueprintEntry = {
   missionId: string;
@@ -113,6 +116,31 @@ export function buildMsaUnit1CurriculumUnit(
   };
 }
 
+export function resolveMsaUnit2CurriculumVersion({
+  requestedVersion = process.env.EXPO_PUBLIC_MSA_UNIT2_CURRICULUM_VERSION,
+  appEnv = process.env.EXPO_PUBLIC_APP_ENV,
+  isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true,
+}: { requestedVersion?: string; appEnv?: string; isLocalDevelopment?: boolean } = {}): MsaUnit2CurriculumVersion {
+  if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
+  if (appEnv === 'development' || appEnv === 'preview') return 'v2';
+  return isLocalDevelopment ? 'v2' : 'legacy';
+}
+
+export function buildMsaUnit2CurriculumUnit(version: MsaUnit2CurriculumVersion = resolveMsaUnit2CurriculumVersion()): CurriculumUnit {
+  if (version === 'legacy') return { dialect, unitId: 'unit-2', title: 'Unit 2: Everyday Situations', availability: 'available', items: [
+    ...MSA_UNIT2_SCENARIOS.map(item => scenario('unit-2', item, 'free')),
+    quiz(2, 'free'),
+  ] };
+  return {
+    dialect,
+    unitId: 'unit-2',
+    title: 'Build Short Sentences',
+    subtitle: 'Combine words for everyday life at home.',
+    availability: 'available',
+    items: buildMissionItems(dialect, 'unit-2', MSA_UNIT2_V2_DEFINITIONS, 'msa'),
+  };
+}
+
 const lesson = (
   unitId: string,
   contentId: string,
@@ -160,10 +188,7 @@ export const MSA_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
     buildMsaUnit1CurriculumUnit(),
-    { dialect, unitId: 'unit-2', title: 'Unit 2: Everyday Situations', availability: 'available', items: [
-      ...MSA_UNIT2_SCENARIOS.map(item => scenario('unit-2', item, 'free')),
-      quiz(2, 'free'),
-    ] },
+    buildMsaUnit2CurriculumUnit(),
     { dialect, unitId: 'unit-3', title: 'Unit 3: Arabic Writing', availability: 'shared', items: [
       ...buildSharedWritingItems(dialect), quiz(3, 'free'),
     ] },

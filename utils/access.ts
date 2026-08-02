@@ -234,25 +234,24 @@ export function getContentAccess({
   completedContentIds,
 }: ContentAccessInput): ContentAccessResult {
   const normalized = normalizeContentId(contentId);
-  const meta = getDialectContentMeta(dialect, normalized, contentType);
+  const meta = getDialectContentMeta(dialect, normalized, contentType, unitId);
   if (
     !normalized
     || !meta
     || meta.availability === 'unavailable'
-    || (unitId && meta.unitId !== unitId)
-    || !isContentAvailableForDialect(dialect, normalized, contentType)
+    || !isContentAvailableForDialect(dialect, normalized, contentType, unitId)
   ) {
     return { allowed: false, reason: 'unavailable' };
   }
 
   if (
     resolveInternalTestingAccess(CAN_USE_INTERNAL_TESTING_ACCESS, isTestingUnlocked) &&
-    isContentAvailableForDialect(dialect, normalized, contentType)
+    isContentAvailableForDialect(dialect, normalized, contentType, unitId)
   ) {
     return { allowed: true, reason: 'testing' };
   }
 
-  const previousContentId = getPreviousProgressionContentId(dialect, normalized);
+  const previousContentId = getPreviousProgressionContentId(dialect, normalized, unitId);
   if (previousContentId && !hasCompletedContent(dialect, previousContentId, completedContentIds)) {
     return {
       allowed: false,
@@ -294,6 +293,8 @@ export function getDialectKnownContentIds(dialect: string) {
 export function getQuizContentId(unit: string | undefined) {
   if (unit === 'u1-review') return 'big_review';
   if (unit === 'u1-challenge') return 'first_arabic_challenge';
+  if (unit === 'u2-review') return 'big_review';
+  if (unit === 'u2-challenge') return 'first_short_sentence_challenge';
   if (!unit) return 'quiz_u1';
   if (unit === '2p1') return 'quiz_u2_p1';
   if (unit === '2p2') return 'quiz_u2_p2';

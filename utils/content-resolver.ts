@@ -114,6 +114,7 @@ export function getDialectContentMeta(
   dialect: string,
   contentId: string | null | undefined,
   contentType?: CurriculumContentType,
+  unitId?: string,
 ) {
   const normalized = normalizePublicContentId(contentId);
   if (!normalized) return null;
@@ -121,6 +122,7 @@ export function getDialectContentMeta(
   const direct = items.find(item =>
     (item.contentId === normalized || item.missionId === normalized)
       && (!contentType || item.contentType === contentType)
+      && (!unitId || item.unitId === unitId)
   );
   if (direct) return direct;
   if (dialect === 'msa' && (normalized === 'dubai_challenge' || normalized === 'quiz_u1')) {
@@ -135,8 +137,8 @@ export function getDialectContentMeta(
   return null;
 }
 
-export function isContentAvailableForDialect(dialect: string, contentId: string | null | undefined, contentType?: CurriculumContentType) {
-  const item = getDialectContentMeta(dialect, contentId, contentType);
+export function isContentAvailableForDialect(dialect: string, contentId: string | null | undefined, contentType?: CurriculumContentType, unitId?: string) {
+  const item = getDialectContentMeta(dialect, contentId, contentType, unitId);
   return Boolean(
     item
       && item.availability !== 'unavailable'
@@ -149,7 +151,7 @@ export function getMissingContentDiagnostic(input: ResolveContentInput): Missing
   if (!dialect) {
     return { ...input, dialect: 'gulf', reason: `Unsupported curriculum dialect: ${input.dialect}` };
   }
-  const item = getDialectContentMeta(dialect, input.contentId, input.contentType);
+  const item = getDialectContentMeta(dialect, input.contentId, input.contentType, input.unitId);
   if (!item) {
     return { ...input, dialect, reason: 'No curriculum item exists for this dialect/content pair.' };
   }
@@ -182,7 +184,7 @@ export function resolveContent(input: ResolveContentInput): ResolvedContent | nu
     return null;
   }
 
-  const item = getDialectContentMeta(dialect, input.contentId, input.contentType);
+  const item = getDialectContentMeta(dialect, input.contentId, input.contentType, input.unitId);
   if (!item) return null;
   return resolveCurriculumItem(item, getDialectContent(dialect));
 }

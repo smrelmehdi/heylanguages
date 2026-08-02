@@ -88,6 +88,7 @@ export interface CurriculumUnit {
   dialect: SupportedDialect;
   unitId: string;
   title: string;
+  subtitle?: string;
   availability: CurriculumAvailability;
   items: CurriculumItem[];
 }

@@ -9,6 +9,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_MSA_UNIT2_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_EGYPTIAN_UNIT1_CURRICULUM_VERSION": "v2"
       }
@@ -18,6 +19,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_MSA_UNIT2_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_EGYPTIAN_UNIT1_CURRICULUM_VERSION": "v2"
       },
@@ -29,6 +31,7 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_MSA_UNIT2_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_MSA_UNIT1_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION": "v2",
         "EXPO_PUBLIC_EGYPTIAN_UNIT1_CURRICULUM_VERSION": "v2"

@@ -101,6 +101,18 @@ export function buildUnit1MissionItems(
   });
 }
 
+export function buildMissionItems(
+  dialect: SupportedDialect,
+  unitId: string,
+  definitions: readonly Unit1MissionDefinition[],
+  acceptedTransliterationProfile: string,
+): MissionCurriculumItem[] {
+  return buildUnit1MissionItems(dialect, definitions, acceptedTransliterationProfile).map(item => ({
+    ...item,
+    unitId,
+  }));
+}
+
 type LegacyUnit1CurriculumOptions = {
   dialect: SupportedDialect;
   acceptedTransliterationProfile: string;

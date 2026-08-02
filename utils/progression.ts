@@ -32,8 +32,8 @@ export function getCanonicalCompletionKey(dialect: string, contentId: string | n
   return buildCompletionKey(item.dialect, item.unitId, item.contentId);
 }
 
-export function getCompletionKeyCandidates(dialect: string, contentId: string | null | undefined) {
-  const item = getDialectContentMeta(dialect, contentId);
+export function getCompletionKeyCandidates(dialect: string, contentId: string | null | undefined, unitId?: string) {
+  const item = getDialectContentMeta(dialect, contentId, undefined, unitId);
   if (!item || item.availability === 'unavailable') return [];
   const canonical = buildCompletionKey(item.dialect, item.unitId, item.contentId);
   const candidates = [canonical];
@@ -60,9 +60,9 @@ export function getCompletionKeyCandidates(dialect: string, contentId: string | 
   return candidates;
 }
 
-export function hasCompletedContent(dialect: string, contentId: string | null | undefined, completedContentIds: Iterable<string>) {
+export function hasCompletedContent(dialect: string, contentId: string | null | undefined, completedContentIds: Iterable<string>, unitId?: string) {
   const completed = new Set(completedContentIds);
-  return getCompletionKeyCandidates(dialect, contentId).some(key => completed.has(key));
+  return getCompletionKeyCandidates(dialect, contentId, unitId).some(key => completed.has(key));
 }
 
 export function isFirstContentCompletion(
@@ -73,18 +73,19 @@ export function isFirstContentCompletion(
   return !hasCompletedContent(dialect, contentId, completedContentIds);
 }
 
-export function getPreviousProgressionContentId(dialect: string, contentId: string | null | undefined) {
-  return getPreviousProgressionContentIdFromItems(getDialectProgressionItems(dialect), contentId);
+export function getPreviousProgressionContentId(dialect: string, contentId: string | null | undefined, unitId?: string) {
+  return getPreviousProgressionContentIdFromItems(getDialectProgressionItems(dialect), contentId, unitId);
 }
 
 export function getPreviousProgressionContentIdFromItems(
   items: readonly CurriculumItem[],
   contentId: string | null | undefined,
+  unitId?: string,
 ) {
   const normalized = normalizePublicContentId(contentId);
   if (!normalized) return null;
   const index = items.findIndex(item =>
-    item.contentId === normalized || getCurriculumMissionId(item) === normalized
+    (item.contentId === normalized || getCurriculumMissionId(item) === normalized) && (!unitId || item.unitId === unitId)
   );
   if (index < 0) return null;
   return index > 0 ? items[index - 1]?.contentId ?? null : null;
