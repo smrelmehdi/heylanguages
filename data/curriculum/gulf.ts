@@ -48,10 +48,13 @@ import type { CurriculumItem, CurriculumUnit, DialectCurriculum } from './types'
 import { buildSharedWritingItems } from './shared';
 import { buildLegacyUnit1CurriculumUnit } from './unit1';
 import { buildUnit1MissionItems } from './unit1';
+import { buildMissionItems } from './unit1';
 import { GULF_UNIT1_DEFINITIONS } from '../gulf-unit1';
+import { GULF_UNIT2_V2_DEFINITIONS } from '../gulf-unit2-v2';
 
 const dialect = 'gulf' as const;
 export type GulfUnit1CurriculumVersion = 'legacy' | 'v2';
+export type GulfUnit2CurriculumVersion = 'legacy' | 'v2';
 export const GULF_UNIT1_V2_MISSION_IDS = GULF_UNIT1_DEFINITIONS.map(definition => definition.missionId);
 export function resolveGulfUnit1CurriculumVersion({ requestedVersion = process.env.EXPO_PUBLIC_GULF_UNIT1_CURRICULUM_VERSION, appEnv = process.env.EXPO_PUBLIC_APP_ENV, isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true }: { requestedVersion?: string; appEnv?: string; isLocalDevelopment?: boolean } = {}): GulfUnit1CurriculumVersion {
   if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
@@ -62,6 +65,11 @@ export function buildGulfUnit1CurriculumUnit(version: GulfUnit1CurriculumVersion
   const legacy = buildLegacyUnit1CurriculumUnit({ dialect, acceptedTransliterationProfile:'gulf', quizScreen:'quiz', quizSubtitle:'Test what you learned · +150 XP' });
   if (version === 'legacy') return legacy;
   return { ...legacy, items: buildUnit1MissionItems(dialect, GULF_UNIT1_DEFINITIONS, 'gulf').map(item => ({ ...item, unit1BlueprintRole:'native_mission' })) };
+}
+export function resolveGulfUnit2CurriculumVersion({ requestedVersion = process.env.EXPO_PUBLIC_GULF_UNIT2_CURRICULUM_VERSION, appEnv = process.env.EXPO_PUBLIC_APP_ENV, isLocalDevelopment = (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ === true }: { requestedVersion?: string; appEnv?: string; isLocalDevelopment?: boolean } = {}): GulfUnit2CurriculumVersion {
+  if (requestedVersion !== 'v2' || appEnv === 'production') return 'legacy';
+  if (appEnv === 'development' || appEnv === 'preview') return 'v2';
+  return isLocalDevelopment ? 'v2' : 'legacy';
 }
 
 const SCENARIO_HOME_HREFS: Record<string, string> = {
@@ -170,28 +178,21 @@ const quiz = (
   acceptedTransliterationProfile: 'gulf',
 });
 
+export function buildGulfUnit2CurriculumUnit(version: GulfUnit2CurriculumVersion = resolveGulfUnit2CurriculumVersion()): CurriculumUnit {
+  if (version === 'v2') return { dialect, unitId:'unit-2', title:'Build Short Sentences', subtitle:'Combine words for everyday life at home.', availability:'available', items:buildMissionItems(dialect,'unit-2',GULF_UNIT2_V2_DEFINITIONS,'gulf') };
+  return { dialect, unitId:'unit-2', title:'Unit 2: Real Life Situations', availability:'available', items:[
+    scenario('unit-2','cafe','Café Ordering','Cafe','free','4 mins'), scenario('unit-2','taxi','Taxi Ride','Taxi','free','4 mins'), scenario('unit-2','hotel','Hotel Check-in','Hotel','free','3 mins'),
+    quiz('unit-2','quiz_u2_p1','Unit 2 Quiz · Part 1','2p1','quiz-unit2','free','Café, Taxi, Hotel · +150 XP'), scenario('unit-2','restaurant','Restaurant','Restaurant','free','3 mins'),
+    scenario('unit-2','supermarket','Supermarket','Supermarket','free','3 mins'), scenario('unit-2','pharmacy','Pharmacy','Pharmacy','free','3 mins'), scenario('unit-2','barbershop','Barbershop','Barbershop','free','3 mins'),
+    quiz('unit-2','quiz_u2_p2','Unit 2 Quiz · Part 2','2p2','quiz-unit2','free','Restaurant, Supermarket, Pharmacy, Barbershop · +150 XP'), scenario('unit-2','airport','Airport','Airport','free','3 mins'),
+  ] };
+}
+
 export const GULF_CURRICULUM: DialectCurriculum = {
   dialect,
   units: [
     buildGulfUnit1CurriculumUnit(),
-    {
-      dialect,
-      unitId: 'unit-2',
-      title: 'Unit 2: Real Life Situations',
-      availability: 'available',
-      items: [
-        scenario('unit-2', 'cafe', 'Café Ordering', 'Cafe', 'free', '4 mins'),
-        scenario('unit-2', 'taxi', 'Taxi Ride', 'Taxi', 'free', '4 mins'),
-        scenario('unit-2', 'hotel', 'Hotel Check-in', 'Hotel', 'free', '3 mins'),
-        quiz('unit-2', 'quiz_u2_p1', 'Unit 2 Quiz · Part 1', '2p1', 'quiz-unit2', 'free', 'Café, Taxi, Hotel · +150 XP'),
-        scenario('unit-2', 'restaurant', 'Restaurant', 'Restaurant', 'free', '3 mins'),
-        scenario('unit-2', 'supermarket', 'Supermarket', 'Supermarket', 'free', '3 mins'),
-        scenario('unit-2', 'pharmacy', 'Pharmacy', 'Pharmacy', 'free', '3 mins'),
-        scenario('unit-2', 'barbershop', 'Barbershop', 'Barbershop', 'free', '3 mins'),
-        quiz('unit-2', 'quiz_u2_p2', 'Unit 2 Quiz · Part 2', '2p2', 'quiz-unit2', 'free', 'Restaurant, Supermarket, Pharmacy, Barbershop · +150 XP'),
-        scenario('unit-2', 'airport', 'Airport', 'Airport', 'free', '3 mins'),
-      ],
-    },
+    buildGulfUnit2CurriculumUnit(),
     {
       dialect,
       unitId: 'unit-3',

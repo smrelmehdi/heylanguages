@@ -14,6 +14,7 @@ import {
 import { BASIC_WORDS_EG, GREETINGS_WORDS_EG, INTRO_WORDS_EG } from './egyptian-words';
 import { EGYPTIAN_UNIT1_MISSIONS } from './egyptian-unit1';
 import { GULF_UNIT1_MISSIONS } from './gulf-unit1';
+import { GULF_UNIT2_V2_MISSIONS } from './gulf-unit2-v2';
 import { EGYPTIAN_UNIT6_SCENARIOS, EGYPTIAN_UNIT6_SCENARIOS_BY_NAME } from './egyptian-unit6';
 import { EGYPTIAN_UNIT7_LESSONS } from './egyptian-work';
 import { EGYPTIAN_UNIT8_SCENARIOS, EGYPTIAN_UNIT8_SCENARIOS_BY_NAME } from './egyptian-emergencies';
@@ -282,10 +283,13 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
       greetings: GREETINGS_WORDS,
       intro: INTRO_WORDS,
     },
-    missions: createMissionContentRegistry([
-      ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS, greetings: GREETINGS_WORDS, intro: INTRO_WORDS })),
-      ...GULF_UNIT1_MISSIONS,
-    ]),
+    missions: {
+      ...createMissionContentRegistry([
+        ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS, greetings: GREETINGS_WORDS, intro: INTRO_WORDS })),
+        ...GULF_UNIT1_MISSIONS,
+      ]),
+      ...Object.fromEntries(GULF_UNIT2_V2_MISSIONS.map(mission => [`unit2:${mission.missionId}`, mission])),
+    },
     scenarios: {
       Cafe:            CAFE_DIALOGUE,
       Taxi:            TAXI_DIALOGUE,

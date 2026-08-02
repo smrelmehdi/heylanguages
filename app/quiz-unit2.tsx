@@ -37,6 +37,7 @@ import type { Word } from '../constants/words';
 import type { ArabicSelectQuestion, TransliterationTypeQuestion } from '../data/quiz-types';
 import { MSA_UNIT3_QUIZ_WORDS } from '../data/msa-alphabet-audio';
 import { buildMsaUnit2BigReviewQuestions, buildMsaUnit2ChallengeQuestions } from '../data/msa-unit2-quizzes';
+import { buildGulfUnit2BigReviewQuestions, buildGulfUnit2ChallengeQuestions } from '../data/gulf-unit2-quizzes';
 import { getDialectCurriculumItems } from '../utils/content-resolver';
 import { buildCompletionKey, parseCompletionKey } from '../utils/progression';
 import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope, isDedicatedReviewRoute } from '../utils/phase1-review';
@@ -114,7 +115,7 @@ const UNIT10_SCENARIOS = [
   'FriendsBirthday',
   'FriendsFarewell',
 ];
-const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', 'u1-review', 'u1-challenge', 'u2-review', 'u2-challenge', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
+const SUPPORTED_TIERED_QUIZ_UNITS = new Set(['review', 'u1-review', 'u1-challenge', 'u2-review', 'u2-challenge', 'gulf-u2-review', 'gulf-u2-challenge', '1', '2', '3', '2p1', '2p2', '4', '5', '6', '7', '8', '9', '10']);
 let currentAttemptSelectionSeed = 'initial';
 
 type WordLessonEntry = {
@@ -1546,12 +1547,12 @@ export default function QuizUnit2Screen() {
   const { dialect, content } = useDialect();
   const { applyGuestXpSnapshot, refreshFromServer } = useXP();
   const requestedUnit = unit ?? '2p1';
-  const accessUnitId = requestedUnit.startsWith('u1-') ? 'unit-1' : requestedUnit.startsWith('u2-') || requestedUnit.startsWith('2p') || requestedUnit === '2' ? 'unit-2' : undefined;
+  const accessUnitId = requestedUnit.startsWith('u1-') ? 'unit-1' : requestedUnit.startsWith('u2-') || requestedUnit.startsWith('gulf-u2-') || requestedUnit.startsWith('2p') || requestedUnit === '2' ? 'unit-2' : undefined;
   const attemptScope = requestedUnit === 'review'
     ? getPhase1ReviewAttemptScope(dialect)
     : `${dialect}:${requestedUnit}`;
   const routeContentId = getQuizContentId(requestedUnit);
-  const unit1Mission = routeContentId ? content.missions[requestedUnit.startsWith('u2-') ? `unit2:${routeContentId}` : routeContentId] : undefined;
+  const unit1Mission = routeContentId ? content.missions[requestedUnit.includes('u2-') ? `unit2:${routeContentId}` : routeContentId] : undefined;
   const missionPassingScore = unit1Mission?.passingScore;
   const isSupportedQuizUnit = SUPPORTED_TIERED_QUIZ_UNITS.has(requestedUnit);
 
@@ -1609,6 +1610,8 @@ export default function QuizUnit2Screen() {
     requestedUnit === 'u1-challenge' ? (dialect === 'egyptian' ? 'Your First Egyptian Arabic Challenge' : 'Your First Arabic Challenge') :
     requestedUnit === 'u2-review' ? 'Big Review' :
     requestedUnit === 'u2-challenge' ? 'Your First Short-Sentence Challenge' :
+    requestedUnit === 'gulf-u2-review' ? 'Big Review' :
+    requestedUnit === 'gulf-u2-challenge' ? 'Your First Gulf Short-Sentence Challenge' :
     requestedUnit === 'review' ? 'Review Quiz' :
     requestedUnit === '1'   ? 'Unit 1 Quiz' :
     requestedUnit === '2'   ? 'Unit 2 Quiz' :
@@ -1667,6 +1670,12 @@ export default function QuizUnit2Screen() {
         ? buildMsaUnit2BigReviewQuestions(attemptSeed)
         : buildMsaUnit2ChallengeQuestions(attemptSeed);
       return { attempt, questions: selected, tierInfo: getQuizTierInfo(1), srsSummary: await getQuizSrsSummary(selected.map(question => question.id)), maxXp: getQuizMaxXp(selected) };
+    }
+
+    if (requestedUnit === 'gulf-u2-review' || requestedUnit === 'gulf-u2-challenge') {
+      if (dialect !== 'gulf' || !unit1Mission?.quizQuestions?.length) return null;
+      const selected = requestedUnit === 'gulf-u2-review' ? buildGulfUnit2BigReviewQuestions(attemptSeed) : buildGulfUnit2ChallengeQuestions(attemptSeed);
+      return { attempt, questions:selected, tierInfo:getQuizTierInfo(1), srsSummary:await getQuizSrsSummary(selected.map(question=>question.id)), maxXp:getQuizMaxXp(selected) };
     }
 
     const completedRaw = await AsyncStorage.getItem('guest_progress');
@@ -1919,7 +1928,7 @@ export default function QuizUnit2Screen() {
   const saveQuizCompletion = async (result: InitialAttemptResult): Promise<number> => {
     const unitId = requestedUnit === 'u1-review' || requestedUnit === 'u1-challenge'
       ? 'unit-1'
-      : requestedUnit === 'u2-review' || requestedUnit === 'u2-challenge' ? 'unit-2'
+      : requestedUnit === 'u2-review' || requestedUnit === 'u2-challenge' || requestedUnit === 'gulf-u2-review' || requestedUnit === 'gulf-u2-challenge' ? 'unit-2'
       : requestedUnit === '2p1' || requestedUnit === '2p2' ? 'unit-2' : `unit-${requestedUnit}`;
     if (!routeContentId) return 0;
     const scenarioKey = buildCompletionKey(dialect, unitId, routeContentId);

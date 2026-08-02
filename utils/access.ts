@@ -295,6 +295,8 @@ export function getQuizContentId(unit: string | undefined) {
   if (unit === 'u1-challenge') return 'first_arabic_challenge';
   if (unit === 'u2-review') return 'big_review';
   if (unit === 'u2-challenge') return 'first_short_sentence_challenge';
+  if (unit === 'gulf-u2-review') return 'big_review';
+  if (unit === 'gulf-u2-challenge') return 'first_short_sentence_challenge';
   if (!unit) return 'quiz_u1';
   if (unit === '2p1') return 'quiz_u2_p1';
   if (unit === '2p2') return 'quiz_u2_p2';
