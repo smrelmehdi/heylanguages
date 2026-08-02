@@ -17,6 +17,7 @@ import { useDialect } from './DialectContext';
 import { useXP } from './XPContext';
 import { setConnectivitySnapshot } from '../utils/connectivity-state';
 import { hydrateOfflineProgressQueue, syncOfflineProgressQueue } from '../utils/offline-progress';
+import { getOptionalNetwork, type OptionalNetworkState } from '../utils/optional-network';
 import { supabase } from '../utils/supabase';
 
 type DownloadState = {
@@ -28,17 +29,6 @@ type DownloadState = {
 };
 
 type DownloadStateMap = Record<OfflineDialect, DownloadState>;
-type OptionalNetworkState = {
-  isConnected?: boolean | null;
-  isInternetReachable?: boolean | null;
-  type?: unknown;
-};
-type OptionalNetworkSubscription = { remove: () => void };
-type OptionalNetworkModule = {
-  getNetworkStateAsync?: () => Promise<OptionalNetworkState>;
-  addNetworkStateListener?: (listener: (state: OptionalNetworkState) => void) => OptionalNetworkSubscription;
-};
-
 interface ConnectivityContextValue {
   isOnline: boolean;
   isChecking: boolean;
@@ -61,22 +51,6 @@ const DEFAULT_DOWNLOAD_STATE: DownloadState = {
   completed: 0,
   total: 0,
 };
-
-let didWarnMissingExpoNetwork = false;
-
-function getOptionalNetwork(): OptionalNetworkModule | null {
-  try {
-    // Optional native module: older dev clients may not include ExpoNetwork.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('expo-network') as OptionalNetworkModule;
-  } catch (error) {
-    if (__DEV__ && !didWarnMissingExpoNetwork) {
-      didWarnMissingExpoNetwork = true;
-      console.warn('expo-network unavailable, using online fallback.', error);
-    }
-    return null;
-  }
-}
 
 function isReachable(state: OptionalNetworkState): boolean {
   return Boolean(state.isConnected && state.isInternetReachable !== false);

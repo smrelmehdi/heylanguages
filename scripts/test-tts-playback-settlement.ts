@@ -139,8 +139,10 @@ moduleWithLoader._load = function loadForAudioTests(request, parent, isMain) {
   if (request === './offline-pack') {
     return { resolveOfflineAudioSource: async (source: unknown) => source };
   }
-  if (request === 'expo-network') {
-    return { getNetworkStateAsync: async () => networkState };
+  if (request === './optional-network') {
+    return {
+      getOptionalNetwork: () => ({ getNetworkStateAsync: async () => networkState }),
+    };
   }
   return originalLoad.call(this, request, parent, isMain);
 };

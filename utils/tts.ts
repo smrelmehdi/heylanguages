@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { getAudioAsset, type AudioDialect } from '../constants/audio-manifest';
 import { AudioPlaybackLifecycle, type AudioPlaybackOwner } from './audio-lifecycle';
 import { resolveOfflineAudioSource } from './offline-pack';
+import { getOptionalNetwork } from './optional-network';
 import { supabase } from './supabase';
 
 const VOICE_GULF = 'rUaPbzcZIu8df8iNL9WZ';
@@ -26,14 +27,6 @@ const PLAYBACK_START_TIMEOUT_MS = 5000;
 const RUNTIME_TTS_TIMEOUT_MS = 20000;
 
 type AudioSource = string | number | { uri?: string; assetId?: number };
-type OptionalNetworkState = {
-  isConnected?: boolean | null;
-  isInternetReachable?: boolean | null;
-};
-type OptionalNetworkModule = {
-  getNetworkStateAsync?: () => Promise<OptionalNetworkState>;
-};
-
 export interface PlayOptions {
   onComplete?: () => void;
   owner?: AudioPlaybackOwner;
@@ -76,8 +69,6 @@ type GenerateSpeechResponse = {
   error?: unknown;
 };
 
-let didWarnMissingExpoNetwork = false;
-
 type PlaybackStartOutcome =
   | { status: 'started' }
   | { status: 'cancelled'; reason: AudioCancellationReason };
@@ -92,20 +83,6 @@ type PlaybackAttemptSettlement = {
 };
 
 let currentPlaybackAttempt: PlaybackAttemptSettlement | null = null;
-
-function getOptionalNetwork(): OptionalNetworkModule | null {
-  try {
-    // Optional native module: older dev clients may not include ExpoNetwork.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('expo-network') as OptionalNetworkModule;
-  } catch (error) {
-    if (__DEV__ && !didWarnMissingExpoNetwork) {
-      didWarnMissingExpoNetwork = true;
-      console.warn('expo-network unavailable, using online fallback.', error);
-    }
-    return null;
-  }
-}
 
 async function isRuntimeTtsOnline(): Promise<boolean> {
   const Network = getOptionalNetwork();
