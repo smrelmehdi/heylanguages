@@ -36,19 +36,19 @@ import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { useDialect } from '../../contexts/DialectContext';
 import { usePaywall } from '../../contexts/PaywallContext';
 import { useXP } from '../../contexts/XPContext';
-import { TESTING_UNLOCK_ALL } from '../../utils/access';
 import { getDialectCurriculum, isSupportedCurriculumDialect, type CurriculumItem } from '../../data/curriculum';
+import { TESTING_UNLOCK_ALL } from '../../utils/access';
+import { getConnectivitySnapshot } from '../../utils/connectivity-state';
+import { getLocalCompletionIds } from '../../utils/offline-progress';
+import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope } from '../../utils/phase1-review';
+import { getPaywallSourceForContentType } from '../../utils/premium';
+import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
 import { hasCompletedContent } from '../../utils/progression';
 import { getOrCreateQuizAttemptSeed } from '../../utils/quiz-attempt';
-import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope } from '../../utils/phase1-review';
 import { getResolvableDueCount } from '../../utils/srs';
 import type { StreakData } from '../../utils/streak';
 import { clearPendingMilestone, getLocalStreakData, getPendingMilestone } from '../../utils/streak';
 import { supabase } from '../../utils/supabase';
-import { getPaywallSourceForContentType } from '../../utils/premium';
-import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
-import { getLocalCompletionIds } from '../../utils/offline-progress';
-import { getConnectivitySnapshot } from '../../utils/connectivity-state';
 
 let lastHomeScrollY = 0;
 
@@ -924,21 +924,21 @@ const styles = StyleSheet.create({
   pathLabel: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, letterSpacing: 1.5, marginBottom: theme.spacing.md, marginTop: theme.spacing.sm },
 
   // Unit header (restyled)
-  unitRow: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
-  unitTitle: { fontSize: theme.fontSize.label, fontWeight: theme.fontWeight.medium, color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase' },
-  unitSubtitle: { marginTop: 4, fontSize: theme.fontSize.caption, color: theme.colors.textSecondary },
+  unitRow: { marginTop: theme.spacing.xxl, marginBottom: theme.spacing.lg, paddingVertical: theme.spacing.sm },
+  unitTitle: { fontSize: theme.fontSize.body, fontWeight: theme.fontWeight.medium, color: theme.colors.textSecondary, letterSpacing: 1.5, textTransform: 'uppercase' },
+  unitSubtitle: { marginTop: 6, fontSize: theme.fontSize.body, color: theme.colors.textSecondary, lineHeight: 18 },
 
   // Lesson rows
-  lessonRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, padding: theme.spacing.md, paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.sm, borderWidth: 1, borderColor: theme.colors.borderDefault, gap: theme.spacing.md },
+  lessonRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.md, paddingVertical: 18, paddingHorizontal: theme.spacing.lg, marginBottom: theme.spacing.sm, borderWidth: 1, borderColor: theme.colors.borderDefault, gap: theme.spacing.md },
   lessonRowActive: { borderColor: theme.colors.borderAccent },
-  lessonRowLocked: { opacity: 0.55 },
+  lessonRowLocked: { opacity: 0.75 },
   lessonRowPremium: { opacity: 1, borderColor: '#F59E0B44', backgroundColor: '#F59E0B06' },
   lessonIconWell: { width: 40, height: 40, borderRadius: theme.radii.sm, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.borderDefault, backgroundColor: 'transparent' },
   lessonIconWellActive: { backgroundColor: theme.colors.bgElevated, borderColor: theme.colors.borderAccent },
   lessonIconWellPremium: { borderColor: '#F59E0B44', backgroundColor: '#F59E0B12' },
   lessonMiddle: { flex: 1 },
   lessonLabel: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 2 },
-  lessonMeta: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary },
+  lessonMeta: { fontSize: 12, color: theme.colors.textSecondary },
   lessonMetaActive: { color: theme.colors.textAccent },
   lessonConnector: { width: 2, height: 10, backgroundColor: theme.colors.borderDefault, marginLeft: 36, marginBottom: theme.spacing.sm, borderRadius: 1 },
   lessonConnectorDone: { backgroundColor: theme.colors.accentPrimary },
