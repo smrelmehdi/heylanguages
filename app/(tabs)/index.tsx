@@ -39,6 +39,7 @@ import { useXP } from '../../contexts/XPContext';
 import { getDialectCurriculum, isSupportedCurriculumDialect, type CurriculumItem } from '../../data/curriculum';
 import { TESTING_UNLOCK_ALL } from '../../utils/access';
 import { getConnectivitySnapshot } from '../../utils/connectivity-state';
+import { subscribeAuthenticatedProgress } from '../../utils/guest-xp-migration';
 import { getLocalCompletionIds } from '../../utils/offline-progress';
 import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope } from '../../utils/phase1-review';
 import { getPaywallSourceForContentType } from '../../utils/premium';
@@ -147,6 +148,7 @@ export default function HomeScreen() {
     currentStreak: 0, longestStreak: 0, lastActiveDate: null, activeDates: [],
   });
   const [dueReviewCount, setDueReviewCount] = useState(0);
+  const [progressRevision, setProgressRevision] = useState(0);
   const { isOnline, offlinePacks, currentDialectOfflineReady } = useConnectivity();
 
   // Freemium state — XP and premium come from XPContext (shared, no extra fetch)
@@ -193,6 +195,13 @@ export default function HomeScreen() {
   useEffect(() => {
     setXpTotal(xpFromContext);
   }, [xpFromContext]);
+
+  useEffect(() => subscribeAuthenticatedProgress(async eventUserId => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user.id === eventUserId) {
+      setProgressRevision(revision => revision + 1);
+    }
+  }), []);
 
   useEffect(() => {
     recordPremiumDiagnostic({
@@ -261,10 +270,6 @@ export default function HomeScreen() {
           }
           if (progressError) console.warn('[progress] Failed to load signed-in completions:', progressError);
           (await getLocalCompletionIds(session.user.id)).forEach(id => { map[id] = true; });
-          const guestProgress = await AsyncStorage.getItem('guest_progress');
-          if (guestProgress) {
-            Object.assign(map, JSON.parse(guestProgress));
-          }
           if (__DEV__) console.log('[progress] Loaded completions:', map);
           setScenarioProgress(map);
 
@@ -317,7 +322,7 @@ export default function HomeScreen() {
       }, 100);
 
       return () => clearTimeout(restoreTimer);
-    }, [])
+    }, [progressRevision])
   );
 
   useFocusEffect(

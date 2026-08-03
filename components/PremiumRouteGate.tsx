@@ -12,6 +12,7 @@ import { getDialectContentMeta } from '../utils/content-resolver';
 import { supabase } from '../utils/supabase';
 import { getLocalCompletionIds } from '../utils/offline-progress';
 import { getConnectivitySnapshot } from '../utils/connectivity-state';
+import { subscribeAuthenticatedProgress } from '../utils/guest-xp-migration';
 
 type Props = {
   contentId: string | null;
@@ -26,8 +27,16 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
   const { dialect } = useDialect();
   const [completedContentIds, setCompletedContentIds] = useState<Set<string>>(new Set());
   const [progressLoaded, setProgressLoaded] = useState(false);
+  const [progressRevision, setProgressRevision] = useState(0);
   const { isPremium, isLoading } = usePremium();
   const { openPaywall } = usePaywall();
+
+  useEffect(() => subscribeAuthenticatedProgress(async eventUserId => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user.id === eventUserId) {
+      setProgressRevision(revision => revision + 1);
+    }
+  }), []);
 
   useFocusEffect(
     useCallback(() => {
@@ -57,12 +66,14 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
             }
           }
 
-          const guestProgress = await AsyncStorage.getItem('guest_progress');
-          if (guestProgress) {
-            const parsed = JSON.parse(guestProgress) as Record<string, boolean>;
-            Object.entries(parsed).forEach(([id, completed]) => {
-              if (completed) ids.add(id);
-            });
+          if (!session) {
+            const guestProgress = await AsyncStorage.getItem('guest_progress');
+            if (guestProgress) {
+              const parsed = JSON.parse(guestProgress) as Record<string, boolean>;
+              Object.entries(parsed).forEach(([id, completed]) => {
+                if (completed) ids.add(id);
+              });
+            }
           }
 
           if (!cancelled) setCompletedContentIds(ids);
@@ -80,7 +91,7 @@ export default function PremiumRouteGate({ contentId, unitId, contentType, conte
       return () => {
         cancelled = true;
       };
-    }, [])
+    }, [progressRevision])
   );
 
   const routeMeta = getDialectContentMeta(dialect, contentId, contentType);

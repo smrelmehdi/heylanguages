@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pre
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { useXP } from '../contexts/XPContext';
-import { mergeGuestProgress } from '../utils/guest-xp-migration';
+import { migrateGuestProgressForAuthenticatedUser } from '../utils/guest-xp-migration';
 import { supabase } from '../utils/supabase';
 
 export default function LoginScreen() {
@@ -40,12 +40,12 @@ export default function LoginScreen() {
         } else if (data.session) {
           await supabase.from('users').update({
             onboarding_completed: true,
-            dialect: wizardDialect ?? 'gulf',
-            level: wizardLevel ?? 'beginner',
             last_active: new Date().toISOString(),
           }).eq('id', data.session.user.id);
-          await mergeGuestProgress();
-          await refreshFromServer().catch(error => console.warn('XP refresh after login failed:', error));
+          const migration = await migrateGuestProgressForAuthenticatedUser(data.session.user.id);
+          if (migration.status === 'complete' && migration.migrated) {
+            await refreshFromServer().catch(error => console.warn('XP refresh after login failed:', error));
+          }
           router.replace('/(tabs)');
         }
       } else {
@@ -69,8 +69,10 @@ export default function LoginScreen() {
           }
 
           if (data.session) {
-            await mergeGuestProgress();
-            await refreshFromServer().catch(error => console.warn('XP refresh after sign-up failed:', error));
+            const migration = await migrateGuestProgressForAuthenticatedUser(data.session.user.id);
+            if (migration.status === 'complete' && migration.migrated) {
+              await refreshFromServer().catch(error => console.warn('XP refresh after sign-up failed:', error));
+            }
             router.replace('/(tabs)');
           } else {
             setAwaitingVerification(true);

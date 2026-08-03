@@ -148,18 +148,23 @@ async function testIdempotentGuestMigration() {
   };
   const dependencies = {
     storage,
+    getAuthenticatedUserId: async () => 'test-user',
     createMigrationId: () => 'stable-device-transfer',
-    mergeXpOnce: async (id: string, xp: number) => {
+    mergeXpOnce: async (_targetUserId: string, id: string, xp: number) => {
       if (migrationLedger.has(id)) return 0;
       migrationLedger.add(id);
       remoteXp += xp;
       return xp;
     },
-    persistCompletion: async (key: string) => { completionLedger.add(key); },
+    persistCompletion: async (_targetUserId: string, _migrationId: string, key: string) => {
+      const firstMigration = !completionLedger.has(key);
+      completionLedger.add(key);
+      return firstMigration;
+    },
   };
 
-  await assert.rejects(mergeGuestProgress(dependencies));
-  const retry = await mergeGuestProgress(dependencies);
+  await assert.rejects(mergeGuestProgress(dependencies, 'test-user'));
+  const retry = await mergeGuestProgress(dependencies, 'test-user');
   assert.equal(remoteXp, 160, 'Interrupted migration must transfer guest XP exactly once');
   assert.equal(retry.xpAwarded, 0);
   assert.equal(completionLedger.size, 1);

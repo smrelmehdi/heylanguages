@@ -19,6 +19,7 @@ import '../global.css';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Session } from '@supabase/supabase-js';
 import { hydrateTestingUnlockAllOverride } from '../utils/access';
+import { migrateGuestProgressForAuthenticatedUser, retryGuestProgressMigration } from '../utils/guest-xp-migration';
 import { handleAudioAppStateChange, initializeAudioPlayback } from '../utils/tts';
 import { supabase } from '../utils/supabase';
 
@@ -64,6 +65,13 @@ function RootLayoutNav() {
       handleAudioAppStateChange(state).catch(error => {
         if (__DEV__) console.warn('[audio] App-state recovery failed:', error);
       });
+      if (state === 'active') {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) return retryGuestProgressMigration(session.user.id);
+        }).catch(error => {
+          if (__DEV__) console.warn('[progress] Foreground guest migration retry remains pending:', error);
+        });
+      }
     });
     return () => subscription.remove();
   }, []);
@@ -77,8 +85,13 @@ function RootLayoutNav() {
     const hydrationTimeout = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Session hydration timed out')), 5000);
     });
-    Promise.race([hydration, hydrationTimeout]).then(([{ data: { session } }]) => {
+    Promise.race([hydration, hydrationTimeout]).then(async ([{ data: { session } }]) => {
       if (__DEV__) console.info('[session] hydrated from persisted Supabase storage', { hasSession: Boolean(session) });
+      if (session) {
+        await migrateGuestProgressForAuthenticatedUser(session.user.id).catch((error: unknown) => {
+          console.warn('[progress] Guest migration failed; snapshot retained for retry:', error);
+        });
+      }
       setSession(session);
     }).catch(error => {
       if (__DEV__) console.warn('[session] local hydration failed; continuing as guest', { message: error instanceof Error ? error.message : 'unknown' });
@@ -87,7 +100,15 @@ function RootLayoutNav() {
 
     // Listen for sign in / sign out — only updates session state, never re-routes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      if (!session) {
+        setSession(null);
+        return;
+      }
+      migrateGuestProgressForAuthenticatedUser(session.user.id)
+        .catch((error: unknown) => {
+          console.warn('[progress] Guest migration failed; snapshot retained for retry:', error);
+        })
+        .finally(() => setSession(session));
     });
 
     return () => subscription.unsubscribe();
