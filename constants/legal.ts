@@ -1,6 +1,8 @@
+import { LEGAL_CONFIG } from '../utils/legal';
+
 export const LEGAL_URLS = {
-  privacy: 'https://heylanguages.com/heyyusuf/privacy',
-  terms: 'https://heylanguages.com/heyyusuf/terms',
-  support: 'https://heylanguages.com/heyyusuf/support',
-  deleteAccount: 'https://heylanguages.com/heyyusuf/delete-account',
+  privacy: LEGAL_CONFIG.privacyPolicyUrl,
+  terms: LEGAL_CONFIG.termsOfUseUrl,
+  support: LEGAL_CONFIG.supportUrl,
+  deleteAccount: LEGAL_CONFIG.accountDeletionUrl,
 };

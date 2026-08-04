@@ -6,7 +6,6 @@ import { ActivityIndicator, Alert, DevSettings, Linking, Modal, Pressable, Scrol
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumDiagnosticsPanel from '../../components/PremiumDiagnosticsPanel';
 import { getLevelFromXP, getXPProgress, getXPToNextLevel, LEVELS } from '../../constants/levels';
-import { LEGAL_URLS } from '../../constants/legal';
 import { theme } from '../../constants/theme';
 import { useConnectivity } from '../../contexts/ConnectivityContext';
 import { useDialect } from '../../contexts/DialectContext';
@@ -24,6 +23,7 @@ import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
 import { supabase } from '../../utils/supabase';
 import { getConnectivitySnapshot } from '../../utils/connectivity-state';
 import { ACCOUNT_DELETION_CONFIRMATION, clearDeletedAccountLocalState, deleteCurrentAccount } from '../../utils/account-deletion';
+import { LEGAL_CONFIG, openExternalDestination, openSupport } from '../../utils/legal';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -316,21 +316,29 @@ export default function ProfileScreen() {
       return;
     }
     if (!managementURL) return;
-    const canOpen = await Linking.canOpenURL(managementURL);
-    if (canOpen) {
-      await Linking.openURL(managementURL);
-    }
+    await openExternalDestination(managementURL, {
+      canOpenURL: Linking.canOpenURL,
+      openURL: Linking.openURL,
+      showError: (title, message) => Alert.alert(title, message),
+    });
   };
 
-  const openExternalLink = (url: string) => {
+  const openExternalLink = async (url: string) => {
     if (!isOnline) {
       Alert.alert('Internet connection required', 'Reconnect to open this page.');
       return;
     }
-    Linking.openURL(url).catch(() => {
-      Alert.alert('Could not open link', 'Please try again later.');
+    await openExternalDestination(url, {
+      canOpenURL: Linking.canOpenURL,
+      openURL: Linking.openURL,
+      showError: (title, message) => Alert.alert(title, message),
     });
   };
+  const contactSupport = () => openSupport({
+    canOpenURL: Linking.canOpenURL,
+    openURL: Linking.openURL,
+    showError: (title, message) => Alert.alert(title, message),
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -617,7 +625,7 @@ export default function ProfileScreen() {
         <View style={styles.settingsCard}>
           <Pressable
             style={styles.settingRow}
-            onPress={() => openExternalLink(LEGAL_URLS.privacy)}
+            onPress={() => openExternalLink(LEGAL_CONFIG.privacyPolicyUrl)}
             accessibilityRole="link"
             accessibilityLabel="Open Privacy Policy"
           >
@@ -629,7 +637,7 @@ export default function ProfileScreen() {
 
           <Pressable
             style={styles.settingRow}
-            onPress={() => openExternalLink(LEGAL_URLS.terms)}
+            onPress={() => openExternalLink(LEGAL_CONFIG.termsOfUseUrl)}
             accessibilityRole="link"
             accessibilityLabel="Open Terms of Use"
           >
@@ -641,7 +649,7 @@ export default function ProfileScreen() {
 
           <Pressable
             style={styles.settingRow}
-            onPress={() => openExternalLink(LEGAL_URLS.support)}
+            onPress={contactSupport}
             accessibilityRole="link"
             accessibilityLabel="Open Support"
           >
@@ -714,7 +722,7 @@ export default function ProfileScreen() {
           <View style={styles.deleteModal}>
             <Text style={styles.deleteTitle}>Delete your account?</Text>
             <Text style={styles.deleteBody}>
-              This permanently deletes your profile, learning progress, XP, conversations, and account data. Store purchase history is managed by Apple or Google and is not deleted here.
+              This permanently deletes your profile, learning progress, XP, conversations, and account data. Deleting HeyYusuf does not cancel an active subscription. Manage or cancel it separately through Google Play or the App Store. Store purchase records are not erased.
             </Text>
             {deleteStep === 2 && <>
               <Text style={styles.deletePrompt}>Type DELETE to confirm</Text>

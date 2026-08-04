@@ -3,12 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Key, Lock, Mail, Send, X } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { useXP } from '../contexts/XPContext';
 import { migrateGuestProgressForAuthenticatedUser } from '../utils/guest-xp-migration';
 import { supabase } from '../utils/supabase';
+import { LEGAL_CONFIG, openExternalDestination, openSupport } from '../utils/legal';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -91,6 +92,17 @@ export default function LoginScreen() {
     Alert.alert('Coming Soon', `${provider} Sign In will be available in the next update!`);
   };
 
+  const openLegalLink = (destination: string) => openExternalDestination(destination, {
+    canOpenURL: Linking.canOpenURL,
+    openURL: Linking.openURL,
+    showError: (title, message) => Alert.alert(title, message),
+  });
+  const contactSupport = () => openSupport({
+    canOpenURL: Linking.canOpenURL,
+    openURL: Linking.openURL,
+    showError: (title, message) => Alert.alert(title, message),
+  });
+
   if (awaitingVerification) {
     return (
       <SafeAreaView style={styles.container}>
@@ -126,6 +138,7 @@ export default function LoginScreen() {
           <X color={theme.colors.textPrimary} size={24} />
         </Pressable>
 
+        <ScrollView contentContainerStyle={styles.loginScroll} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
           <View style={styles.iconContainer}>
             <Lock color={theme.colors.accentPrimary} size={48} />
@@ -179,6 +192,19 @@ export default function LoginScreen() {
                 : <Text style={styles.primaryButtonText}>{isLoginMode ? 'Log In' : 'Sign Up'}</Text>
               }
             </Pressable>
+            <View style={styles.legalLinks}>
+              <Pressable onPress={() => openLegalLink(LEGAL_CONFIG.privacyPolicyUrl)} accessibilityRole="link">
+                <Text style={styles.legalLink}>Privacy</Text>
+              </Pressable>
+              <Text style={styles.legalSeparator}>•</Text>
+              <Pressable onPress={() => openLegalLink(LEGAL_CONFIG.termsOfUseUrl)} accessibilityRole="link">
+                <Text style={styles.legalLink}>Terms</Text>
+              </Pressable>
+              <Text style={styles.legalSeparator}>•</Text>
+              <Pressable onPress={contactSupport} accessibilityRole="link">
+                <Text style={styles.legalLink}>Support</Text>
+              </Pressable>
+            </View>
 
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
@@ -209,6 +235,7 @@ export default function LoginScreen() {
             </Pressable>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -217,6 +244,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgBase },
   flex: { flex: 1 },
+  loginScroll: { flexGrow: 1 },
   closeButton: { padding: 8, alignSelf: 'flex-start' },
   content: { flex: 1, padding: 32, justifyContent: 'center', alignItems: 'center', width: '100%' },
   iconContainer: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(61, 212, 192, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
@@ -239,4 +267,7 @@ const styles = StyleSheet.create({
   toggleContainer: { marginTop: 32, padding: 10, alignItems: 'center' },
   toggleText: { color: theme.colors.textSecondary, fontSize: 15 },
   toggleTextBold: { color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium },
+  legalLinks: { marginTop: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  legalLink: { color: theme.colors.textAccent, fontSize: 13 },
+  legalSeparator: { color: theme.colors.textTertiary, fontSize: 13 },
 });

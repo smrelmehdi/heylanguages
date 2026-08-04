@@ -1,9 +1,9 @@
 import { Check, Crown, Lock, X } from 'lucide-react-native';
 import { ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LEGAL_URLS } from '../constants/legal';
 import { theme } from '../constants/theme';
 import type { PremiumAvailabilityStatus } from '../contexts/PremiumContext';
 import { getConnectivitySnapshot } from '../utils/connectivity-state';
+import { LEGAL_CONFIG, openExternalDestination, openSupport } from '../utils/legal';
 
 type Props = {
   visible: boolean;
@@ -61,14 +61,23 @@ export default function PaywallModal({
             ? 'The store is temporarily unavailable. Please try again later.'
             : 'Premium unavailable, try again later.';
 
-  const openUrl = (url: string) => {
+  const openUrl = async (url: string) => {
     const connectivity = getConnectivitySnapshot();
     if (connectivity.isHydrated && !connectivity.isOnline) {
       Alert.alert('Internet connection required', 'Reconnect to open this page.');
       return;
     }
-    Linking.openURL(url).catch(() => {});
+    await openExternalDestination(url, {
+      canOpenURL: Linking.canOpenURL,
+      openURL: Linking.openURL,
+      showError: (title, message) => Alert.alert(title, message),
+    });
   };
+  const contactSupport = () => openSupport({
+    canOpenURL: Linking.canOpenURL,
+    openURL: Linking.openURL,
+    showError: (title, message) => Alert.alert(title, message),
+  });
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={isBusy ? () => {} : onClose}>
@@ -157,7 +166,7 @@ export default function PaywallModal({
             )}
 
             <Text style={styles.renewalText}>
-              Renews automatically each month until canceled. Manage or cancel through your store account.
+              Renews automatically each month until canceled. The subscription is tied to your store account. Manage or cancel through Google Play or the App Store.
             </Text>
 
             <Pressable
@@ -172,7 +181,7 @@ export default function PaywallModal({
 
             <View style={styles.legalLinks}>
               <Pressable
-                onPress={() => openUrl(LEGAL_URLS.privacy)}
+                onPress={() => openUrl(LEGAL_CONFIG.privacyPolicyUrl)}
                 hitSlop={8}
                 accessibilityRole="link"
                 accessibilityLabel="Open Privacy Policy"
@@ -181,12 +190,21 @@ export default function PaywallModal({
               </Pressable>
               <Text style={styles.legalSeparator}>•</Text>
               <Pressable
-                onPress={() => openUrl(LEGAL_URLS.terms)}
+                onPress={() => openUrl(LEGAL_CONFIG.termsOfUseUrl)}
                 hitSlop={8}
                 accessibilityRole="link"
                 accessibilityLabel="Open Terms of Use"
               >
                 <Text style={styles.legalLinkText}>Terms of Use</Text>
+              </Pressable>
+              <Text style={styles.legalSeparator}>•</Text>
+              <Pressable
+                onPress={contactSupport}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel="Contact Support"
+              >
+                <Text style={styles.legalLinkText}>Support</Text>
               </Pressable>
             </View>
           </ScrollView>
