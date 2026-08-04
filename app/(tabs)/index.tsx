@@ -5,23 +5,40 @@ import {
     Car,
     Check,
     ChevronRight,
+    CircleCheck,
+    CircleHelp,
+    Clock,
     Coffee,
     Crown,
     Download,
     Flame,
     Hash,
     Heart,
+    Home,
+    KeyRound,
+    ListChecks,
     Lock,
     MapPin,
+    MessagesSquare,
     Mic,
+    Package,
+    Palette,
     Pencil,
     Plane,
     Scissors,
     ShoppingBag,
     ShoppingCart,
+    Shirt,
+    Smile,
+    Sparkles,
+    Sun,
+    Trophy,
     User,
+    Users,
     Utensils,
     WifiOff,
+    DoorOpen,
+    HandHelping,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -41,6 +58,7 @@ import { TESTING_UNLOCK_ALL } from '../../utils/access';
 import { getConnectivitySnapshot } from '../../utils/connectivity-state';
 import { subscribeAuthenticatedProgress } from '../../utils/guest-xp-migration';
 import { getLocalCompletionIds } from '../../utils/offline-progress';
+import { getMissionDisplayTitle, getMissionIconKey, type MissionIconKey } from '../../utils/mission-display';
 import { buildPhase1ReviewQuestions, getPhase1ReviewAttemptScope } from '../../utils/phase1-review';
 import { getPaywallSourceForContentType } from '../../utils/premium';
 import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
@@ -74,9 +92,37 @@ const DIALECT_FLAGS: Record<string, string> = {
   maghrebi: '🇲🇦',
 };
 
+function renderMissionIcon(iconKey: MissionIconKey, color = theme.colors.accentPrimary, size = 20) {
+  switch (iconKey) {
+    case 'circle-check': return <CircleCheck color={color} size={size} />;
+    case 'circle-help': return <CircleHelp color={color} size={size} />;
+    case 'coffee': return <Coffee color={color} size={size} />;
+    case 'door-open': return <DoorOpen color={color} size={size} />;
+    case 'hand-helping': return <HandHelping color={color} size={size} />;
+    case 'hash': return <Hash color={color} size={size} />;
+    case 'heart': return <Heart color={color} size={size} />;
+    case 'home': return <Home color={color} size={size} />;
+    case 'key': return <KeyRound color={color} size={size} />;
+    case 'list-checks': return <ListChecks color={color} size={size} />;
+    case 'map-pin': return <MapPin color={color} size={size} />;
+    case 'messages-square': return <MessagesSquare color={color} size={size} />;
+    case 'package': return <Package color={color} size={size} />;
+    case 'palette': return <Palette color={color} size={size} />;
+    case 'shirt': return <Shirt color={color} size={size} />;
+    case 'smile': return <Smile color={color} size={size} />;
+    case 'sparkles': return <Sparkles color={color} size={size} />;
+    case 'sun': return <Sun color={color} size={size} />;
+    case 'trophy': return <Trophy color={color} size={size} />;
+    case 'user': return <User color={color} size={size} />;
+    case 'users': return <Users color={color} size={size} />;
+    default: return <BookOpen color={color} size={size} />;
+  }
+}
+
 function getCurriculumIcon(item: CurriculumItem) {
+  if (item.missionId || item.missionKind) return renderMissionIcon(getMissionIconKey(item));
   if (item.contentType === 'writing') return <Pencil color={theme.colors.accentPrimary} size={20} />;
-  if (item.contentType === 'quiz') return null;
+  if (item.contentType === 'quiz') return renderMissionIcon(getMissionIconKey(item));
   if (item.contentType === 'lesson') {
     if (item.contentId.startsWith('numbers-') || item.contentId.startsWith('grammar-')) {
       return <Hash color={theme.colors.accentPrimary} size={20} />;
@@ -378,8 +424,8 @@ export default function HomeScreen() {
     Alert.alert(
       'Complete previous lesson',
       requiredPrevious
-        ? `${item.title} unlocks after you complete the previous activity.`
-        : `${item.title} is not available yet.`
+        ? `${getMissionDisplayTitle(item.title)} unlocks after you complete the previous activity.`
+        : `${getMissionDisplayTitle(item.title)} is not available yet.`
     );
     return true;
   };
@@ -395,7 +441,7 @@ export default function HomeScreen() {
   const showPaywall = (item: CurriculumItem) => {
     const tier = getFreemiumTier(item);
     if (tier === 'accessible') return false; // caller should proceed
-    openPaywall(getPaywallSourceForContentType(item.contentType), { contentLabel: item.title });
+    openPaywall(getPaywallSourceForContentType(item.contentType), { contentLabel: getMissionDisplayTitle(item.title) });
     return true; // caller should stop
   };
 
@@ -434,7 +480,7 @@ export default function HomeScreen() {
   const continuePercent = activeCurriculumItems.length > 0
     ? Math.round((completedInPath / activeCurriculumItems.length) * 100)
     : 0;
-  const continueTitle = completedInPath === activeCurriculumItems.length ? 'Keep practising' : nextInPath?.title ?? 'Start learning';
+  const continueTitle = completedInPath === activeCurriculumItems.length ? 'Keep practising' : getMissionDisplayTitle(nextInPath?.title ?? 'Start learning');
   const continueMeta = activeUnits.find(unit => unit.unitId === nextInPath?.unitId)?.title ?? dialectLabel;
   const continueHref = nextInPath?.homeHref ?? '/(tabs)';
 
@@ -454,6 +500,7 @@ export default function HomeScreen() {
     const status = done ? 'completed' : access.allowed ? 'current' : 'locked';
     const isPremiumLocked = access.reason === 'premium_required';
     const meta = getCurriculumItemMeta(item, itemIndex, itemCount);
+    const displayTitle = getMissionDisplayTitle(item.title);
 
     if (item.contentType === 'quiz') {
       const unlocked = access.allowed;
@@ -462,10 +509,15 @@ export default function HomeScreen() {
           key={item.contentId}
           style={[styles.quizButton, !unlocked && styles.quizButtonLocked, done && styles.quizButtonDone]}
           onPress={() => handleCurriculumItemPress(item)}
+          accessibilityLabel={displayTitle}
         >
-          <Text style={styles.quizButtonIcon}>{done ? '✅' : '🎯'}</Text>
+          <View style={styles.quizButtonIcon}>
+            {done
+              ? <CircleCheck color={theme.colors.accentSuccess} size={22} />
+              : renderMissionIcon(getMissionIconKey(item), unlocked ? theme.colors.accentPrimary : theme.colors.textTertiary, 22)}
+          </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>{item.title}</Text>
+            <Text style={[styles.quizButtonTitle, !unlocked && { color: theme.colors.textTertiary }]}>{displayTitle}</Text>
             <Text style={[styles.quizButtonSub, !unlocked && { color: theme.colors.textTertiary }]}>
               {effectiveIsGuest && item.contentId !== firstCurriculumContentId ? 'Create account to unlock' : meta}
             </Text>
@@ -482,7 +534,7 @@ export default function HomeScreen() {
     return (
       <LessonRow
         key={item.contentId}
-        label={item.title}
+        label={displayTitle}
         meta={meta}
         icon={getCurriculumIcon(item)}
         status={status}
@@ -768,9 +820,9 @@ function LessonRow({ label, meta, icon, status, onPress, guestLocked, comingSoon
 
   let effectiveMeta = meta;
   if (comingSoon) effectiveMeta = 'Coming Soon';
-  else if (freemiumLock === 'premium') effectiveMeta = '👑 Premium only';
-  else if (isLocked && guestLocked) effectiveMeta = '🔒 Sign up to unlock';
-  else if (isLocked) effectiveMeta = '🔒 Complete previous lesson';
+  else if (freemiumLock === 'premium') effectiveMeta = 'Premium only';
+  else if (isLocked && guestLocked) effectiveMeta = 'Sign up to unlock';
+  else if (isLocked) effectiveMeta = 'Complete previous lesson';
 
   const handlePress = comingSoon
     ? undefined
@@ -789,6 +841,7 @@ function LessonRow({ label, meta, icon, status, onPress, guestLocked, comingSoon
         freemiumLock === 'premium' && styles.lessonRowPremium,
       ]}
       onPress={handlePress}
+      accessibilityLabel={label}
     >
       <View style={[
         styles.lessonIconWell,
@@ -817,7 +870,7 @@ function LessonRow({ label, meta, icon, status, onPress, guestLocked, comingSoon
           <Text style={styles.premiumBadgeText}>PRO</Text>
         </View>
       )}
-      {comingSoon && <Text style={{ fontSize: 14 }}>🔜</Text>}
+      {comingSoon && <Clock color={theme.colors.textTertiary} size={16} />}
     </Pressable>
   );
 }
@@ -953,7 +1006,7 @@ const styles = StyleSheet.create({
   quizButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.md, padding: theme.spacing.lg, gap: theme.spacing.md, marginBottom: theme.spacing.sm },
   quizButtonLocked: { borderColor: theme.colors.borderDefault, opacity: 0.55 },
   quizButtonDone: { borderColor: theme.colors.accentSuccess },
-  quizButtonIcon: { fontSize: 22 },
+  quizButtonIcon: { width: 28, alignItems: 'center', justifyContent: 'center' },
   quizButtonTitle: { fontSize: theme.fontSize.heading, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary },
   quizButtonSub: { fontSize: theme.fontSize.caption, color: theme.colors.textSecondary, marginTop: 2 },
 });

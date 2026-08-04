@@ -18,6 +18,7 @@ import { useXP } from '../contexts/XPContext';
 import type { DialectContent, DialogueTurn } from '../data/content-registry';
 import type { QuizQuestion } from '../data/quiz-types';
 import { getQuizContentId } from '../utils/access';
+import { getMissionDisplayTitle } from '../utils/mission-display';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
 
@@ -1606,7 +1607,7 @@ export default function QuizUnit2Screen() {
     cardY.value = withTiming(0, { duration: 280 });
   }, [currentIndex]);
 
-  const quizTitle =
+  const canonicalQuizTitle =
     requestedUnit === 'u1-review' ? 'Big Review' :
     requestedUnit === 'u1-challenge' ? (dialect === 'egyptian' ? 'Your First Egyptian Arabic Challenge' : 'Your First Arabic Challenge') :
     requestedUnit === 'u2-review' ? 'Big Review' :
@@ -1629,6 +1630,7 @@ export default function QuizUnit2Screen() {
     requestedUnit === '9'   ? 'Unit 9 Quiz' :
     requestedUnit === '10'  ? 'Unit 10 Quiz' :
     'Unit 2 Quiz';
+  const quizTitle = getMissionDisplayTitle(canonicalQuizTitle);
 
   const buildAttemptPlan = async (): Promise<QuizAttemptPlan | null> => {
     const attempt = await attemptSeedCacheRef.current!.resolve(attemptScope);

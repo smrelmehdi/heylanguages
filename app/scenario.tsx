@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-    ArrowLeft, ArrowRight, BookOpen, CheckCircle,
+    ArrowLeft, ArrowRight, BookOpen, CheckCircle, Clock,
     Lightbulb, Mic, StopCircle, Volume2,
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
@@ -40,6 +40,7 @@ import { createAudioPlaybackOwner } from '../utils/audio-lifecycle';
 import { feedbackLevelUp } from '../utils/feedback';
 import { evaluatePronunciation } from '../utils/pronunciation';
 import { buildCompletionKey } from '../utils/progression';
+import { getMissionDisplayTitle } from '../utils/mission-display';
 import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
 import { supabase } from '../utils/supabase';
@@ -188,6 +189,10 @@ function getPartLabel(index: number, type: string | undefined): string {
   if (index < 8) return '☕ Greetings';
   if (index < 18) return '🫖 Ordering';
   return '💳 Paying';
+}
+
+function getPlainPartLabel(index: number, type: string | undefined) {
+  return getPartLabel(index, type).replace(/^[^ ]+ /u, '');
 }
 
 function getSpeakerRoleLabel(type: string | undefined): string {
@@ -506,48 +511,48 @@ export default function ScenarioScreen() {
   const getSceneBadge = () => {
     const dialectLabel = DIALECT_LABELS[dialect] ?? 'Arabic';
     switch (typeStr) {
-      case 'Taxi':        return `🚕 Taxi · ${dialectLabel}`;
-      case 'Hotel':       return `🏨 Hotel · ${dialectLabel}`;
-      case 'Restaurant':  return `🍽️ Restaurant · ${dialectLabel}`;
-      case 'Supermarket': return `🛒 Supermarket · ${dialectLabel}`;
-      case 'Pharmacy':    return `💊 Pharmacy · ${dialectLabel}`;
-      case 'Barbershop':     return `✂️ Barbershop · ${dialectLabel}`;
-      case 'MsaPhoneRepair': return `📱 Phone Repair · ${dialectLabel}`;
-      case 'Airport':        return `✈️ Airport · ${dialectLabel}`;
-      case 'MorningRoutine': return `🌅 Morning Routine · ${dialectLabel}`;
-      case 'AtGym':          return `💪 At the Gym · ${dialectLabel}`;
-      case 'CookingHome':    return `🍳 Cooking at Home · ${dialectLabel}`;
-      case 'WeatherChat':    return `☀️ Weather Chat · ${dialectLabel}`;
-      case 'DoctorVisit':    return `🏥 Doctor Visit · ${dialectLabel}`;
-      case 'AtBank':         return `🏦 At the Bank · ${dialectLabel}`;
-      case 'FridayGathering': return `🕌 Friday Gathering · ${dialectLabel}`;
-      case 'NeighborVisit':      return `🏠 Neighbour Visit · ${dialectLabel}`;
-      case 'LostInCity':         return `🗺️ Lost in the City · ${dialectLabel}`;
-      case 'CarBreakdown':       return `🚗 Car Breakdown · ${dialectLabel}`;
-      case 'PoliceStation':      return `👮 Police Station · ${dialectLabel}`;
-      case 'HospitalEmergency':  return `🏥 Hospital Emergency · ${dialectLabel}`;
-      case 'LostWallet':         return `👛 Lost Wallet · ${dialectLabel}`;
-      case 'FlightProblem':      return `✈️ Flight Problem · ${dialectLabel}`;
-      case 'AskingForHelp':      return `🙏 Asking for Help · ${dialectLabel}`;
-      case 'FriendsNewNeighbor': return `🏠 New Neighbor · ${dialectLabel}`;
-      case 'FriendsFootball':    return `⚽ Watching Football · ${dialectLabel}`;
-      case 'FriendsGaming':      return `🎮 Gaming Night · ${dialectLabel}`;
-      case 'FriendsWeekend':     return `🏖️ Weekend Plans · ${dialectLabel}`;
-      case 'FriendsSocialMedia': return `📱 Social Media · ${dialectLabel}`;
-      case 'FriendsRoadTrip':    return `🚗 Road Trip · ${dialectLabel}`;
-      case 'FriendsBirthday':    return `🎂 Birthday Party · ${dialectLabel}`;
-      case 'FriendsFarewell':    return `👋 Saying Goodbye · ${dialectLabel}`;
-      case 'EgyptianCafeOrder': return `☕ Café Order · ${dialectLabel}`;
-      case 'EgyptianRestaurantOrder': return `🍽️ Restaurant Order · ${dialectLabel}`;
-      case 'EgyptianEverydaySupermarket': return `🛒 Supermarket · ${dialectLabel}`;
-      case 'EgyptianEverydayTaxi': return `🚕 Taxi · ${dialectLabel}`;
-      case 'EgyptianDirections': return `🗺️ Directions · ${dialectLabel}`;
-      case 'EgyptianEverydayPharmacy': return `💊 Pharmacy · ${dialectLabel}`;
-      case 'EgyptianPhoneRepair': return `📱 Phone Repair · ${dialectLabel}`;
-      case 'EgyptianEverydayHotel': return `🏨 Hotel · ${dialectLabel}`;
-      case 'EgyptianEverydayAirport': return `✈️ Airport · ${dialectLabel}`;
-      case 'EgyptianPhoneCall': return `📞 Phone Call · ${dialectLabel}`;
-      default:                   return `💬 ${resolvedContent?.item.title ?? 'Scenario'} · ${dialectLabel}`;
+      case 'Taxi':        return `Taxi · ${dialectLabel}`;
+      case 'Hotel':       return `Hotel · ${dialectLabel}`;
+      case 'Restaurant':  return `Restaurant · ${dialectLabel}`;
+      case 'Supermarket': return `Supermarket · ${dialectLabel}`;
+      case 'Pharmacy':    return `Pharmacy · ${dialectLabel}`;
+      case 'Barbershop':     return `Barbershop · ${dialectLabel}`;
+      case 'MsaPhoneRepair': return `Phone Repair · ${dialectLabel}`;
+      case 'Airport':        return `Airport · ${dialectLabel}`;
+      case 'MorningRoutine': return `Morning Routine · ${dialectLabel}`;
+      case 'AtGym':          return `At the Gym · ${dialectLabel}`;
+      case 'CookingHome':    return `Cooking at Home · ${dialectLabel}`;
+      case 'WeatherChat':    return `Weather Chat · ${dialectLabel}`;
+      case 'DoctorVisit':    return `Doctor Visit · ${dialectLabel}`;
+      case 'AtBank':         return `At the Bank · ${dialectLabel}`;
+      case 'FridayGathering': return `Friday Gathering · ${dialectLabel}`;
+      case 'NeighborVisit':      return `Neighbour Visit · ${dialectLabel}`;
+      case 'LostInCity':         return `Lost in the City · ${dialectLabel}`;
+      case 'CarBreakdown':       return `Car Breakdown · ${dialectLabel}`;
+      case 'PoliceStation':      return `Police Station · ${dialectLabel}`;
+      case 'HospitalEmergency':  return `Hospital Emergency · ${dialectLabel}`;
+      case 'LostWallet':         return `Lost Wallet · ${dialectLabel}`;
+      case 'FlightProblem':      return `Flight Problem · ${dialectLabel}`;
+      case 'AskingForHelp':      return `Asking for Help · ${dialectLabel}`;
+      case 'FriendsNewNeighbor': return `New Neighbor · ${dialectLabel}`;
+      case 'FriendsFootball':    return `Watching Football · ${dialectLabel}`;
+      case 'FriendsGaming':      return `Gaming Night · ${dialectLabel}`;
+      case 'FriendsWeekend':     return `Weekend Plans · ${dialectLabel}`;
+      case 'FriendsSocialMedia': return `Social Media · ${dialectLabel}`;
+      case 'FriendsRoadTrip':    return `Road Trip · ${dialectLabel}`;
+      case 'FriendsBirthday':    return `Birthday Party · ${dialectLabel}`;
+      case 'FriendsFarewell':    return `Saying Goodbye · ${dialectLabel}`;
+      case 'EgyptianCafeOrder': return `Café Order · ${dialectLabel}`;
+      case 'EgyptianRestaurantOrder': return `Restaurant Order · ${dialectLabel}`;
+      case 'EgyptianEverydaySupermarket': return `Supermarket · ${dialectLabel}`;
+      case 'EgyptianEverydayTaxi': return `Taxi · ${dialectLabel}`;
+      case 'EgyptianDirections': return `Directions · ${dialectLabel}`;
+      case 'EgyptianEverydayPharmacy': return `Pharmacy · ${dialectLabel}`;
+      case 'EgyptianPhoneRepair': return `Phone Repair · ${dialectLabel}`;
+      case 'EgyptianEverydayHotel': return `Hotel · ${dialectLabel}`;
+      case 'EgyptianEverydayAirport': return `Airport · ${dialectLabel}`;
+      case 'EgyptianPhoneCall': return `Phone Call · ${dialectLabel}`;
+      default: return `${getMissionDisplayTitle(resolvedContent?.item.title ?? 'Scenario')} · ${dialectLabel}`;
     }
   };
 
@@ -1143,7 +1148,7 @@ export default function ScenarioScreen() {
       <PremiumRouteGate contentId={routeContentId} contentType="scenario" contentLabel={getSceneBadge()}>
         <SafeAreaView style={styles.container}>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
+            <Clock color={theme.colors.textTertiary} size={48} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
             <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
               This scenario is not available for your selected dialect yet. We're working on it!
@@ -1177,7 +1182,7 @@ export default function ScenarioScreen() {
         <Text style={styles.headerTitle}>{getSceneBadge()}</Text>
         <View style={styles.headerRight}>
           <View style={styles.partPill}>
-            <Text style={styles.partPillText}>{getPartLabel(currentIndex, typeStr)}</Text>
+            <Text style={styles.partPillText}>{getPlainPartLabel(currentIndex, typeStr)}</Text>
           </View>
         </View>
       </View>
@@ -1238,7 +1243,7 @@ export default function ScenarioScreen() {
             {/* Progress row */}
             <View style={styles.progressRow}>
               <View style={styles.progressMeta}>
-                <Text style={styles.partLabel}>{getPartLabel(currentIndex, typeStr).replace(/^[^ ]+ /, '')}</Text>
+                <Text style={styles.partLabel}>{getPlainPartLabel(currentIndex, typeStr)}</Text>
                 <Text style={styles.progressLabel}>{currentIndex + 1} / {total}</Text>
               </View>
               <View style={styles.progressBarBg}>

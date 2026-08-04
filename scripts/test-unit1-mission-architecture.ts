@@ -137,6 +137,10 @@ const { buildGulfUnit1CurriculumUnit, resolveGulfUnit1CurriculumVersion } = requ
 const { buildEgyptianUnit1CurriculumUnit, resolveEgyptianUnit1CurriculumVersion } = require('../data/curriculum/egyptian') as typeof import('../data/curriculum/egyptian');
 const { EGYPTIAN_FIRST_CAFE_DIALOGUE } = require('../data/egyptian-unit1') as typeof import('../data/egyptian-unit1');
 const { buildEgyptianBigReviewQuestions, buildEgyptianFirstArabicChallengeQuestions } = require('../data/egyptian-unit1-quizzes') as typeof import('../data/egyptian-unit1-quizzes');
+const { MSA_UNIT2_V2_DEFINITIONS } = require('../data/msa-unit2-v2') as typeof import('../data/msa-unit2-v2');
+const { GULF_UNIT2_V2_DEFINITIONS } = require('../data/gulf-unit2-v2') as typeof import('../data/gulf-unit2-v2');
+const { EGYPTIAN_UNIT2_V2_DEFINITIONS } = require('../data/egyptian-unit2-v2') as typeof import('../data/egyptian-unit2-v2');
+const { getMissionDisplayTitle, getMissionIconKey, hasUnsafeMissionTitleGlyph } = require('../utils/mission-display') as typeof import('../utils/mission-display');
 
 const DIALECTS: SupportedDialect[] = ['gulf', 'egyptian', 'msa'];
 const LEGACY_LESSON_KEYS = ['basic', 'greetings', 'intro'] as const;
@@ -1238,8 +1242,29 @@ function testGulfUnit1V2() {
   assert.equal(getQuizPassedAtThreshold(15,20,16),false); assert.equal(getQuizPassedAtThreshold(16,20,16),true);
   assert.equal(getDialectContentMeta('gulf','dubai_challenge','quiz'),null);
   const lessonSource=readFileSync(require.resolve('../app/lesson.tsx'),'utf8');
-  assert.equal(lessonSource.includes("adjustsFontSizeToFit={targetSize !== 'short'}"),true);
-  assert.equal(lessonSource.includes("arabicBig: { width: '100%', alignSelf: 'stretch', flexShrink: 0"),true);
+  const arabicTextBlock=lessonSource.match(/<Text\s+style=\{\[\s*styles\.arabicBig[\s\S]*?\]\}\s*>\s*\{displayedArabic\}\s*<\/Text>/)?.[0]??'';
+  assert.ok(arabicTextBlock,'lesson card must render displayedArabic in the responsive Arabic text block');
+  assert.doesNotMatch(arabicTextBlock,/numberOfLines|ellipsizeMode/,'Arabic lesson text must wrap without a line cap or ellipsis');
+  assert.doesNotMatch(arabicTextBlock,/adjustsFontSizeToFit|minimumFontScale/,'Arabic lesson text must grow rather than auto-shrink');
+  const wordCardStyle=lessonSource.match(/wordCard: \{[^\n]+/)?.[0]??'';
+  assert.match(wordCardStyle,/minWidth: 0/);
+  assert.match(wordCardStyle,/minHeight: 220/,'lesson card must establish a minimum while retaining natural content height');
+  assert.doesNotMatch(wordCardStyle,/(?:^|[, {])height:/,'lesson card must not use a fixed height');
+  assert.equal(lessonSource.includes("arabicBig: { width: '100%', minWidth: 0, alignSelf: 'stretch', flexShrink: 1"),true);
+  assert.equal(lessonSource.includes("roman: { minWidth: 0, flexShrink: 1"),true,'transliteration must have wrap-safe width and shrinking');
+  assert.equal(lessonSource.includes("english: { minWidth: 0, flexShrink: 1"),true,'English meaning must have wrap-safe width and shrinking');
+  assert.match(lessonSource,/<Text style=\{styles\.roman\}>\{currentWord\.transliteration\}<\/Text>/,'transliteration must render without restrictive Text props');
+  assert.match(lessonSource,/<Text style=\{styles\.english\}>\{currentWord\.english\}<\/Text>/,'English meaning must render without restrictive Text props');
+  const scrollStart=lessonSource.indexOf('<ScrollView\n        style={styles.practiceArea}');
+  const scrollEnd=lessonSource.indexOf('</ScrollView>',scrollStart);
+  const cardPosition=lessonSource.indexOf('<View style={styles.wordCard}>',scrollStart);
+  const controlsPosition=lessonSource.indexOf('<View style={styles.controls}>',cardPosition);
+  const microphonePosition=lessonSource.indexOf('{isPronunciationEnabled && <View style={styles.primaryActionItem}>',controlsPosition);
+  const nextPosition=lessonSource.indexOf('onPress={handleNext}',controlsPosition);
+  assert.ok(scrollStart>=0&&scrollEnd>scrollStart,'lesson content must be inside a ScrollView');
+  assert.ok(cardPosition>scrollStart&&controlsPosition>cardPosition&&controlsPosition<scrollEnd,'controls must remain in normal vertical flow below the growing card');
+  assert.ok(microphonePosition>controlsPosition&&microphonePosition<scrollEnd,'microphone must remain in the scrollable vertical flow');
+  assert.ok(nextPosition>controlsPosition&&nextPosition<scrollEnd,'Next must remain in the scrollable vertical flow');
   assert.equal(lessonSource.includes('Speaking practice is optional. Continue when ready.'),false);
   assert.equal(lessonSource.includes('{isPronunciationEnabled && <View style={styles.primaryActionItem}>'),true);
   assert.equal(lessonSource.includes('{!isAudioDisabled && ('),true);
@@ -1267,6 +1292,45 @@ function testEgyptianUnit1V2Bridge() {
   });
 }
 
+function testAndroidSafeMissionTitlesAndIcons() {
+  const supportedIcons = new Set([
+    'book-open','circle-check','circle-help','coffee','door-open','hand-helping','hash','heart','home','key',
+    'list-checks','map-pin','messages-square','package','palette','shirt','smile','sparkles','sun','trophy','user','users',
+  ]);
+  const units = [
+    buildMsaUnit1CurriculumUnit('v2').items,
+    buildGulfUnit1CurriculumUnit('v2').items,
+    buildEgyptianUnit1CurriculumUnit('v2').items,
+    MSA_UNIT2_V2_DEFINITIONS,
+    GULF_UNIT2_V2_DEFINITIONS,
+    EGYPTIAN_UNIT2_V2_DEFINITIONS,
+  ];
+  for (const items of units) {
+    for (const item of items) {
+      const canonicalTitle = item.title;
+      const displayTitle = getMissionDisplayTitle(canonicalTitle);
+      const semanticId = item.missionId ?? ('contentId' in item ? item.contentId : '');
+      assert.equal(item.title, canonicalTitle, 'display sanitization must not mutate canonical curriculum titles');
+      assert.equal(hasUnsafeMissionTitleGlyph(displayTitle), false, `${semanticId} has an unsafe placeholder glyph`);
+      assert.doesNotMatch(displayTitle, /(?:👨‍👩‍👧|☀️|✅|🏠|🔑|👕|🧺|🚪|👋|😊|☕|🎨|🔢|📍)$/u);
+      assert.ok(supportedIcons.has(getMissionIconKey({
+        contentId: semanticId,
+        contentType: item.missionKind === 'guided_dialogue' ? 'scenario' : item.missionKind === 'review' || item.missionKind === 'challenge' ? 'quiz' : 'lesson',
+        missionKind: item.missionKind,
+      })), `${semanticId} must resolve a supported Lucide icon or safe generic fallback`);
+    }
+  }
+  assert.equal(getMissionDisplayTitle('Where Are My Things? 🔑'), 'Where Are My Things?');
+  assert.equal(getMissionDisplayTitle('Ready or Missing? ✅'), 'Ready or Missing?');
+  assert.equal(getMissionDisplayTitle('How Are You?'), 'How Are You?');
+
+  const learnSource = readFileSync(require.resolve('../app/(tabs)/index.tsx'), 'utf8');
+  const lessonSource = readFileSync(require.resolve('../app/lesson.tsx'), 'utf8');
+  assert.match(learnSource, /getMissionDisplayTitle\(item\.title\)/);
+  assert.match(lessonSource, /getMissionDisplayTitle\(canonicalLessonTitle\)/);
+  assert.doesNotMatch(learnSource, /done \? '✅' : '🎯'|🔒 Sign up to unlock|🔒 Complete previous lesson/);
+}
+
 function main() {
   testMsaV2FlagSafetyAndBridge();
   testFirstArabicWordsMissionDataAndIsolation();
@@ -1281,6 +1345,7 @@ function main() {
   testFinalMissionsAndChallengeGate();
   testGulfUnit1V2();
   testEgyptianUnit1V2Bridge();
+  testAndroidSafeMissionTitlesAndIcons();
   console.log('Unit 1 mission architecture regression tests passed.');
 }
 

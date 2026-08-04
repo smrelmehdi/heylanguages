@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useDialect } from '../contexts/DialectContext';
 import { getDialectContentMeta } from '../utils/content-resolver';
+import { getMissionDisplayTitle } from '../utils/mission-display';
 import ScenarioIntroScreen from './ScenarioIntroScreen';
 
 type Props = {
@@ -43,7 +44,7 @@ export default function CurriculumScenarioIntro({ contentId }: Props) {
     <ScenarioIntroScreen
       image={entranceImage}
       badge={`Unit ${unitNumber(item.unitId)} · Scenario`}
-      title={item.title}
+      title={getMissionDisplayTitle(item.title)}
       description={description}
       pills={['Conversation', 'Listening', 'Speaking']}
       stats={[item.subtitle ?? '3 mins', `${content.scenarios[item.scenarioName]?.length ?? 0} phrases`]}

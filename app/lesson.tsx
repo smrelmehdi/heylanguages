@@ -2,7 +2,7 @@ import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } 
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, Volume2 } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, Clock, Volume2 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +22,7 @@ import { buildCompletionKey } from '../utils/progression';
 import { persistCurriculumCompletion } from '../utils/quiz-completion';
 import { recordActivity } from '../utils/streak';
 import { getLessonCapabilities, getLessonEvaluationPayload } from '../utils/lesson-pronunciation';
+import { getMissionDisplayTitle } from '../utils/mission-display';
 import { playLocalAudioWithTtsFallback, prepareRecordingAudioMode, releaseAudioPlaybackOwner, restorePlaybackAudioMode, stopAudio } from '../utils/tts';
 
 export default function LessonScreen() {
@@ -163,11 +164,12 @@ export default function LessonScreen() {
   const isPronunciationEnabled = lessonCapabilities.pronunciationEnabled;
   const isComingSoon = WORDS.length === 0;
 
-  const lessonTitle = resolvedContent?.item.title ?? (
+  const canonicalLessonTitle = resolvedContent?.item.title ?? (
     typeStr === 'intro'     ? 'Introduce Yourself'      :
     typeStr === 'greetings' ? 'Common Greetings'        :
     LESSON_TITLES[typeStr] ?? 'Basic Words'
   );
+  const lessonTitle = getMissionDisplayTitle(canonicalLessonTitle);
 
   const lessonSubtitle = missionContent?.objective ?? (
     typeStr === 'intro'     ? 'Talk About Yourself'     :
@@ -182,8 +184,8 @@ export default function LessonScreen() {
   const targetSize =
     displayLength <= 8 ? 'short' :
     displayLength <= 18 ? 'medium' :
-    'long';
-  const targetLineLimit = targetSize === 'short' ? 1 : targetSize === 'medium' ? 2 : 3;
+    displayLength <= 36 ? 'long' :
+    'sentence';
   const progress = WORDS.length > 0 ? currentIndex / WORDS.length : 0;
   const currentRound = (() => {
     let startIndex = 0;
@@ -412,7 +414,7 @@ export default function LessonScreen() {
         <SafeAreaView style={styles.container}>
           <Stack.Screen options={{ headerShown: false }} />
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>🔜</Text>
+            <Clock color={theme.colors.textTertiary} size={48} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 22, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>Coming Soon</Text>
             <Text style={{ fontSize: 15, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 32 }}>
               This lesson is not available for your selected dialect yet. We're working on it!
@@ -515,7 +517,11 @@ export default function LessonScreen() {
         </View>
       </View>
 
-      <View style={styles.practiceArea}>
+      <ScrollView
+        style={styles.practiceArea}
+        contentContainerStyle={styles.practiceContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Progress bar */}
         <View style={styles.progressWrap}>
           <View style={styles.progressBg}>
@@ -532,19 +538,17 @@ export default function LessonScreen() {
               styles.arabicBig,
               targetSize === 'medium' && styles.arabicMedium,
               targetSize === 'long' && styles.arabicLong,
+              targetSize === 'sentence' && styles.arabicSentence,
             ]}
-            adjustsFontSizeToFit={targetSize !== 'short'}
-            numberOfLines={targetLineLimit}
-            minimumFontScale={0.8}
           >
-            {stripTashkeel(displayedArabic)}
+            {displayedArabic}
           </Text>
           <Text style={styles.roman}>{currentWord.transliteration}</Text>
           <Text style={styles.english}>{currentWord.english}</Text>
           {currentWord.example && (
             <View style={styles.exampleWrap}>
               <Text style={styles.exampleLabel}>EXAMPLE</Text>
-              <Text style={styles.exampleAr}>{stripTashkeel(currentWord.example ?? '')}</Text>
+              <Text style={styles.exampleAr}>{currentWord.example}</Text>
               <Text style={styles.exampleEn}>{currentWord.exampleTranslation}</Text>
             </View>
           )}
@@ -631,7 +635,7 @@ export default function LessonScreen() {
             )}
           </View>
         )}
-      </View>
+      </ScrollView>
 
       </SafeAreaView>
     </PremiumRouteGate>
@@ -649,18 +653,20 @@ const styles = StyleSheet.create({
   lessonSub: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary, marginTop: 1 },
   xpPill: { backgroundColor: theme.colors.bgSurface, borderWidth: 1, borderColor: theme.colors.borderAccent, borderRadius: theme.radii.pill, paddingHorizontal: 12, paddingVertical: 5 },
   xpText: { fontSize: theme.fontSize.label, color: theme.colors.textAccent, fontWeight: theme.fontWeight.medium, letterSpacing: 1.5 },
-  practiceArea: { flex: 1, paddingTop: 8, paddingBottom: 28 },
+  practiceArea: { flex: 1 },
+  practiceContent: { flexGrow: 1, paddingTop: 8, paddingBottom: 32 },
   progressWrap: { paddingHorizontal: 20, marginBottom: 14 },
   progressBg: { height: 4, backgroundColor: theme.colors.bgBase, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: theme.colors.accentPrimary, borderRadius: 2 },
   progressLabel: { fontSize: theme.fontSize.caption, color: theme.colors.textTertiary, textAlign: 'right', marginTop: 4 },
-  wordCard: { marginHorizontal: 20, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, padding: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 18, minHeight: 220 },
-  contextLabel: { fontSize: theme.fontSize.label, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 },
-  arabicBig: { width: '100%', alignSelf: 'stretch', flexShrink: 0, fontSize: 56, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 66, marginBottom: 8, paddingHorizontal: 4, writingDirection: 'rtl' },
-  arabicMedium: { fontSize: 42, lineHeight: 52 },
-  arabicLong: { fontSize: 32, lineHeight: 42 },
-  roman: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular, marginBottom: 6, lineHeight: 24 },
-  english: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium, lineHeight: 24 },
+  wordCard: { marginHorizontal: 20, minWidth: 0, backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, paddingHorizontal: 20, paddingVertical: 20, borderWidth: 1, borderColor: theme.colors.borderDefault, marginBottom: 18, minHeight: 220 },
+  contextLabel: { minWidth: 0, flexShrink: 1, fontSize: theme.fontSize.label, lineHeight: 20, color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 },
+  arabicBig: { width: '100%', minWidth: 0, alignSelf: 'stretch', flexShrink: 1, fontSize: 52, fontWeight: theme.fontWeight.medium, color: theme.colors.textPrimary, textAlign: 'right', lineHeight: 66, marginBottom: 10, paddingHorizontal: 2, paddingVertical: 2, writingDirection: 'rtl' },
+  arabicMedium: { fontSize: 42, lineHeight: 54 },
+  arabicLong: { fontSize: 34, lineHeight: 46 },
+  arabicSentence: { fontSize: 30, lineHeight: 42 },
+  roman: { minWidth: 0, flexShrink: 1, fontSize: 23, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.regular, marginBottom: 8, lineHeight: 31, writingDirection: 'ltr' },
+  english: { minWidth: 0, flexShrink: 1, fontSize: 23, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium, lineHeight: 31, writingDirection: 'ltr' },
   exampleWrap: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.borderDefault, gap: 3 },
   exampleLabel: { fontSize: 10, color: theme.colors.textTertiary, fontWeight: theme.fontWeight.medium, letterSpacing: 1.4 },
   exampleAr: { fontSize: 14, color: theme.colors.textAccent, lineHeight: 22, textAlign: 'right', writingDirection: 'rtl' },
