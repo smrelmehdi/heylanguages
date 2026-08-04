@@ -70,6 +70,7 @@ type PremiumContextValue = {
   restorePurchases: () => Promise<PremiumActionResult>;
   refreshCustomerInfo: (source?: PremiumEntitlementSource) => Promise<void>;
   clearPremiumCustomerInfoCache: () => Promise<boolean>;
+  disconnectDeletedAccount: () => Promise<void>;
   clearPremiumError: () => void;
 };
 
@@ -90,6 +91,7 @@ const PremiumContext = createContext<PremiumContextValue>({
   restorePurchases: async () => 'error',
   refreshCustomerInfo: async () => {},
   clearPremiumCustomerInfoCache: async () => false,
+  disconnectDeletedAccount: async () => {},
   clearPremiumError: () => {},
 });
 
@@ -1187,6 +1189,14 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     restorePurchases,
     refreshCustomerInfo,
     clearPremiumCustomerInfoCache,
+    disconnectDeletedAccount: async () => {
+      const client = purchasesRef.current;
+      if (!client || !configuredRef.current) {
+        clearCustomerState();
+        return;
+      }
+      await transitionIdentity(null, client, 'account-deletion');
+    },
     clearPremiumError,
   }), [
     premiumStatus,
@@ -1203,6 +1213,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     restorePurchases,
     refreshCustomerInfo,
     clearPremiumCustomerInfoCache,
+    clearCustomerState,
+    transitionIdentity,
     clearPremiumError,
   ]);
 

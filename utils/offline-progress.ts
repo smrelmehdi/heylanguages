@@ -27,6 +27,7 @@ type QueueRuntime = {
   getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<void>;
   setItems: (entries: [string, string][]) => Promise<void>;
+  removeItem?: (key: string) => Promise<void>;
   now: () => Date;
   syncCompletion: (event: OfflineCompletionEvent) => Promise<{ firstCompletion: boolean; xpAwarded: number }>;
 };
@@ -137,6 +138,17 @@ export function createOfflineProgressQueue(runtime: QueueRuntime) {
     return store.events.length;
   };
 
+  const clearOwner = (ownerId: string) => serialize(async () => {
+    const store = await readUnlocked();
+    store.events = store.events.filter(event => event.ownerId !== ownerId);
+    for (const [id, item] of Object.entries(store.acknowledged)) {
+      if (id === eventId(ownerId, item.dialect, item.completionKey)) delete store.acknowledged[id];
+    }
+    await writeUnlocked(store);
+    if (runtime.removeItem) await runtime.removeItem(`${XP_CACHE_PREFIX}${ownerId}`);
+    else await runtime.setItem(`${XP_CACHE_PREFIX}${ownerId}`, '0');
+  });
+
   const sync = (ownerId: string): Promise<number> => {
     if (syncPromise) {
       if (syncOwnerId === ownerId) return syncPromise;
@@ -176,13 +188,14 @@ export function createOfflineProgressQueue(runtime: QueueRuntime) {
     return syncPromise;
   };
 
-  return { enqueue, acknowledge, getCompletionIds, hydrate, sync };
+  return { enqueue, acknowledge, getCompletionIds, hydrate, sync, clearOwner };
 }
 
 const defaultQueue = createOfflineProgressQueue({
   getItem: key => AsyncStorage.getItem(key),
   setItem: (key, value) => AsyncStorage.setItem(key, value),
   setItems: entries => AsyncStorage.multiSet(entries),
+  removeItem: key => AsyncStorage.removeItem(key),
   now: () => new Date(),
   syncCompletion: async event => {
     const { data, error } = await supabase.rpc('complete_quiz_once', {
@@ -202,6 +215,7 @@ export const enqueueOfflineCompletion = defaultQueue.enqueue;
 export const acknowledgeOnlineCompletion = defaultQueue.acknowledge;
 export const getLocalCompletionIds = defaultQueue.getCompletionIds;
 export const hydrateOfflineProgressQueue = defaultQueue.hydrate;
+export const clearOfflineProgressForOwner = defaultQueue.clearOwner;
 
 export async function syncOfflineProgressQueue() {
   const { data: { session } } = await supabase.auth.getSession();

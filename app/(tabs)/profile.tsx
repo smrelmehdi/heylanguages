@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { AlertCircle, BarChart2, CheckCircle2, ChevronRight, Crown, Download, Globe, LogOut, RefreshCw, Trash2 } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, DevSettings, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, DevSettings, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PremiumDiagnosticsPanel from '../../components/PremiumDiagnosticsPanel';
 import { getLevelFromXP, getXPProgress, getXPToNextLevel, LEVELS } from '../../constants/levels';
@@ -23,6 +23,7 @@ import type { OfflineDialect } from '../../utils/offline-pack';
 import { recordPremiumDiagnostic } from '../../utils/premium-diagnostics';
 import { supabase } from '../../utils/supabase';
 import { getConnectivitySnapshot } from '../../utils/connectivity-state';
+import { ACCOUNT_DELETION_CONFIRMATION, clearDeletedAccountLocalState, deleteCurrentAccount } from '../../utils/account-deletion';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function ProfileScreen() {
   const [streakCount, setStreakCount] = useState(0);
   const { dialect: contextDialect, setDialect: setContextDialect } = useDialect();
   const { xp: xpTotal, premiumStatus } = useXP();
-  const { restorePurchases, isRestoring, error: premiumError, managementURL } = usePremium();
+  const { restorePurchases, isRestoring, error: premiumError, managementURL, disconnectDeletedAccount } = usePremium();
   const isPremium = premiumStatus === 'premium';
   const isPremiumLoading = premiumStatus === 'loading';
   const { openPaywall } = usePaywall();
@@ -47,6 +48,10 @@ export default function ProfileScreen() {
   const [scenariosCompleted, setScenariosCompleted] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [testingUnlockEnabled, setTestingUnlockEnabled] = useState(getTestingUnlockAllState());
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deletePhrase, setDeletePhrase] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     recordPremiumDiagnostic({
@@ -168,6 +173,46 @@ export default function ProfileScreen() {
         { text: 'Cancel', style: 'cancel' },
       ]
     );
+  };
+
+  const closeDeleteDialog = () => {
+    if (isDeleting) return;
+    setDeleteStep(0);
+    setDeletePhrase('');
+    setDeleteError('');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (isDeleting || deletePhrase !== ACCOUNT_DELETION_CONFIRMATION) return;
+    setIsDeleting(true);
+    setDeleteError('');
+    const result = await deleteCurrentAccount({
+      isOnline: () => getConnectivitySnapshot().isOnline,
+      getAuthenticatedUserId: async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session?.user.id ?? null;
+      },
+      deleteRemoteAccount: async () => {
+        const { data, error } = await supabase.functions.invoke('delete-account', { body: {} });
+        if (error) throw error;
+        return data as { deleted: boolean };
+      },
+      clearLocalState: clearDeletedAccountLocalState,
+      disconnectPremium: disconnectDeletedAccount,
+      signOut: async () => { await supabase.auth.signOut({ scope: 'local' }); },
+      navigateToWelcome: () => router.replace('/'),
+    });
+    setIsDeleting(false);
+    if (result.status === 'deleted') {
+      setDeleteStep(0);
+      return;
+    }
+    const message = result.status === 'blocked' && result.reason === 'offline'
+      ? 'Connect to the internet before deleting your account.'
+      : result.status === 'blocked' && result.reason === 'identity_changed'
+        ? 'The signed-in account changed. No local data was cleared.'
+        : 'We could not delete your account. Nothing was cleared from this device. Please try again.';
+    setDeleteError(message);
   };
 
   const handleResetOnboarding = async () => {
@@ -606,13 +651,6 @@ export default function ProfileScreen() {
             <ChevronRight color={theme.colors.textTertiary} size={16} />
           </Pressable>
 
-          <Pressable style={styles.settingRow} onPress={() => openExternalLink(LEGAL_URLS.deleteAccount)}>
-            <View style={styles.settingLeft}>
-              <Text style={styles.settingLabel}>Delete Account</Text>
-            </View>
-            <ChevronRight color={theme.colors.textTertiary} size={16} />
-          </Pressable>
-
           <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={handleLogout}>
             <View style={styles.settingLeft}>
               <View style={styles.settingIcon}>
@@ -622,6 +660,22 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
         </View>
+
+        {!isGuest && <>
+          <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>Danger Zone</Text>
+          <View style={[styles.settingsCard, styles.dangerCard]}>
+            <Pressable style={[styles.settingRow, styles.settingRowLast]} onPress={() => setDeleteStep(1)} accessibilityRole="button">
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}><Trash2 color={theme.colors.accentDanger} size={18} /></View>
+                <View style={styles.settingCopy}>
+                  <Text style={[styles.settingLabel, { color: theme.colors.accentDanger }]}>Delete Account</Text>
+                  <Text style={styles.offlineMeta}>Permanently remove your account and learning data.</Text>
+                </View>
+              </View>
+              <ChevronRight color={theme.colors.accentDanger} size={16} />
+            </Pressable>
+          </View>
+        </>}
 
         {__DEV__ && (
           <>
@@ -655,6 +709,47 @@ export default function ProfileScreen() {
         <Text style={styles.version}>HeyYusuf v{version} · Made with ❤️ in Dubai</Text>
 
       </ScrollView>
+      <Modal visible={deleteStep > 0} transparent animationType="fade" onRequestClose={closeDeleteDialog}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.deleteModal}>
+            <Text style={styles.deleteTitle}>Delete your account?</Text>
+            <Text style={styles.deleteBody}>
+              This permanently deletes your profile, learning progress, XP, conversations, and account data. Store purchase history is managed by Apple or Google and is not deleted here.
+            </Text>
+            {deleteStep === 2 && <>
+              <Text style={styles.deletePrompt}>Type DELETE to confirm</Text>
+              <TextInput
+                style={styles.deleteInput}
+                value={deletePhrase}
+                onChangeText={setDeletePhrase}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!isDeleting}
+                accessibilityLabel="Type DELETE to confirm account deletion"
+              />
+            </>}
+            {!!deleteError && <Text style={styles.deleteError}>{deleteError}</Text>}
+            <View style={styles.deleteActions}>
+              <Pressable style={styles.deleteCancel} onPress={closeDeleteDialog} disabled={isDeleting}>
+                <Text style={styles.deleteCancelText}>Cancel</Text>
+              </Pressable>
+              {deleteStep === 1 ? (
+                <Pressable style={styles.deleteDanger} onPress={() => setDeleteStep(2)}>
+                  <Text style={styles.deleteDangerText}>Continue</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={[styles.deleteDanger, (deletePhrase !== ACCOUNT_DELETION_CONFIRMATION || isDeleting) && styles.deleteDisabled]}
+                  onPress={handleDeleteAccount}
+                  disabled={deletePhrase !== ACCOUNT_DELETION_CONFIRMATION || isDeleting}
+                >
+                  {isDeleting ? <ActivityIndicator color="#fff" /> : <Text style={styles.deleteDangerText}>Delete permanently</Text>}
+                </Pressable>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -738,4 +833,19 @@ const styles = StyleSheet.create({
   xpProgressBg: { height: 8, backgroundColor: theme.colors.bgBase, borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
   xpProgressFill: { height: '100%', borderRadius: 4 },
   xpNextLevel: { fontSize: theme.fontSize.label, color: theme.colors.textTertiary },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', padding: 24 },
+  deleteModal: { backgroundColor: theme.colors.bgSurface, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: `${theme.colors.accentDanger}88`, padding: 20 },
+  deleteTitle: { color: theme.colors.textPrimary, fontSize: 22, fontWeight: theme.fontWeight.medium, marginBottom: 10 },
+  deleteBody: { color: theme.colors.textSecondary, fontSize: 15, lineHeight: 22 },
+  deletePrompt: { color: theme.colors.textPrimary, fontSize: 14, fontWeight: theme.fontWeight.medium, marginTop: 18, marginBottom: 8 },
+  deleteInput: { color: theme.colors.textPrimary, backgroundColor: theme.colors.bgBase, borderWidth: 1, borderColor: theme.colors.borderDefault, borderRadius: theme.radii.md, paddingHorizontal: 14, minHeight: 48, fontSize: 17 },
+  deleteError: { color: theme.colors.accentDanger, fontSize: 14, lineHeight: 20, marginTop: 12 },
+  deleteActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  deleteCancel: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radii.md, borderWidth: 1, borderColor: theme.colors.borderDefault },
+  deleteCancelText: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: theme.fontWeight.medium },
+  deleteDanger: { flex: 1.4, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radii.md, backgroundColor: theme.colors.accentDanger, paddingHorizontal: 12 },
+  deleteDangerText: { color: '#fff', fontSize: 15, fontWeight: theme.fontWeight.medium },
+  deleteDisabled: { opacity: 0.4 },
+  dangerSectionTitle: { color: theme.colors.accentDanger },
+  dangerCard: { borderColor: `${theme.colors.accentDanger}66` },
 });
