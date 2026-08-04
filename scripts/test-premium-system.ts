@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
     ANDROID_MONTHLY_PRODUCT_ID,
+    ANDROID_MONTHLY_BASE_PLAN_ID,
+    ANDROID_MONTHLY_BASE_PRODUCT_ID,
     DEFAULT_OFFERING_ID,
     IOS_MONTHLY_PRODUCT_ID,
     PREMIUM_ENTITLEMENT_ID,
@@ -175,11 +177,47 @@ test('Android accepts the exact product and base-plan identifier', () => {
   assert.equal(selectMonthlyPackage(offerings, 'android'), androidMonthlyPackage);
 });
 
+test('Android accepts the SDK representation with a separately identified base plan', () => {
+  const packageWithSeparateBasePlan = {
+    identifier: '$rc_monthly',
+    packageType: 'MONTHLY',
+    product: {
+      identifier: ANDROID_MONTHLY_BASE_PRODUCT_ID,
+      priceString: '$4.99',
+      defaultOption: {
+        productId: ANDROID_MONTHLY_BASE_PRODUCT_ID,
+        id: ANDROID_MONTHLY_BASE_PLAN_ID,
+        storeProductId: ANDROID_MONTHLY_PRODUCT_ID,
+        isBasePlan: true,
+      },
+    },
+  } as any;
+  const splitRepresentation = { all: { default: { availablePackages: [packageWithSeparateBasePlan] } } } as any;
+  assert.equal(selectMonthlyPackage(splitRepresentation, 'android'), packageWithSeparateBasePlan);
+});
+
 test('Android rejects the product without its base-plan suffix', () => {
   const iosOnly = {
     all: { default: { availablePackages: [iosMonthlyPackage] } },
   } as any;
   assert.equal(selectMonthlyPackage(iosOnly, 'android'), null);
+});
+
+test('Android rejects an unrelated or promotional subscription option', () => {
+  const wrongPlan = {
+    all: { default: { availablePackages: [{
+      product: {
+        identifier: ANDROID_MONTHLY_BASE_PRODUCT_ID,
+        defaultOption: {
+          productId: ANDROID_MONTHLY_BASE_PRODUCT_ID,
+          id: 'annual',
+          storeProductId: `${ANDROID_MONTHLY_BASE_PRODUCT_ID}:annual`,
+          isBasePlan: true,
+        },
+      },
+    }] } },
+  } as any;
+  assert.equal(selectMonthlyPackage(wrongPlan, 'android'), null);
 });
 
 test('iOS accepts the exact monthly product identifier', () => {

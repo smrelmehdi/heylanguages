@@ -3,6 +3,8 @@ import type { CustomerInfo, PurchasesOfferings } from 'react-native-purchases';
 export const PREMIUM_ENTITLEMENT_ID = 'premium';
 export const DEFAULT_OFFERING_ID = 'default';
 export const IOS_MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly';
+export const ANDROID_MONTHLY_BASE_PRODUCT_ID = 'heyyusuf_premium_monthly';
+export const ANDROID_MONTHLY_BASE_PLAN_ID = 'monthly';
 export const ANDROID_MONTHLY_PRODUCT_ID = 'heyyusuf_premium_monthly:monthly';
 export const PRODUCT_ALREADY_PURCHASED_ERROR_CODE = '6';
 export const REVENUECAT_REQUEST_TIMEOUT_MS = 15_000;
@@ -77,7 +79,15 @@ export function selectMonthlyPackage(offerings: PurchasesOfferings | null, platf
   const offering = getDefaultOffering(offerings);
   const productId = getMonthlyProductId(platform);
   if (!offering || !productId) return null;
-  return offering.availablePackages.find(item => item.product.identifier === productId) ?? null;
+  return offering.availablePackages.find(item => {
+    if (item.product.identifier === productId) return true;
+    if (platform !== 'android' || item.product.identifier !== ANDROID_MONTHLY_BASE_PRODUCT_ID) return false;
+    const option = item.product.defaultOption;
+    return option?.productId === ANDROID_MONTHLY_BASE_PRODUCT_ID &&
+      option.id === ANDROID_MONTHLY_BASE_PLAN_ID &&
+      option.storeProductId === ANDROID_MONTHLY_PRODUCT_ID &&
+      option.isBasePlan === true;
+  }) ?? null;
 }
 
 export function getPaywallSourceForContentType(contentType: string): PremiumPaywallSource {
