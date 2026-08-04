@@ -202,7 +202,11 @@ export default function LessonScreen() {
   const progressLabel = currentRound
     ? `Round ${currentRound.roundIndex + 1} of ${lessonRounds.length} | ${currentIndex + 1} / ${WORDS.length}`
     : `${currentIndex + 1} / ${WORDS.length}`;
-  const canAdvanceWithoutRecording = isAudioDisabled || hasAttempted;
+  // Explicit v2 pronunciation practice remains optional when packaged playback is enabled.
+  // Legacy lessons without an explicit capability retain their listen-then-repeat flow.
+  const canAdvanceWithoutRecording = !isPronunciationEnabled
+    || missionContent?.pronunciationEnabled === true
+    || hasAttempted;
   const publicCompletionId = resolvedContent?.item.contentId ?? (typeStr && typeStr !== 'basic' ? typeStr : 'basic_words');
   const unitId = resolvedContent?.item.unitId ?? 'unit-1';
   const completionKey = buildCompletionKey(dialect, unitId, publicCompletionId);

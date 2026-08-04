@@ -309,14 +309,16 @@ function testFirstArabicWordsMissionDataAndIsolation() {
   const msaContent = getDialectContent('msa');
   const gulfContent = getDialectContent('gulf');
   const egyptianContent = getDialectContent('egyptian');
-  assert.equal(msaContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
+  assert.notEqual(msaContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
+  assert.equal(msaContent.missions.first_arabic_words.audioMode, 'default');
   assert.notEqual(gulfContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
   assert.notEqual(egyptianContent.missions.first_arabic_words, MSA_FIRST_ARABIC_WORDS_MISSION);
 
   const v2Item = buildMsaUnit1CurriculumUnit('v2').items[0];
   const resolved = resolveCurriculumItem(v2Item, msaContent);
-  assert.equal(resolved?.missionContent, MSA_FIRST_ARABIC_WORDS_MISSION);
-  assert.equal(resolved?.lessonWords, MSA_FIRST_ARABIC_WORDS);
+  assert.equal(resolved?.missionContent, msaContent.missions.first_arabic_words);
+  assert.notEqual(resolved?.lessonWords, MSA_FIRST_ARABIC_WORDS);
+  assert.ok(resolved?.lessonWords?.every(word => word.audio != null));
   assert.equal(resolveCurriculumItem(v2Item, gulfContent), null);
   assert.equal(resolveCurriculumItem(v2Item, egyptianContent), null);
   assert.equal(
@@ -390,7 +392,7 @@ function testPoliteLikeALocalMissionDataAndIsolation() {
   const msaContent = getDialectContent('msa');
   const gulfContent = getDialectContent('gulf');
   const egyptianContent = getDialectContent('egyptian');
-  assert.equal(msaContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
+  assert.notEqual(msaContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
   assert.notEqual(gulfContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
   assert.notEqual(egyptianContent.missions.polite_like_a_local, MSA_POLITE_LIKE_A_LOCAL_MISSION);
 
@@ -398,8 +400,9 @@ function testPoliteLikeALocalMissionDataAndIsolation() {
   assert.equal(v2Item.contentId, 'polite_like_a_local');
   assert.equal(v2Item.title, 'Be Polite Like a Local 😊');
   const resolved = resolveCurriculumItem(v2Item, msaContent);
-  assert.equal(resolved?.missionContent, MSA_POLITE_LIKE_A_LOCAL_MISSION);
-  assert.equal(resolved?.lessonWords, MSA_POLITE_LIKE_A_LOCAL);
+  assert.equal(resolved?.missionContent, msaContent.missions.polite_like_a_local);
+  assert.notEqual(resolved?.lessonWords, MSA_POLITE_LIKE_A_LOCAL);
+  assert.ok(resolved?.lessonWords?.every(word => word.audio != null));
   assert.equal(resolveCurriculumItem(v2Item, gulfContent), null);
   assert.equal(resolveCurriculumItem(v2Item, egyptianContent), null);
   assert.equal(
@@ -678,7 +681,7 @@ function testMissionsThreeThroughEightDataAndIsolation() {
       }));
     });
 
-    assert.equal(msaContent.missions[fixture.missionId], fixture.mission);
+    assert.notEqual(msaContent.missions[fixture.missionId], fixture.mission);
     assert.notEqual(gulfContent.missions[fixture.missionId], fixture.mission);
     assert.notEqual(egyptianContent.missions[fixture.missionId], fixture.mission);
 
@@ -688,8 +691,9 @@ function testMissionsThreeThroughEightDataAndIsolation() {
     assert.equal(item.contentRef?.key, fixture.missionId);
     assert.equal(buildCompletionKey('msa', item.unitId, item.contentId), `msa:unit-1:${fixture.missionId}`);
     const resolved = resolveCurriculumItem(item, msaContent);
-    assert.equal(resolved?.missionContent, fixture.mission);
-    assert.equal(resolved?.lessonWords, fixture.words);
+    assert.equal(resolved?.missionContent, msaContent.missions[fixture.missionId]);
+    assert.notEqual(resolved?.lessonWords, fixture.words);
+    assert.ok(resolved?.lessonWords?.every(word => word.audio != null));
     assert.equal(resolveCurriculumItem(item, gulfContent), null);
     assert.equal(resolveCurriculumItem(item, egyptianContent), null);
     assert.deepEqual(buildOfflineManifestFilesForCurriculum('msa', [item], msaContent), []);
@@ -1088,7 +1092,11 @@ function testFinalMissionsAndChallengeGate() {
   ];
   finalMissions.forEach(mission => {
     assert.equal(mission.audioMode, 'none');
-    assert.equal(content.missions[mission.missionId], mission);
+    assert.notEqual(content.missions[mission.missionId], mission);
+    assert.equal(
+      content.missions[mission.missionId].audioMode,
+      mission.missionKind === 'review' || mission.missionKind === 'challenge' ? 'none' : 'default',
+    );
     assert.ok(v2Unit.items.some(item => item.contentId === mission.missionId));
   });
   assert.deepEqual(MSA_INTRODUCE_YOURSELF_MISSION.lessonRounds?.map(round => round.words.length), [8, 8, 8]);
@@ -1195,16 +1203,16 @@ function testGulfUnit1V2() {
   assert.deepEqual(unit.items.map(item => item.contentId), expected);
   assert.equal(unit.items.length, 13);
   assert.deepEqual(legacy.items.map(item => item.contentId), [...LEGACY_UNIT1_MISSION_IDS]);
-  unit.items.forEach(item => {
+  unit.items.forEach((item, index) => {
     const resolved = resolveCurriculumItem(item, gulf);
     assert.ok(resolved, `Gulf mission failed to resolve: ${item.contentId}`);
-    assert.equal(resolved?.missionContent?.audioMode, 'none');
+    assert.equal(resolved?.missionContent?.audioMode, index < 10 || index === 11 ? 'default' : 'none');
     assert.equal(resolved?.missionContent, gulf.missions[item.contentId]);
     assert.notEqual(resolved?.missionContent, msa.missions[item.contentId]);
     assert.notEqual(egyptian.missions[item.contentId], gulf.missions[item.contentId]);
   });
-  unit.items.forEach((item,index)=>assert.equal(gulf.missions[item.contentId].pronunciationEnabled,index<10?true:undefined));
-  assert.ok(buildMsaUnit1CurriculumUnit('v2').items.every(item=>getDialectContent('msa').missions[item.contentId].pronunciationEnabled===undefined));
+  unit.items.forEach((item,index)=>assert.equal(gulf.missions[item.contentId].pronunciationEnabled,index<10?true:index===11?false:undefined));
+  buildMsaUnit1CurriculumUnit('v2').items.forEach((item,index)=>assert.equal(getDialectContent('msa').missions[item.contentId].pronunciationEnabled,index<10||index===11?false:undefined));
   assert.equal(gulf.missions.first_arabic_words.lessonWords?.[1].displayArabic, 'هلا');
   assert.equal(msa.missions.first_arabic_words.lessonWords?.[1].displayArabic, 'مرحباً');
   assert.equal(GULF_FIRST_CAFE_DIALOGUE.length, 14);
@@ -1285,8 +1293,8 @@ function testEgyptianUnit1V2Bridge() {
   unit.items.forEach((item, index) => {
     const mission = getDialectContent('egyptian').missions[item.contentId];
     assert.ok(mission);
-    assert.equal(mission.audioMode, 'none');
-    assert.equal(mission.pronunciationEnabled, index < 10 ? true : undefined);
+    assert.equal(mission.audioMode, index < 10 || index === 11 ? 'default' : 'none');
+    assert.equal(mission.pronunciationEnabled, index < 10 ? true : index === 11 ? false : undefined);
     assert.notEqual(mission, getDialectContent('msa').missions[item.contentId]);
     assert.notEqual(mission, getDialectContent('gulf').missions[item.contentId]);
   });

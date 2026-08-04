@@ -13,8 +13,8 @@ const ids=['around_the_home','where_are_my_things','simple_actions_at_home','get
 const unit=buildGulfUnit2CurriculumUnit('v2'); const content=getDialectContent('gulf');
 assert.equal(unit.title,'Build Short Sentences'); assert.equal(unit.subtitle,'Combine words for everyday life at home.'); assert.deepEqual(unit.items.map(item=>item.missionId),ids); assert.equal(new Set(ids).size,13);
 const resolved=unit.items.map(item=>resolveCurriculumItem(item,content)); assert.ok(resolved.every(Boolean));
-resolved.slice(0,10).forEach((entry,index)=>{assert.equal(entry.lessonWords.length,24);assert.equal(entry.missionContent.audioMode,'none');assert.equal(entry.missionContent.pronunciationEnabled,true);entry.lessonWords.forEach(word=>{assert.ok(word.arabic&&word.transliteration&&word.english);assert.equal(word.evalTarget,word.displayArabic);});});
-resolved.slice(10).forEach(entry=>{assert.equal(entry.missionContent.audioMode,'none');assert.notEqual(entry.missionContent.pronunciationEnabled,true);});
+resolved.slice(0,10).forEach((entry,index)=>{assert.equal(entry.lessonWords.length,24);assert.equal(entry.missionContent.audioMode,'default');assert.equal(entry.missionContent.pronunciationEnabled,true);entry.lessonWords.forEach(word=>{assert.ok(word.arabic&&word.transliteration&&word.english);assert.equal(word.evalTarget,word.displayArabic);});});
+resolved.slice(10).forEach((entry,index)=>{assert.equal(entry.missionContent.audioMode,index===1?'default':'none');assert.notEqual(entry.missionContent.pronunciationEnabled,true);});
 const review=buildGulfUnit2BigReviewQuestions('audit-review'); const challenge=buildGulfUnit2ChallengeQuestions('audit-challenge');
 assert.equal(review.length,24);assert.equal(resolved[11].dialogue.length,24);assert.equal(challenge.length,20);assert.ok(challenge.every(question=>question.format!=='listening'&&question.format!=='scene_replay'));
 for(const category of ['mini_situation','best_reply','phrase_arrangement','translation','mixed_situation'])assert.equal(challenge.filter(question=>question.category===category).length,4);

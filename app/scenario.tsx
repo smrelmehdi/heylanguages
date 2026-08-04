@@ -504,6 +504,7 @@ export default function ScenarioScreen() {
   const sceneImage = resolvedContent?.sceneImage ?? null;
   const missionContent = resolvedContent?.missionContent;
   const isAudioDisabled = missionContent?.audioMode === 'none';
+  const isPronunciationEnabled = missionContent?.pronunciationEnabled ?? !isAudioDisabled;
   const showSceneImage = resolvedContent
     ? shouldReserveScenarioImageSpace(resolvedContent.item, sceneImage)
     : false;
@@ -654,10 +655,10 @@ export default function ScenarioScreen() {
     setRecordingState('idle');
     setShowNext(false);
     setScenarioEvalResult(null);
-    if (isAudioDisabled) {
+    if (!isPronunciationEnabled) {
       setShowNext(true);
-      return;
     }
+    if (isAudioDisabled) return;
     const timer = setTimeout(() => {
       handleAutoPlay().catch(console.warn);
     }, 300);
@@ -665,7 +666,7 @@ export default function ScenarioScreen() {
       clearTimeout(timer);
       stopAudio(audioOwner);
     };
-  }, [currentIndex, dialect, currentTurnAudioText, currentTurn.audio, isComingSoon, isAudioDisabled]);
+  }, [currentIndex, dialect, currentTurnAudioText, currentTurn.audio, isComingSoon, isAudioDisabled, isPronunciationEnabled]);
 
   // Restore saved progress for this dialect + scenario.
   useEffect(() => {
@@ -1254,7 +1255,7 @@ export default function ScenarioScreen() {
             {/* Phrase card */}
             <View style={[styles.phraseCard, isWaiterTurn ? styles.waiterCard : styles.userCard]}>
               <Text style={isWaiterTurn ? styles.turnLabelWaiter : styles.turnLabelUser}>
-                {isWaiterTurn ? `🧑‍🍳 ${speakerRoleLabel}` : isAudioDisabled ? 'Your turn' : '🎙 Your turn — say it'}
+                {isWaiterTurn ? `🧑‍🍳 ${speakerRoleLabel}` : !isPronunciationEnabled ? 'Your turn' : '🎙 Your turn — say it'}
               </Text>
               {currentTurn.context ? (
                 <Text style={styles.contextText}>{currentTurn.context}</Text>
@@ -1266,7 +1267,7 @@ export default function ScenarioScreen() {
               <Text style={styles.englishText}>{currentTurn.english}</Text>
             </View>
 
-            {isWaiterTurn || isAudioDisabled ? (
+            {isWaiterTurn || !isPronunciationEnabled ? (
               /* Waiter turn controls */
               <View style={styles.waiterControls}>
                 {!isAudioDisabled && <Pressable style={[styles.iconButton, isSpeaking && { opacity: 0.6 }]} onPress={handleSpeak}>

@@ -18,7 +18,7 @@ const resolved = unit.items.map((item: any) => resolveCurriculumItem(item, conte
 assert.ok(resolved.every(Boolean), 'Every v2 mission must resolve');
 resolved.slice(0, 10).forEach((entry: any, index: number) => {
   assert.equal(entry!.lessonWords?.length, 24, `${ids[index]} must contain 24 items`);
-  assert.equal(entry!.missionContent?.audioMode, 'none');
+  assert.equal(entry!.missionContent?.audioMode, 'default');
   assert.equal(entry!.missionContent?.pronunciationEnabled, true);
   const triples = entry!.lessonWords!.map((word: any) => `${word.displayArabic ?? word.arabic}|${word.transliteration}|${word.english}`);
   if (ids[index] !== 'put_the_steps_together') assert.equal(new Set(triples).size, triples.length, `${ids[index]} has duplicate triples`);
@@ -32,7 +32,7 @@ assert.equal(challenge.length, 20);
 assert.deepEqual([...new Set(challenge.map(question => question.category))].sort(), ['best_reply','mini_situation','mixed_situation','phrase_arrangement','translation']);
 for (const category of ['best_reply','mini_situation','mixed_situation','phrase_arrangement','translation']) assert.equal(challenge.filter(question => question.category === category).length, 4);
 assert.equal(resolved[10]!.missionContent?.audioMode, 'none');
-assert.equal(resolved[11]!.missionContent?.audioMode, 'none');
+assert.equal(resolved[11]!.missionContent?.audioMode, 'default');
 assert.equal(resolved[12]!.missionContent?.audioMode, 'none');
 assert.equal(resolved[12]!.missionContent?.passingScore, 16);
 assert.equal(getQuizPassedAtThreshold(15, 20, 16), false);

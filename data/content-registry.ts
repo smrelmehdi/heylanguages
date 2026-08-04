@@ -88,6 +88,7 @@ import {
   MSA_FIRST_ARABIC_CHALLENGE_MISSION,
 } from './msa-unit1';
 import { MSA_UNIT2_V2_MISSIONS } from './msa-unit2-v2';
+import { createV2MissionContentRegistry } from '../utils/v2-audio';
 
 export type { DialogueTurn };
 
@@ -228,21 +229,23 @@ const MSA_CONTENT: DialectContent = {
       greetings: GREETINGS_WORDS_MSA,
       intro: INTRO_WORDS_MSA,
     })),
-    MSA_FIRST_ARABIC_WORDS_MISSION,
-    MSA_POLITE_LIKE_A_LOCAL_MISSION,
-    MSA_PEOPLE_AROUND_YOU_MISSION,
-    MSA_EVERYDAY_OBJECTS_MISSION,
-    MSA_FOOD_AND_DRINKS_MISSION,
-    MSA_DESCRIBE_THE_WORLD_MISSION,
-    MSA_NUMBERS_AND_MONEY_MISSION,
-    MSA_WHERE_HERE_THERE_MISSION,
-    MSA_INTRODUCE_YOURSELF_MISSION,
-    MSA_HOW_ARE_YOU_MISSION,
-    MSA_BIG_REVIEW_MISSION,
-    MSA_FIRST_CAFE_CONVERSATION_MISSION,
-    MSA_FIRST_ARABIC_CHALLENGE_MISSION,
     ]),
-    ...Object.fromEntries(MSA_UNIT2_V2_MISSIONS.map(mission => [`unit2:${mission.missionId}`, mission])),
+    ...createV2MissionContentRegistry('msa', 1, [
+      MSA_FIRST_ARABIC_WORDS_MISSION,
+      MSA_POLITE_LIKE_A_LOCAL_MISSION,
+      MSA_PEOPLE_AROUND_YOU_MISSION,
+      MSA_EVERYDAY_OBJECTS_MISSION,
+      MSA_FOOD_AND_DRINKS_MISSION,
+      MSA_DESCRIBE_THE_WORLD_MISSION,
+      MSA_NUMBERS_AND_MONEY_MISSION,
+      MSA_WHERE_HERE_THERE_MISSION,
+      MSA_INTRODUCE_YOURSELF_MISSION,
+      MSA_HOW_ARE_YOU_MISSION,
+      MSA_BIG_REVIEW_MISSION,
+      MSA_FIRST_CAFE_CONVERSATION_MISSION,
+      MSA_FIRST_ARABIC_CHALLENGE_MISSION,
+    ]),
+    ...createV2MissionContentRegistry('msa', 2, MSA_UNIT2_V2_MISSIONS),
   },
   scenarios: {
     Cafe:        CAFE_DIALOGUE_MSA,
@@ -287,9 +290,9 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
     missions: {
       ...createMissionContentRegistry([
         ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS, greetings: GREETINGS_WORDS, intro: INTRO_WORDS })),
-        ...GULF_UNIT1_MISSIONS,
       ]),
-      ...Object.fromEntries(GULF_UNIT2_V2_MISSIONS.map(mission => [`unit2:${mission.missionId}`, mission])),
+      ...createV2MissionContentRegistry('gulf', 1, GULF_UNIT1_MISSIONS),
+      ...createV2MissionContentRegistry('gulf', 2, GULF_UNIT2_V2_MISSIONS),
     },
     scenarios: {
       Cafe:            CAFE_DIALOGUE,
@@ -343,9 +346,9 @@ const CONTENT_REGISTRY: Record<string, DialectContent> = {
     missions: {
       ...createMissionContentRegistry([
         ...Object.values(createLegacyUnit1MissionContent({ basicWords: BASIC_WORDS_EG, greetings: GREETINGS_WORDS_EG, intro: INTRO_WORDS_EG })),
-        ...EGYPTIAN_UNIT1_MISSIONS,
       ]),
-      ...Object.fromEntries(EGYPTIAN_UNIT2_V2_MISSIONS.map(mission => [`unit2:${mission.missionId}`, mission])),
+      ...createV2MissionContentRegistry('egyptian', 1, EGYPTIAN_UNIT1_MISSIONS),
+      ...createV2MissionContentRegistry('egyptian', 2, EGYPTIAN_UNIT2_V2_MISSIONS),
     },
     scenarios: {
       Cafe:        CAFE_DIALOGUE_EG,

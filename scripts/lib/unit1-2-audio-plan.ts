@@ -42,6 +42,40 @@ export const UNIT1_2_AUDIO_OUTPUT_FORMAT = 'mp3_44100_128' as const;
 export const UNIT1_2_AUDIO_ROOT = 'assets/audio/v2';
 export const MIN_VALID_AUDIO_BYTES = 4096;
 
+/** Provider-only pronunciation hints. Canonical text still owns identity, display, and evaluation. */
+export const UNIT1_2_AUDIO_SYNTHESIS_OVERRIDES: Readonly<Record<string, string>> = {
+  '8dfe6db4ba08bbd7ec65': 'لَأ.',
+  '15c3f23e452480d0d1b2': 'أَبْل ما أطلع.',
+  '76ab2cccbedb732b53e6': 'هِنا',
+  '2f9b9c9048b46e25b695': 'إنتَ منين؟',
+  'ec5b028e9bdaf366d621': 'بُنِّيّ',
+  'ff4c737c7b03902be911': 'بخير. شكراً.',
+  '82a5b0d6131c4fc3ad2a': 'ضَعْ',
+  '2b387d2090ccd02400c4': 'سُتْرَتِي',
+};
+
+/** MSA clips with manually approved pronunciation and provider-boundary treatment. */
+export const MSA_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS = [
+  'ec5b028e9bdaf366d621',
+  'ff4c737c7b03902be911',
+  '82a5b0d6131c4fc3ad2a',
+  '2b387d2090ccd02400c4',
+] as const;
+
+/** Egyptian clips confirmed by the deterministic cutoff-risk audit to need provider boundary padding. */
+export const EGYPTIAN_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS = [
+  'ed4cc0c6d4b68376b479', '76ab2cccbedb732b53e6', '11bbb80f490c190009e9', 'f88d6f07ae6d14c09b5b',
+  '423280b13edf409d77fb', '0742df8b4a6093507e4e', '7dec51e46c163c270787', '2f9b9c9048b46e25b695',
+  '83a2a44939b39e6fbebb', '687319208bbeb2a79842', 'aca59e2dc8e0dcdc219f', '0f93bed80e02a29ade4d',
+  '643d872bf1daa116faac', '46415df3afac571efe84', 'ad43b49b2dd1ff31a65f', '703b5feb7c8e97500ed6',
+  'f4482978bf63e3bfb695', 'e253de9c08c0cadaf7ef', '2e60f7ee1f6242130bee', '2086248fb327213d2120',
+  'f6e6aece0e0f4940d10e', '0797b234435e44edf976', '4671220598ec70e00665', '8629223c62ed9fdc2ec0',
+  'f5bc6344aa923ee2736d', 'eb06eafde23385069b0f', 'ce8ddead3889d398ffb5', 'fe77196892d715a8ccbd',
+  '5d2b03741ac8b3b0a8d8', 'ca4c65a328ed472f3e24', '4d102cec6c6b455c2806', '5ce9dc0e3557f80848bc',
+  'c817b89e98c47dd87d42', 'ab2576c9b1783f7bbfc4', '148a3bfe5487c9c796d2', '182cac8d798647ff0ade',
+  '15cb23a0e990ca3ac1c4', '628f5b1afcdb0f96183b',
+] as const;
+
 type ManifestContentType = 'lesson_item' | 'review_listening' | 'guided_dialogue_turn' | 'challenge_listening';
 type ExistingFileStatus = 'missing' | 'valid' | 'zero_byte' | 'suspiciously_short' | 'unreadable';
 type ValidationStatus = 'ready' | 'missing_source_text' | 'invalid_existing_file';
@@ -55,6 +89,8 @@ export type Unit1_2AudioManifestEntry = {
   contentType: ManifestContentType;
   speaker: string | null;
   exactArabicSourceText: string;
+  canonicalText: string;
+  synthesisText: string;
   normalizedText: string;
   pronunciationTarget: string | null;
   voiceId: string;
@@ -175,7 +211,7 @@ function listeningText(question: QuizQuestion): string | null {
 }
 
 type PendingReference = Omit<Unit1_2AudioManifestEntry,
-  'normalizedText' | 'voiceId' | 'model' | 'voiceSettings' | 'outputFormat' | 'audioKey' |
+  'canonicalText' | 'synthesisText' | 'normalizedText' | 'voiceId' | 'model' | 'voiceSettings' | 'outputFormat' | 'audioKey' |
   'intendedOutputPath' | 'existingFileStatus' | 'generationRequired' | 'reuseSource' |
   'legacyCandidatePath' | 'validationStatus'>;
 
@@ -248,6 +284,7 @@ export function buildUnit1_2AudioManifest(root = process.cwd()): Unit1_2AudioMan
     const normalizedText = normalizeUnit1_2AudioText(reference.exactArabicSourceText);
     const voice = UNIT1_2_AUDIO_VOICE_CONFIG[reference.dialect];
     const audioKey = unit1_2AudioKey(reference.dialect, normalizedText);
+    const synthesisText = UNIT1_2_AUDIO_SYNTHESIS_OVERRIDES[audioKey] ?? reference.exactArabicSourceText;
     const intendedOutputPath = `${UNIT1_2_AUDIO_ROOT}/${reference.dialect}/${audioKey}.mp3`;
     const existingFileStatus = fileStatus(root, intendedOutputPath);
     const dedupeKey = [
@@ -267,6 +304,8 @@ export function buildUnit1_2AudioManifest(root = process.cwd()): Unit1_2AudioMan
         : 'ready';
     return {
       ...reference,
+      canonicalText: reference.exactArabicSourceText,
+      synthesisText,
       normalizedText,
       voiceId: voice.voiceId,
       model: voice.model,

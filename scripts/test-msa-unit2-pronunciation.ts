@@ -11,11 +11,11 @@ unit.items.forEach((item: any, index: number) => {
   assert.ok(mission);
   if (index < 10) {
     assert.equal(mission.pronunciationEnabled, true);
-    assert.equal(mission.audioMode, 'none');
+    assert.equal(mission.audioMode, 'default');
     mission.lessonWords?.forEach((word: any) => assert.equal(word.evalTarget, word.displayArabic ?? word.arabic));
   } else {
     assert.notEqual(mission.pronunciationEnabled, true);
-    assert.equal(mission.audioMode, 'none');
+    assert.equal(mission.audioMode, index === 11 ? 'default' : 'none');
   }
 });
 console.log('MSA Unit 2 pronunciation capability test passed.');

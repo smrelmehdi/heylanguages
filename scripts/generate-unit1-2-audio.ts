@@ -7,12 +7,14 @@
  * Generation (future; requires ELEVENLABS_API_KEY):
  *   npx tsx scripts/generate-unit1-2-audio.ts --report=reports/audio/unit1-2-generation.json
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 import {
   buildUnit1_2AudioManifest,
+  EGYPTIAN_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS,
+  MSA_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS,
   MIN_VALID_AUDIO_BYTES,
   summarizeUnit1_2AudioManifest,
   type Unit1_2AudioManifestEntry,
@@ -49,6 +51,10 @@ const unitFilterRaw = option('--unit');
 const missionFilter = option('--mission');
 const audioKeyFilter = option('--audio-key');
 const retryFailedReport = option('--retry-failed');
+const egyptianBoundaryPilot = flags.has('--egyptian-boundary-pilot');
+const egyptianBoundaryRisk = flags.has('--egyptian-boundary-risk');
+const pilotAudioKeys = (option('--pilot-audio-keys') ?? '').split(',').filter(Boolean);
+const pilotOutputDirectory = resolve(option('--pilot-output') ?? '/tmp/heyyusuf-egy-boundary-pilot');
 const reportPath = resolve(process.cwd(), option('--report') ?? 'reports/audio/unit1-2-generation.json');
 const delayMs = Number(option('--delay-ms') ?? 900);
 const maxAttempts = Number(option('--max-attempts') ?? 3);
@@ -58,11 +64,16 @@ if (unitFilterRaw && !['1', '2'].includes(unitFilterRaw)) throw new Error(`Unsup
 if (audioKeyFilter && !/^[a-f0-9]{20}$/.test(audioKeyFilter)) throw new Error(`Invalid --audio-key: ${audioKeyFilter}`);
 if (!Number.isFinite(delayMs) || delayMs < 250) throw new Error('--delay-ms must be at least 250');
 if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 5) throw new Error('--max-attempts must be between 1 and 5');
+if (egyptianBoundaryPilot && pilotAudioKeys.length !== 6) throw new Error('Egyptian boundary pilot requires exactly six --pilot-audio-keys.');
+if (egyptianBoundaryPilot && new Set(pilotAudioKeys).size !== pilotAudioKeys.length) throw new Error('Egyptian boundary pilot keys must be unique.');
 
 type GenerationResult = {
   audioKey: string;
   referenceId: string;
-  arabicText: string;
+  canonicalText: string;
+  synthesisText: string;
+  providerText: string;
+  boundaryWrapped: boolean;
   outputPath: string;
   status: 'would_generate' | 'skipped_valid' | 'generated' | 'failed';
   attempts: number;
@@ -83,6 +94,7 @@ function selectedEntries() {
     && (!unitFilterRaw || entry.unitNumber === Number(unitFilterRaw))
     && (!missionFilter || entry.missionSemanticId === missionFilter)
     && (!audioKeyFilter || entry.audioKey === audioKeyFilter)
+    && (!egyptianBoundaryRisk || (EGYPTIAN_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS as readonly string[]).includes(entry.audioKey))
   );
   const selectedKeys = new Set(matchingReferences.map(entry => entry.audioKey));
   const selected = all.filter(entry =>
@@ -91,6 +103,20 @@ function selectedEntries() {
     && (!failedKeys || failedKeys.has(entry.audioKey)),
   );
   return { all, selected };
+}
+
+const boundarySafeKeys = new Set<string>([
+  ...EGYPTIAN_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS,
+  ...MSA_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS,
+]);
+
+function providerInput(entry: Unit1_2AudioManifestEntry) {
+  const boundaryWrapped = boundarySafeKeys.has(entry.audioKey);
+  return {
+    synthesisText: entry.synthesisText,
+    providerText: boundaryWrapped ? `[short pause] ${entry.synthesisText} [short pause]` : entry.synthesisText,
+    boundaryWrapped,
+  };
 }
 
 function validateMp3(path: string) {
@@ -116,7 +142,12 @@ const sleep = (milliseconds: number) => new Promise(resolvePromise => setTimeout
 
 class FatalProviderError extends Error {}
 
-async function synthesize(entry: Unit1_2AudioManifestEntry, apiKey: string) {
+async function synthesize(
+  entry: Unit1_2AudioManifestEntry,
+  apiKey: string,
+  providerText = entry.synthesisText,
+  languageCode?: string,
+) {
   const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${entry.voiceId}?output_format=${entry.outputFormat}`;
   let lastError = 'unknown provider failure';
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -125,9 +156,10 @@ async function synthesize(entry: Unit1_2AudioManifestEntry, apiKey: string) {
         method: 'POST',
         headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: entry.exactArabicSourceText,
+          text: providerText,
           model_id: entry.model,
           voice_settings: entry.voiceSettings,
+          ...(languageCode ? { language_code: languageCode } : {}),
         }),
       });
       if (response.status === 401 || response.status === 403) {
@@ -152,8 +184,79 @@ async function synthesize(entry: Unit1_2AudioManifestEntry, apiKey: string) {
   throw new Error(lastError);
 }
 
+function audioDuration(path: string) {
+  const probe = spawnSync('ffprobe', [
+    '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', path,
+  ], { encoding: 'utf8' });
+  const duration = Number(probe.stdout.trim());
+  if (probe.status !== 0 || !(duration > 0)) throw new Error(`Could not read audio duration: ${path}`);
+  return duration;
+}
+
+async function runEgyptianBoundaryPilot(apiKey: string) {
+  if (!apiKey) throw new FatalProviderError('ELEVENLABS_API_KEY is required. The key value was not printed.');
+  if (!pilotOutputDirectory.startsWith('/tmp/')) throw new Error('Egyptian boundary pilot output must stay under /tmp/.');
+  const manifest = buildUnit1_2AudioManifest();
+  const entries = pilotAudioKeys.map(audioKey => manifest.find(entry => entry.audioKey === audioKey && entry.reuseSource === null));
+  if (entries.some(entry => !entry)) throw new Error('Every pilot key must resolve to a unique manifest generation source.');
+  const selected = entries as Unit1_2AudioManifestEntry[];
+  if (selected.some(entry => entry.dialect !== 'egyptian' || entry.model !== 'eleven_v3')) {
+    throw new Error('Egyptian boundary pilot accepts only Egyptian eleven_v3 entries.');
+  }
+  mkdirSync(pilotOutputDirectory, { recursive: true });
+  const results = [];
+  for (const [index, entry] of selected.entries()) {
+    const number = String(index + 1).padStart(2, '0');
+    const originalPath = resolve(entry.intendedOutputPath);
+    const originalCopy = resolve(pilotOutputDirectory, `${number}-original.mp3`);
+    const generatedPath = resolve(pilotOutputDirectory, `${number}-pause-wrapped.mp3`);
+    if (existsSync(originalCopy) || existsSync(generatedPath)) throw new Error(`Refusing to overwrite existing pilot output for item ${number}.`);
+    const originalTemporary = `${originalCopy}.tmp-${process.pid}`;
+    const generatedTemporary = `${generatedPath}.tmp-${process.pid}`;
+    const providerText = `[short pause] ${entry.synthesisText} [short pause]`;
+    try {
+      copyFileSync(originalPath, originalTemporary);
+      if (!validateMp3(originalTemporary)) throw new Error(`Original pilot source is not a valid MP3: ${entry.intendedOutputPath}`);
+      renameSync(originalTemporary, originalCopy);
+      const generated = await synthesize(entry, apiKey, providerText, 'ar');
+      writeFileSync(generatedTemporary, generated.bytes, { flag: 'wx' });
+      if (!validateMp3(generatedTemporary)) throw new Error('Pilot provider output was empty, too short, or not a readable MP3.');
+      renameSync(generatedTemporary, generatedPath);
+      results.push({
+        sequence: index + 1,
+        audioKey: entry.audioKey,
+        referenceId: entry.referenceId,
+        canonicalText: entry.canonicalText,
+        synthesisText: entry.synthesisText,
+        providerText,
+        languageCode: 'ar',
+        originalPath: entry.intendedOutputPath,
+        originalCopy,
+        generatedPath,
+        durationBefore: audioDuration(originalCopy),
+        durationAfter: audioDuration(generatedPath),
+        attempts: generated.attempts,
+      });
+    } catch (error) {
+      rmSync(originalTemporary, { force: true });
+      rmSync(generatedTemporary, { force: true });
+      throw error;
+    }
+    await sleep(delayMs);
+  }
+  console.log(JSON.stringify({ mode: 'egyptian-boundary-pilot', requestCount: results.length, results }, null, 2));
+}
+
 async function main() {
+  if (egyptianBoundaryPilot) {
+    await runEgyptianBoundaryPilot(process.env.ELEVENLABS_API_KEY ?? '');
+    return;
+  }
   const { all, selected } = selectedEntries();
+  if (egyptianBoundaryRisk && (
+    selected.length !== EGYPTIAN_UNIT1_2_BOUNDARY_SAFE_AUDIO_KEYS.length
+    || selected.some(entry => entry.dialect !== 'egyptian' || entry.model !== 'eleven_v3')
+  )) throw new Error('Egyptian boundary-risk selection must resolve exactly the deterministic Egyptian eleven_v3 key set.');
   const apiKey = process.env.ELEVENLABS_API_KEY ?? '';
   const results: GenerationResult[] = [];
   let fatalError: string | null = null;
@@ -161,25 +264,26 @@ async function main() {
 
   if (!fatalError) {
   for (const entry of selected) {
+    const input = providerInput(entry);
     const destination = resolve(process.cwd(), entry.intendedOutputPath);
     if (!force && validateMp3(destination)) {
-      results.push({ audioKey: entry.audioKey, referenceId: entry.referenceId, arabicText: entry.exactArabicSourceText, outputPath: entry.intendedOutputPath, status: 'skipped_valid', attempts: 0 });
+      results.push({ audioKey: entry.audioKey, referenceId: entry.referenceId, canonicalText: entry.canonicalText, ...input, outputPath: entry.intendedOutputPath, status: 'skipped_valid', attempts: 0 });
       continue;
     }
     if (dryRun) {
-      results.push({ audioKey: entry.audioKey, referenceId: entry.referenceId, arabicText: entry.exactArabicSourceText, outputPath: entry.intendedOutputPath, status: 'would_generate', attempts: 0 });
+      results.push({ audioKey: entry.audioKey, referenceId: entry.referenceId, canonicalText: entry.canonicalText, ...input, outputPath: entry.intendedOutputPath, status: 'would_generate', attempts: 0 });
       continue;
     }
 
     const temporary = `${destination}.tmp-${process.pid}`;
     try {
-      const generated = await synthesize(entry, apiKey);
+      const generated = await synthesize(entry, apiKey, input.providerText);
       mkdirSync(dirname(destination), { recursive: true });
       writeFileSync(temporary, generated.bytes, { flag: 'wx' });
       if (!validateMp3(temporary)) throw new Error('Provider output was empty, too short, or not a readable MP3.');
       if (existsSync(destination) && !force) throw new Error('A destination file appeared during generation; refusing to overwrite it.');
       renameSync(temporary, destination);
-      results.push({ audioKey: entry.audioKey, referenceId: entry.referenceId, arabicText: entry.exactArabicSourceText, outputPath: entry.intendedOutputPath, status: 'generated', attempts: generated.attempts });
+      results.push({ audioKey: entry.audioKey, referenceId: entry.referenceId, canonicalText: entry.canonicalText, ...input, outputPath: entry.intendedOutputPath, status: 'generated', attempts: generated.attempts });
     } catch (error) {
       rmSync(temporary, { force: true });
       if (error instanceof FatalProviderError) {
@@ -187,7 +291,8 @@ async function main() {
         results.push({
           audioKey: entry.audioKey,
           referenceId: entry.referenceId,
-          arabicText: entry.exactArabicSourceText,
+          canonicalText: entry.canonicalText,
+          ...input,
           outputPath: entry.intendedOutputPath,
           status: 'failed',
           attempts: 0,
@@ -198,7 +303,8 @@ async function main() {
       results.push({
         audioKey: entry.audioKey,
         referenceId: entry.referenceId,
-        arabicText: entry.exactArabicSourceText,
+        canonicalText: entry.canonicalText,
+        ...input,
         outputPath: entry.intendedOutputPath,
         status: 'failed',
         attempts: maxAttempts,
@@ -210,7 +316,7 @@ async function main() {
   }
 
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     dryRun,
     filters: {
       dialect: dialectFilter,
@@ -218,6 +324,7 @@ async function main() {
       mission: missionFilter,
       audioKey: audioKeyFilter,
       retryFailedReport,
+      egyptianBoundaryRisk,
     },
     manifestSummary: summarizeUnit1_2AudioManifest(all),
     selectedUniqueClips: selected.length,
