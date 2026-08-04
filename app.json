@@ -16,12 +16,18 @@
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "HeyYusuf uses your microphone for speaking practice."
+        "NSMicrophoneUsageDescription": "HeyYusuf uses your microphone to evaluate pronunciation when you choose speaking practice."
       }
     },
     "android": {
       "package": "com.heylanguages.heyyusuf",
       "versionCode": 1,
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#1F1D27",
@@ -39,7 +45,12 @@
       "expo-secure-store",
       "expo-font",
       "expo-asset",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow HeyYusuf to use your microphone when you choose pronunciation evaluation."
+        }
+      ],
       "expo-web-browser",
       [
         "expo-splash-screen",

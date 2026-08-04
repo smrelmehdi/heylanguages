@@ -238,7 +238,6 @@ Rules:
 
   useEffect(() => {
     (async () => {
-      await requestRecordingPermissionsAsync();
       await restorePlaybackAudioMode('chat-init');
 
       // Load user data
@@ -629,6 +628,15 @@ Rules:
     setIsRecording(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
+        setIsRecording(false);
+        Alert.alert(
+          'Microphone Access Required',
+          'To record a voice message, allow microphone access for HeyYusuf in your device Settings.',
+        );
+        return;
+      }
       await prepareRecordingAudioMode('chat', audioOwner);
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();

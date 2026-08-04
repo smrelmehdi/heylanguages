@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mic } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, PanResponder, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, PanResponder, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
     FadeIn, FadeInRight,
     FadeOutLeft,
@@ -122,7 +122,6 @@ export default function OnboardingWizard() {
 
   useEffect(() => {
     (async () => {
-      await requestRecordingPermissionsAsync();
       await restorePlaybackAudioMode('onboarding-init');
     })();
     return () => {
@@ -228,7 +227,10 @@ export default function OnboardingWizard() {
       try {
         const { granted } = await requestRecordingPermissionsAsync();
         if (!granted) {
-          console.warn('Recording permission not granted');
+          Alert.alert(
+            'Microphone Access Required',
+            'To evaluate pronunciation, allow microphone access for HeyYusuf in your device Settings.',
+          );
           setIsListening(false);
           return false;
         }

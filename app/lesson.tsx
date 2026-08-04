@@ -227,13 +227,6 @@ export default function LessonScreen() {
   };
 
   useEffect(() => {
-    if (!isPronunciationEnabled) return;
-    requestRecordingPermissionsAsync().then(({ granted }) => {
-      if (!granted) setMicPermissionDenied(true);
-    });
-  }, [isPronunciationEnabled]);
-
-  useEffect(() => {
     return () => {
       releaseAudioPlaybackOwner(audioOwner);
       restorePlaybackAudioMode('lesson-unmount', audioOwner).catch(() => {});
@@ -292,6 +285,10 @@ export default function LessonScreen() {
       if (!granted) {
         setIsRecording(false);
         setMicPermissionDenied(true);
+        Alert.alert(
+          'Microphone Access Required',
+          'To evaluate pronunciation, allow microphone access for HeyYusuf in your device Settings.',
+        );
         return;
       }
       await prepareRecordingAudioMode('lesson', audioOwner);
