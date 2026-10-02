@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 type ButtonLinkProps = {
   href: string;
   children: ReactNode;
-  variant?: "primary" | "secondary" | "text";
+  variant?: "primary" | "secondary" | "dark" | "text";
   className?: string;
 };
 
@@ -14,18 +14,14 @@ export function ButtonLink({
   variant = "primary",
   className = "",
 }: ButtonLinkProps) {
-  const styles = {
-    primary:
-      "min-h-11 rounded-full bg-amber px-5 py-3 text-sm font-semibold text-ink shadow-soft transition hover:-translate-y-0.5 hover:bg-[#e5aa51]",
-    secondary:
-      "min-h-11 rounded-full border border-line bg-cream/5 px-5 py-3 text-sm font-semibold text-cream transition hover:-translate-y-0.5 hover:border-amber/60 hover:bg-cream/10",
-    text:
-      "inline-flex min-h-11 items-center rounded-full px-2 py-3 text-sm font-semibold text-amber underline-offset-4 transition hover:text-cream hover:underline",
-  };
-
   return (
-    <Link className={`${styles[variant]} ${className}`} href={href}>
-      {children}
+    <Link className={`button button--${variant} ${className}`} href={href}>
+      <span>{children}</span>
+      {variant !== "text" ? (
+        <svg aria-hidden="true" viewBox="0 0 20 20">
+          <path d="M4 10h11M11 5l5 5-5 5" />
+        </svg>
+      ) : null}
     </Link>
   );
 }

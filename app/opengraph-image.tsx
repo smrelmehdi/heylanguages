@@ -14,8 +14,8 @@ export default function Image() {
       <div
         style={{
           alignItems: "center",
-          background: "#17130f",
-          color: "#fff4df",
+          background: "#f5efe3",
+          color: "#19221f",
           display: "flex",
           height: "100%",
           justifyContent: "center",
@@ -25,8 +25,8 @@ export default function Image() {
       >
         <div
           style={{
-            border: "1px solid rgba(255, 244, 223, 0.16)",
-            borderRadius: 40,
+            border: "1px solid rgba(25, 34, 31, 0.18)",
+            borderRadius: 36,
             display: "flex",
             flexDirection: "column",
             gap: 24,
@@ -34,14 +34,14 @@ export default function Image() {
             width: "100%",
           }}
         >
-          <div style={{ color: "#d99a3d", fontSize: 28, fontWeight: 700 }}>
+          <div style={{ color: "#087c71", fontSize: 28, fontWeight: 700 }}>
             {siteConfig.name}
           </div>
           <div style={{ fontSize: 72, fontWeight: 800, lineHeight: 1.05 }}>
-            Language learning for real conversations.
+            Real conversations start with a hello.
           </div>
-          <div style={{ color: "#c9ad8c", fontSize: 34 }}>
-            Discover HeyYusuf, practical Arabic learning.
+          <div style={{ color: "#59645f", fontSize: 34 }}>
+            Meet HeyYusuf, your guide to practical Arabic.
           </div>
         </div>
       </div>

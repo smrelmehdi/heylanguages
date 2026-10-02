@@ -1,26 +1,18 @@
-type FAQItem = {
+export type FAQItem = {
   question: string;
   answer: string;
 };
 
-export function FAQ({ items }: { items: FAQItem[] }) {
+export function FAQ({ items }: { items: readonly FAQItem[] }) {
   return (
-    <div className="grid gap-3">
+    <div className="faq-list">
       {items.map((item) => (
-        <details
-          className="group rounded-lg border border-line bg-panel/76 p-5"
-          key={item.question}
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-cream">
+        <details className="faq-item" key={item.question}>
+          <summary>
             {item.question}
-            <span
-              aria-hidden="true"
-              className="text-amber transition group-open:rotate-45"
-            >
-              +
-            </span>
+            <span aria-hidden="true">+</span>
           </summary>
-          <p className="mt-4 text-sm leading-6 text-muted">{item.answer}</p>
+          <p>{item.answer}</p>
         </details>
       ))}
     </div>

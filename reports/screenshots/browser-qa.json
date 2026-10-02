@@ -1,0 +1,279 @@
+{
+  "origin": "http://127.0.0.1:3100",
+  "viewports": [
+    {
+      "page": "home",
+      "width": 360,
+      "height": 800,
+      "title": "HeyLanguages | Language Learning for Real Conversations",
+      "h1": "Real conversations start with a hello.",
+      "scrollWidth": 360,
+      "scrollHeight": 6706,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/",
+      "description": "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
+      "issues": []
+    },
+    {
+      "page": "home",
+      "width": 390,
+      "height": 844,
+      "title": "HeyLanguages | Language Learning for Real Conversations",
+      "h1": "Real conversations start with a hello.",
+      "scrollWidth": 390,
+      "scrollHeight": 6742,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/",
+      "description": "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
+      "issues": []
+    },
+    {
+      "page": "home",
+      "width": 768,
+      "height": 1024,
+      "title": "HeyLanguages | Language Learning for Real Conversations",
+      "h1": "Real conversations start with a hello.",
+      "scrollWidth": 768,
+      "scrollHeight": 5363,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/",
+      "description": "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
+      "issues": []
+    },
+    {
+      "page": "home",
+      "width": 1024,
+      "height": 900,
+      "title": "HeyLanguages | Language Learning for Real Conversations",
+      "h1": "Real conversations start with a hello.",
+      "scrollWidth": 1024,
+      "scrollHeight": 4177,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/",
+      "description": "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
+      "issues": []
+    },
+    {
+      "page": "home",
+      "width": 1440,
+      "height": 1000,
+      "title": "HeyLanguages | Language Learning for Real Conversations",
+      "h1": "Real conversations start with a hello.",
+      "scrollWidth": 1440,
+      "scrollHeight": 4602,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/",
+      "description": "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
+      "issues": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 360,
+      "height": 800,
+      "title": "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+      "h1": "Your first Arabic conversation starts here.",
+      "scrollWidth": 360,
+      "scrollHeight": 13577,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf",
+      "description": "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+      "issues": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 390,
+      "height": 844,
+      "title": "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+      "h1": "Your first Arabic conversation starts here.",
+      "scrollWidth": 390,
+      "scrollHeight": 13601,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf",
+      "description": "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+      "issues": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 768,
+      "height": 1024,
+      "title": "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+      "h1": "Your first Arabic conversation starts here.",
+      "scrollWidth": 768,
+      "scrollHeight": 10544,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf",
+      "description": "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+      "issues": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 1024,
+      "height": 900,
+      "title": "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+      "h1": "Your first Arabic conversation starts here.",
+      "scrollWidth": 1024,
+      "scrollHeight": 8888,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf",
+      "description": "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+      "issues": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 1440,
+      "height": 1000,
+      "title": "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+      "h1": "Your first Arabic conversation starts here.",
+      "scrollWidth": 1440,
+      "scrollHeight": 9007,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf",
+      "description": "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+      "issues": []
+    }
+  ],
+  "accessibility": [
+    {
+      "page": "home",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "page": "home",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "page": "heyyusuf",
+      "width": 1440,
+      "violations": []
+    }
+  ],
+  "interactions": {
+    "audio": {
+      "playingText": "Playing Egyptian Arabic.",
+      "switchedText": "Gulf Arabic",
+      "stoppedText": "",
+      "leftSectionText": "",
+      "issues": []
+    },
+    "faq": {
+      "firstOpen": true,
+      "issues": []
+    },
+    "mobileMenu": {
+      "expanded": "true",
+      "dialogVisible": true,
+      "focused": "Close",
+      "closedState": {
+        "expanded": "false",
+        "dialogVisible": false,
+        "focusReturned": true
+      },
+      "issues": []
+    },
+    "textResize": {
+      "title": "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+      "h1": "Your first Arabic conversation starts here.",
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "scrollHeight": 29709,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf",
+      "description": "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+      "reducedMotion": {
+        "matches": true,
+        "transitionDuration": "1e-05s"
+      },
+      "issues": []
+    },
+    "support": {
+      "title": "HeyYusuf Support | HeyLanguages",
+      "h1": "Help for HeyYusuf.",
+      "width": 1024,
+      "height": 900,
+      "scrollWidth": 1024,
+      "scrollHeight": 2089,
+      "horizontalOverflow": false,
+      "brokenImages": [],
+      "emptyLinks": [],
+      "canonical": "https://heylanguages.com/heyyusuf/support",
+      "description": "Get support for HeyYusuf accounts, subscriptions, restore purchases, pronunciation, and account deletion.",
+      "issues": []
+    }
+  },
+  "routeChecks": {
+    "/": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "/heyyusuf": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "/heyyusuf/privacy": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "/heyyusuf/terms": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "/heyyusuf/support": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "/heyyusuf/delete-account": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    "/robots.txt": {
+      "status": 200,
+      "contentType": "text/plain"
+    },
+    "/sitemap.xml": {
+      "status": 200,
+      "contentType": "application/xml"
+    },
+    "/opengraph-image": {
+      "status": 200,
+      "contentType": "image/png"
+    },
+    "/heyyusuf/opengraph-image": {
+      "status": 200,
+      "contentType": "image/png"
+    },
+    "/turnstile (invalid)": {
+      "status": 400,
+      "cacheControl": "no-store"
+    }
+  }
+}

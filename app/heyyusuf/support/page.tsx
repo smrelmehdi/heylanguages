@@ -38,6 +38,7 @@ export default function SupportPage() {
   return (
     <main className="mx-auto max-w-6xl px-5 py-14 md:py-20">
       <SectionHeading
+        as="h1"
         eyebrow="Support"
         title="Help for HeyYusuf."
         description="For product questions, account help, Premium support, or deletion requests, contact HeyLanguages."

@@ -1,112 +1,224 @@
-import { FeatureCard, ProductCard } from "@/components/Cards";
+import Image from "next/image";
 import { ButtonLink } from "@/components/ButtonLink";
-import { SectionHeading } from "@/components/SectionHeading";
+import { Availability } from "@/components/Availability";
 import { createPageMetadata } from "@/lib/metadata";
+import { productAssets } from "@/lib/product";
 import { siteConfig } from "@/lib/site";
 
 export const metadata = createPageMetadata({
-  title: "Language learning for real conversations",
+  title: "HeyLanguages | Language Learning for Real Conversations",
+  absoluteTitle: true,
   description:
-    "HeyLanguages builds practical language-learning apps for real conversations, starting with HeyYusuf for Arabic.",
+    "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
   path: siteConfig.routes.home,
 });
 
-const principles = [
+const approach = [
   {
-    title: "Useful before impressive",
-    body: "Lessons focus on words and situations people actually need, from greetings to everyday errands.",
+    number: "01",
+    title: "Hear it.",
+    body: "Listen to the phrase, see its English meaning, and follow a readable pronunciation guide.",
+    evidence: (
+      <div className="approach-evidence approach-evidence--hear" aria-label="Audio phrase example">
+        <span className="approach-evidence__play" aria-hidden="true">▶</span>
+        <span dir="rtl" lang="ar">أهلاً وسهلاً</span>
+        <small>ahlan wa sahlan</small>
+      </div>
+    ),
   },
   {
-    title: "Speech matters",
-    body: "Practice is designed around hearing, repeating, and getting comfortable with natural spoken language.",
+    number: "02",
+    title: "Say it.",
+    body: "Practice speaking when you are ready, with the phrase still in view and Yusuf alongside you.",
+    evidence: (
+      <div className="approach-evidence approach-evidence--say" aria-label="Speaking practice example">
+        <span className="approach-evidence__mic" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm-6-3a6 6 0 0 0 12 0M12 18v3M9 21h6" /></svg>
+        </span>
+        <span>Practice speaking</span>
+      </div>
+    ),
   },
   {
-    title: "Built for momentum",
-    body: "Short sessions, clear progress, and practical review keep learning manageable on busy days.",
+    number: "03",
+    title: "Use it.",
+    body: "Bring familiar words into a guided exchange, so recall starts to feel like conversation.",
+    evidence: (
+      <div className="approach-evidence approach-evidence--use" aria-label="Guided conversation example">
+        <span dir="rtl" lang="ar">أي قميص تريد؟</span>
+        <span dir="rtl" lang="ar">أريد القميص الأبيض.</span>
+      </div>
+    ),
   },
 ];
 
 export default function HomePage() {
   return (
-    <main>
-      <section className="relative isolate min-h-[calc(100vh-5rem)] overflow-hidden border-b border-line">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_30%_20%,rgba(217,154,61,0.18),transparent_30rem)]" />
-        <div className="absolute inset-x-5 top-10 -z-10 mx-auto grid max-w-6xl gap-4 opacity-30 md:grid-cols-3" aria-hidden="true">
-          {["أهلاً وسهلاً", "الحساب لو سمحت", "يلا نتعلم"].map((text) => (
-            <div className="rounded-lg border border-line bg-panel/70 p-5 text-right text-3xl text-cream" dir="rtl" key={text}>
-              {text}
+    <main id="main-content">
+      <section className="home-hero">
+        <div className="home-hero__halo" aria-hidden="true" />
+        <div className="page-shell home-hero__grid">
+          <div className="home-hero__copy">
+            <p className="eyebrow eyebrow--dark">Meet your next language</p>
+            <h1>Real conversations start with a <em>hello.</em></h1>
+            <p className="home-hero__lede">
+              Language learning with a guide by your side. Meet HeyYusuf, our
+              Arabic companion for useful words, confident speaking, and
+              everyday conversations.
+            </p>
+            <div className="button-row">
+              <ButtonLink href={siteConfig.routes.heyyusuf}>Explore HeyYusuf</ButtonLink>
+              <ButtonLink href="#approach" variant="dark">See how it works</ButtonLink>
             </div>
-          ))}
-        </div>
-        <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center px-5 py-16 md:py-24">
-          <div className="max-w-4xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber">
-            HeyLanguages
-          </p>
-          <h1 className="mt-5 text-5xl font-semibold tracking-tight text-cream md:text-7xl">
-            Language learning for real conversations.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-muted">
-            HeyLanguages creates practical language-learning products for people
-            who want to speak with more confidence in everyday situations.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href={siteConfig.routes.heyyusuf}>
-              Explore HeyYusuf
-            </ButtonLink>
-            <ButtonLink href={siteConfig.routes.support} variant="secondary">
-              Get support
-            </ButtonLink>
+            <p className="home-hero__note">
+              Arabic first <span aria-hidden="true">•</span> No Arabic reading experience needed to begin
+            </p>
           </div>
+
+          <div className="home-hero__visual">
+            <div className="home-hero__scene">
+              <Image
+                alt="Yusuf guiding a learner through a café conversation"
+                fill
+                priority
+                sizes="(max-width: 767px) 88vw, (max-width: 1199px) 48vw, 560px"
+                src={productAssets.scenes.cafe.src}
+              />
+            </div>
+            <div className="phrase-note phrase-note--hero">
+              <span>First phrase</span>
+              <strong dir="rtl" lang="ar">مرحباً</strong>
+              <p>marhaban</p>
+              <small>Hello</small>
+            </div>
+            <div className="guide-chip">
+              <Image
+                alt=""
+                aria-hidden="true"
+                height={96}
+                src={productAssets.yusuf.src}
+                width={96}
+              />
+              <span><strong>Learn with Yusuf</strong>Friendly guidance, one step at a time.</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-line bg-panel/34">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <SectionHeading
-            eyebrow="Product"
-            title="Start with HeyYusuf."
-            description="HeyYusuf is the first HeyLanguages product: a mobile app for practical Arabic learning."
+      <section className="flagship-section" aria-labelledby="flagship-title">
+        <div className="page-shell flagship-grid">
+          <div className="flagship-preview">
+            <div className="phone-frame phone-frame--home">
+              <div className="phone-frame__bar" aria-hidden="true" />
+              <Image
+                alt="HeyYusuf pronunciation practice showing Arabic, a pronunciation guide, listening, and speaking controls"
+                height={productAssets.pronunciation.height}
+                sizes="(max-width: 767px) 72vw, 360px"
+                src={productAssets.pronunciation.src}
+                width={productAssets.pronunciation.width}
+              />
+            </div>
+            <div className="flagship-preview__caption">
+              <span aria-hidden="true">↗</span>
+              Real app preview: pronunciation practice
+            </div>
+          </div>
+
+          <div className="flagship-copy">
+            <div className="product-lockup">
+              <Image
+                alt="HeyYusuf logo"
+                height={64}
+                src={productAssets.logo.src}
+                width={64}
+              />
+              <span>HeyYusuf</span>
+            </div>
+            <p className="eyebrow">Our first companion</p>
+            <h2 id="flagship-title">Arabic that starts where you are.</h2>
+            <p>
+              Meet useful phrases, hear how they sound, practice speaking, then
+              use familiar material in guided conversations. Yusuf keeps the
+              path clear without making your first lesson feel like a textbook.
+            </p>
+            <div className="dialect-line" aria-label="Arabic varieties available">
+              <span>MSA</span>
+              <span>Egyptian</span>
+              <span>Gulf</span>
+            </div>
+            <ul className="feature-ticks">
+              <li>English meanings and pronunciation guides</li>
+              <li>Everyday scenes with clear outcomes</li>
+              <li>A guided path from recognition to conversation</li>
+            </ul>
+            <ButtonLink href={siteConfig.routes.heyyusuf}>Discover HeyYusuf</ButtonLink>
+            <Availability compact />
+          </div>
+        </div>
+      </section>
+
+      <section className="approach-section" id="approach" aria-labelledby="approach-title">
+        <div className="page-shell">
+          <div className="section-intro section-intro--split">
+            <div>
+              <p className="eyebrow eyebrow--dark">The learning approach</p>
+              <h2 id="approach-title">Hear it. Say it. Use it.</h2>
+            </div>
+            <p>
+              Each step adds just enough support to move a phrase from something
+              you recognize to something you can use.
+            </p>
+          </div>
+          <div className="approach-list">
+            {approach.map((step) => (
+              <article className="approach-step" key={step.number}>
+                <p className="approach-step__number">{step.number}</p>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+                {step.evidence}
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="future-section" aria-labelledby="future-title">
+        <div className="page-shell future-grid">
+          <div>
+            <p className="eyebrow eyebrow--dark">The wider family</p>
+            <h2 id="future-title">First, Arabic. More companions to come.</h2>
+          </div>
+          <div className="future-copy">
+            <p>
+              HeyLanguages is building character-led learning for more languages.
+              HeyPaul for French and HeyMarta for Spanish are future plans—not
+              products you can download today.
+            </p>
+            <div className="future-names" aria-label="Future planned companions">
+              <span><small>Now</small>HeyYusuf · Arabic</span>
+              <span><small>Future</small>HeyPaul · French</span>
+              <span><small>Future</small>HeyMarta · Spanish</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-final" aria-labelledby="home-final-title">
+        <div className="page-shell home-final__inner">
+          <Image
+            alt="Yusuf, your Arabic learning guide"
+            height={productAssets.yusuf.height}
+            sizes="(max-width: 767px) 220px, 330px"
+            src={productAssets.yusuf.src}
+            width={productAssets.yusuf.width}
           />
-          <div className="mt-10">
-            <ProductCard
-              title="HeyYusuf"
-              subtitle="Arabic that belongs in real life."
-              description="Learn useful Arabic through short lessons, realistic scenarios, local audio, and speaking practice built for daily progress."
-              chips={["Arabic varieties", "Scenario practice", "Pronunciation support", "Premium practice"]}
-              href={siteConfig.routes.heyyusuf}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 py-16">
-        <SectionHeading
-          eyebrow="Principles"
-          title="Small lessons, honest product."
-          description="V1 is intentionally focused: clear learning, transparent pricing, and no fake launch claims."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {principles.map((principle) => (
-            <FeatureCard key={principle.title} title={principle.title}>
-              {principle.body}
-            </FeatureCard>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 pb-20">
-        <div className="rounded-lg border border-line bg-amber/10 p-8 md:p-10">
-          <h2 className="text-3xl font-semibold text-cream">Start with Arabic.</h2>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-muted">
-            HeyYusuf is launching first on Android with free starter content and
-            optional Premium access for deeper learning.
-          </p>
-          <div className="mt-7">
-            <ButtonLink href={siteConfig.routes.heyyusuf}>
-              Explore HeyYusuf
-            </ButtonLink>
+          <div>
+            <p className="eyebrow">Your first companion is ready to meet you</p>
+            <h2 id="home-final-title">Come say hello to Yusuf.</h2>
+            <p>See the Arabic learning experience, try a real phrase, and choose the variety that fits your goals.</p>
+            <ButtonLink href={siteConfig.routes.heyyusuf}>Explore HeyYusuf</ButtonLink>
           </div>
         </div>
       </section>

@@ -1,16 +1,27 @@
+export type PlatformKey = "android" | "ios";
+export type PlatformReleaseState = "coming-soon" | "available";
+
+export type PlatformAvailability = {
+  name: string;
+  state: PlatformReleaseState;
+  storeUrl: string | null;
+  /** Add the official store badge asset at the same time as a verified URL. */
+  badgeSrc: string | null;
+};
+
 export const siteConfig = {
   name: "HeyLanguages",
   domain: "https://heylanguages.com",
   productName: "HeyYusuf",
   supportEmail: "dev@heylanguages.com",
   description:
-    "Practical, friendly language-learning apps built around useful real-world communication.",
-  androidLaunchStatus: "Launching first on Android.",
-  googlePlayUrl: null as string | null,
+    "Character-led language learning for useful words, confident speaking, and real conversations.",
   legalLastUpdated: "2026-07-16",
   routes: {
     home: "/",
+    approach: "/#approach",
     heyyusuf: "/heyyusuf",
+    audioDemo: "/heyyusuf#try-arabic",
     privacy: "/heyyusuf/privacy",
     terms: "/heyyusuf/terms",
     support: "/heyyusuf/support",
@@ -22,13 +33,31 @@ export const siteConfig = {
     support: "https://heylanguages.com/heyyusuf/support",
     deleteAccount: "https://heylanguages.com/heyyusuf/delete-account",
   },
+  availability: {
+    android: {
+      name: "Android",
+      state: "coming-soon",
+      storeUrl: null,
+      badgeSrc: null,
+    },
+    ios: {
+      name: "iPhone",
+      state: "coming-soon",
+      storeUrl: null,
+      badgeSrc: null,
+    },
+  } satisfies Record<PlatformKey, PlatformAvailability>,
+  /** Store-local pricing is intentionally not shown until public availability is verified. */
+  premium: {
+    publicPrice: null as string | null,
+  },
   social: {
-    title: "HeyLanguages",
+    title: "HeyLanguages | Language Learning for Real Conversations",
     description:
-      "Language learning for real conversations. Discover HeyYusuf, a practical Arabic-learning mobile app.",
+      "Learn with a friendly guide through useful phrases, speaking practice, and everyday conversations.",
     image: "/opengraph-image",
   },
-};
+} as const;
 
 export const publicRoutes = [
   siteConfig.routes.home,
