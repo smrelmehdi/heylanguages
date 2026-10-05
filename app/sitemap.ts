@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getBlogSitemapEntries } from "@/lib/blog";
 import { absoluteUrl, publicRoutes, siteConfig } from "@/lib/site";
 
 const marketingRoutes = new Set<string>([
@@ -7,11 +8,12 @@ const marketingRoutes = new Set<string>([
 ]);
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return publicRoutes.map((route) => ({
+  const pages: MetadataRoute.Sitemap = publicRoutes.map((route) => ({
     url: absoluteUrl(route),
     // Both marketing pages render the corrected HeyYusuf availability component.
     lastModified: new Date(marketingRoutes.has(route) ? "2026-10-05" : siteConfig.legalLastUpdated),
     changeFrequency: marketingRoutes.has(route) ? "monthly" : "yearly",
     priority: route === "/" ? 1 : route === siteConfig.routes.heyyusuf ? 0.95 : 0.7,
   }));
+  return [...pages, ...getBlogSitemapEntries()];
 }

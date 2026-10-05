@@ -1,0 +1,99 @@
+.blog {
+  background: var(--color-paper);
+  color: var(--color-text);
+  min-height: 65vh;
+}
+
+.indexHero {
+  padding-block: clamp(4rem, 8vw, 7rem) clamp(3rem, 6vw, 5rem);
+  background: var(--color-ivory);
+  border-bottom: 1px solid rgba(25, 34, 31, 0.12);
+}
+
+.indexHero h1 {
+  max-width: 900px;
+  margin: 0;
+  font-size: clamp(2.7rem, 6vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.06em;
+}
+
+.indexHero h1 em {
+  color: var(--color-teal-dark);
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+
+.intro {
+  max-width: 650px;
+  margin: 1.6rem 0 0;
+  color: var(--color-text-soft);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.75;
+}
+
+.indexContent { padding-block: clamp(3rem, 6vw, 5rem); }
+.cardGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+.card { padding: 2rem 0; border-top: 1px solid rgba(25, 34, 31, 0.2); }
+.card h2 { margin: 0; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.25; letter-spacing: -0.035em; }
+.card h2 a:hover, .readLink:hover { color: var(--color-teal-dark); text-decoration: underline; text-underline-offset: 0.2em; }
+.excerpt { margin: 1rem 0 1.5rem; color: var(--color-text-soft); line-height: 1.8; }
+.meta { display: flex; flex-wrap: wrap; gap: 0.6rem 1.3rem; color: var(--color-text-soft); font-size: 0.82rem; line-height: 1.6; }
+.meta a { text-decoration: underline; text-underline-offset: 0.2em; }
+.readLink { display: inline-flex; align-items: center; min-height: 44px; gap: 0.8rem; margin-top: 1rem; font-weight: 750; color: var(--color-teal-dark); }
+.empty { max-width: 650px; padding-block: 0.5rem 2rem; }
+.empty h2, .productNote h2 { margin: 0; font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.2; letter-spacing: -0.04em; }
+.empty > p:not(:first-child) { color: var(--color-text-soft); margin: 1.2rem 0 1.5rem; line-height: 1.8; }
+.draftSection { margin-top: 4rem; }
+
+.article { width: min(720px, calc(100% - 40px)); margin-inline: auto; padding-block: clamp(2rem, 5vw, 4rem) clamp(4rem, 8vw, 7rem); overflow-wrap: anywhere; }
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; color: var(--color-text-soft); font-size: 0.85rem; margin-bottom: 3rem; }
+.breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-teal-dark); }
+.breadcrumb a:hover, .backLink:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+.articleHeader { padding-bottom: 2.4rem; border-bottom: 1px solid rgba(25, 34, 31, 0.16); margin-bottom: 2.4rem; }
+.articleHeader h1 { margin: 0; font-size: clamp(2.3rem, 5vw, 3.7rem); line-height: 1.1; letter-spacing: -0.055em; font-weight: 800; }
+.articleHeader .meta { margin-top: 1.6rem; }
+.updated { color: var(--color-text-soft); font-size: 0.8rem; margin: 0.6rem 0 0; }
+.draftNotice { margin-bottom: 2rem; border-left: 3px solid var(--color-amber); padding: 1rem 1.2rem; background: var(--color-ivory); font-size: 0.9rem; line-height: 1.7; }
+
+.prose { font-size: clamp(1.05rem, 2vw, 1.125rem); line-height: 1.85; }
+.prose p { margin: 0 0 1.5rem; }
+.prose h2, .prose h3 { scroll-margin-top: 110px; line-height: 1.25; letter-spacing: -0.035em; font-weight: 750; }
+.prose h2 { margin: 3rem 0 1.2rem; font-size: clamp(1.65rem, 3vw, 2.1rem); }
+.prose h3 { margin: 2rem 0 1rem; font-size: 1.35rem; }
+.prose a, .productNote a:not(:global(.button)) { color: var(--color-teal-dark); text-decoration: underline; text-underline-offset: 0.2em; }
+.prose a:hover { text-decoration-thickness: 2px; }
+.prose ul, .prose ol { padding-inline-start: 1.5rem; margin: 1.5rem 0; }
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+.prose li { padding-inline-start: 0.25rem; margin-block: 0.6rem; }
+.prose [lang="ar"] { font-size: 1.3em; line-height: 2; }
+.languageExample { margin: 2rem 0; padding: clamp(1.2rem, 4vw, 2rem); border-radius: 16px; background: var(--color-ivory); }
+.languageExample > p { color: var(--color-teal-dark); font-size: 2.3rem; margin: 0 0 1rem; }
+.languageExample figcaption p { margin: 0.5rem 0 0; }
+.languageExample figcaption span { display: block; font-size: 0.72rem; font-weight: 700; color: var(--color-text-soft); letter-spacing: 0.06em; text-transform: uppercase; }
+.transliteration { font-style: italic; }
+.transliteration span { font-style: normal; }
+.callout { margin: 2rem 0; padding: 1.4rem 1.5rem; border-left: 3px solid var(--color-teal-dark); background: var(--color-ivory); }
+.callout p { margin: 0.5rem 0 0; }
+.tableScroll { max-width: 100%; overflow-x: auto; margin-block: 2rem; border-radius: 8px; }
+.tableScroll:focus-visible { outline: 3px solid var(--color-amber); outline-offset: 4px; }
+.tableScroll table { width: 100%; border-collapse: collapse; font-size: 0.95rem; text-align: start; overflow-wrap: normal; }
+.tableScroll caption { text-align: start; font-size: 0.85rem; color: var(--color-text-soft); padding: 0 0 0.8rem; }
+.tableScroll th, .tableScroll td { min-width: 90px; padding: 0.85rem 0.75rem; border-bottom: 1px solid rgba(25, 34, 31, 0.16); vertical-align: top; }
+.tableScroll th:first-child, .tableScroll td:first-child { min-width: 120px; }
+.tableScroll th:last-child, .tableScroll td:last-child { min-width: 200px; }
+.tableScroll th { background: var(--color-ivory); font-weight: 750; }
+.figure { margin: 2.5rem 0; }
+.figure img { width: auto; max-width: 100%; height: auto; max-height: 560px; margin-inline: auto; border-radius: 12px; }
+.figure figcaption { font-size: 0.85rem; line-height: 1.7; color: var(--color-text-soft); margin-top: 0.8rem; }
+.productNote { margin-top: 3.5rem; padding-block: 2rem; border-top: 1px solid rgba(25, 34, 31, 0.2); border-bottom: 1px solid rgba(25, 34, 31, 0.2); }
+.productNote > p:not(:first-child) { color: var(--color-text-soft); line-height: 1.8; margin: 1rem 0 1.5rem; }
+.productNote :global(.button-row) { gap: 1rem 1.5rem; }
+.backLink { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2rem; color: var(--color-teal-dark); font-size: 0.9rem; }
+
+@media (max-width: 767px) {
+  .cardGrid { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .breadcrumb { margin-bottom: 2rem; }
+}

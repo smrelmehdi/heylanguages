@@ -21,6 +21,7 @@ export const siteConfig = {
     home: "/",
     approach: "/#approach",
     heyyusuf: "/heyyusuf",
+    blog: "/blog",
     audioDemo: "/heyyusuf#try-arabic",
     privacy: "/heyyusuf/privacy",
     terms: "/heyyusuf/terms",

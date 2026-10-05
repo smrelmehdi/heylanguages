@@ -7,6 +7,7 @@ import { MobileMenu } from "./MobileMenu";
 const navItems = [
   { href: siteConfig.routes.heyyusuf, label: "HeyYusuf" },
   { href: siteConfig.routes.approach, label: "Our approach" },
+  { href: siteConfig.routes.blog, label: "Blog" },
   { href: siteConfig.routes.support, label: "Support" },
 ];
 

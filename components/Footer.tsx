@@ -6,6 +6,7 @@ const productLinks = [
   { href: siteConfig.routes.heyyusuf, label: "HeyYusuf" },
   { href: siteConfig.routes.audioDemo, label: "Try the audio sample" },
   { href: siteConfig.routes.approach, label: "Our approach" },
+  { href: siteConfig.routes.blog, label: "Blog" },
 ];
 
 const helpLinks = [
