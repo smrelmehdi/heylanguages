@@ -1,5 +1,10 @@
 # HeyLanguages website redesign handoff
 
+> Launch-status update (2026-10-05): The HeyYusuf launch-status information below
+> is superseded. Android is live on [Google Play](https://play.google.com/store/apps/details?id=com.heylanguages.heyyusuf);
+> iPhone remains coming soon with no App Store URL. This report and its QA
+> artifacts are preserved as a historical record of the redesign.
+
 ## Baseline and direction
 
 - Website root: `/Users/mehdi/Desktop/HeyLanguages`

@@ -5,16 +5,36 @@ import { ButtonLink } from "@/components/ButtonLink";
 import { FAQ } from "@/components/FAQ";
 import { createPageMetadata } from "@/lib/metadata";
 import { audioSamples, everydayScenes, productAssets } from "@/lib/product";
-import { siteConfig } from "@/lib/site";
+import { absoluteUrl, siteConfig } from "@/lib/site";
+
+const productDescription =
+  "Learn Arabic for real life with HeyYusuf. Practice MSA, Gulf and Egyptian Arabic through guided lessons, pronunciation practice and everyday conversations.";
 
 export const metadata = createPageMetadata({
-  title: "HeyYusuf | Learn Arabic with MSA, Egyptian and Gulf Lessons",
+  title: "HeyYusuf: Learn Arabic | Gulf, Egyptian & MSA",
   absoluteTitle: true,
-  description:
-    "Learn useful Arabic with Yusuf through guided lessons, pronunciation practice, and everyday conversations in MSA, Egyptian, or Gulf Arabic.",
+  description: productDescription,
   path: siteConfig.routes.heyyusuf,
   image: "/heyyusuf/opengraph-image",
 });
+
+const softwareApplication = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": `${absoluteUrl(siteConfig.routes.heyyusuf)}#software-application`,
+  name: siteConfig.productName,
+  url: absoluteUrl(siteConfig.routes.heyyusuf),
+  description: productDescription,
+  applicationCategory: "EducationalApplication",
+  operatingSystem: "Android",
+  downloadUrl: siteConfig.availability.android.storeUrl,
+  image: absoluteUrl(productAssets.logo.src),
+  publisher: {
+    "@type": "Organization",
+    name: siteConfig.name,
+    url: siteConfig.domain,
+  },
+};
 
 const teachingSteps = [
   {
@@ -77,13 +97,19 @@ const faqs = [
   {
     question: "Where can I get the app?",
     answer:
-      "Public Android and iPhone releases are not yet confirmed. This page will show a verified store link for each platform independently when it is genuinely live.",
+      "HeyYusuf is available now for Android on Google Play. Use the Google Play links on this page to download it. The iPhone version is coming soon to the App Store.",
   },
 ];
 
 export default function HeyYusufPage() {
   return (
     <main className="product-page" id="main-content">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(softwareApplication).replace(/</g, "\\u003c"),
+        }}
+      />
       <section className="product-hero">
         <div className="product-hero__glow" aria-hidden="true" />
         <div className="page-shell product-hero__grid">
@@ -98,7 +124,7 @@ export default function HeyYusufPage() {
               />
               <span>HeyYusuf</span>
             </div>
-            <p className="eyebrow">Learn Arabic with a guide</p>
+            <p className="eyebrow">Available now on Google Play</p>
             <h1>Your first Arabic conversation starts <em>here.</em></h1>
             <p className="product-hero__lede">
               Meet Yusuf. Learn useful Arabic through guided lessons,
@@ -310,7 +336,7 @@ export default function HeyYusufPage() {
               <li>Online chat for signed-in Premium members, with usage limits</li>
             </ul>
             <p className="premium-caveat">
-              A free start is available. Premium is a monthly, store-managed subscription. Public pricing and purchase links will appear only after release availability is verified; no web checkout is offered.
+              A free start is available. Premium is a monthly subscription managed through Google Play on Android. See current pricing and subscribe in the app.
             </p>
             <Availability />
           </div>
@@ -334,9 +360,9 @@ export default function HeyYusufPage() {
           <div>
             <p className="eyebrow">One useful phrase is a good place to begin.</p>
             <h2 id="product-final-title">Start your first Arabic conversation.</h2>
-            <p>Try the sample now. When the public app release is verified, the correct store link will appear here.</p>
+            <p>HeyYusuf is available now on Google Play. Download it for Android and start learning. The iPhone version is coming soon to the App Store.</p>
             <div className="button-row">
-              <ButtonLink href="#try-arabic">Hear the Arabic sample</ButtonLink>
+              <ButtonLink href={siteConfig.availability.android.storeUrl}>Get it on Google Play</ButtonLink>
               <ButtonLink href={siteConfig.routes.support} variant="secondary">Ask a question</ButtonLink>
             </div>
           </div>

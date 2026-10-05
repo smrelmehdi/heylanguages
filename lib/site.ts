@@ -5,7 +5,7 @@ export type PlatformAvailability = {
   name: string;
   state: PlatformReleaseState;
   storeUrl: string | null;
-  /** Add the official store badge asset at the same time as a verified URL. */
+  /** Optional official store badge; release state does not depend on artwork. */
   badgeSrc: string | null;
 };
 
@@ -36,8 +36,8 @@ export const siteConfig = {
   availability: {
     android: {
       name: "Android",
-      state: "coming-soon",
-      storeUrl: null,
+      state: "available",
+      storeUrl: "https://play.google.com/store/apps/details?id=com.heylanguages.heyyusuf",
       badgeSrc: null,
     },
     ios: {
@@ -47,7 +47,7 @@ export const siteConfig = {
       badgeSrc: null,
     },
   } satisfies Record<PlatformKey, PlatformAvailability>,
-  /** Store-local pricing is intentionally not shown until public availability is verified. */
+  /** Numeric store-local pricing is omitted unless separately verified. */
   premium: {
     publicPrice: null as string | null,
   },

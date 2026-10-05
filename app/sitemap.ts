@@ -9,7 +9,8 @@ const marketingRoutes = new Set<string>([
 export default function sitemap(): MetadataRoute.Sitemap {
   return publicRoutes.map((route) => ({
     url: absoluteUrl(route),
-    lastModified: new Date(marketingRoutes.has(route) ? "2026-09-19" : siteConfig.legalLastUpdated),
+    // Both marketing pages render the corrected HeyYusuf availability component.
+    lastModified: new Date(marketingRoutes.has(route) ? "2026-10-05" : siteConfig.legalLastUpdated),
     changeFrequency: marketingRoutes.has(route) ? "monthly" : "yearly",
     priority: route === "/" ? 1 : route === siteConfig.routes.heyyusuf ? 0.95 : 0.7,
   }));
