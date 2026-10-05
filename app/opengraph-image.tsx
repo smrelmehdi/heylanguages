@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { learningPaths } from "@/lib/product";
 import { siteConfig } from "@/lib/site";
 
 export const size = {
@@ -41,7 +42,10 @@ export default function Image() {
             Real conversations start with a hello.
           </div>
           <div style={{ color: "#59645f", fontSize: 34 }}>
-            Meet HeyYusuf, your guide to practical Arabic.
+            HeyYusuf · One app, three separate paths.
+          </div>
+          <div style={{ color: "#59645f", fontSize: 28 }}>
+            {learningPaths.map((path) => path.id === "msa" ? path.shortLabel : path.label).join(" · ")}
           </div>
         </div>
       </div>

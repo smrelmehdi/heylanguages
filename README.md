@@ -115,3 +115,21 @@ Before publication, run `npm run lint`, `npm run build`, and
 its metadata and JSON-LD, and `/sitemap.xml`. If the index introduction changes,
 update `blogUpdated` in `lib/blog.ts`; article modifications update the index's
 sitemap date automatically.
+
+## HeyYusuf learning paths and entity IDs
+
+`lib/product.ts` owns the three learning paths, display names, descriptions,
+real sample text/audio, and reserved future page slugs. Reuse `learningPaths`
+and the derived product descriptions rather than maintaining separate lists.
+`futureSlug` is planning data only: do not render links or sitemap entries for
+those pages until they are implemented and published.
+
+Samples use `/heyyusuf#try-arabic-msa`, `#try-arabic-gulf`, and
+`#try-arabic-egyptian`. Path-card links, direct visits, player tabs, and browser
+history share this state. The original `#try-arabic` section link still works.
+Changing a sample stops playback; links never start audio automatically.
+
+`lib/entities.ts` owns the permanent Organization and SoftwareApplication IDs.
+The root layout defines HeyLanguages once per document. App publisher and
+HeyLanguages-authored blog schema reference that same Organization ID. Learning
+paths belong to one app; they must not become separate SoftwareApplication entities.

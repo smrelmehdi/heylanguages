@@ -2,14 +2,14 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ButtonLink";
 import { Availability } from "@/components/Availability";
 import { createPageMetadata } from "@/lib/metadata";
-import { productAssets } from "@/lib/product";
+import { learningPaths, productDefinition, productAssets } from "@/lib/product";
 import { siteConfig } from "@/lib/site";
 
 export const metadata = createPageMetadata({
   title: "HeyLanguages | Language Learning for Real Conversations",
   absoluteTitle: true,
   description:
-    "Meet HeyYusuf, a friendly guide to useful Arabic phrases, speaking practice, and everyday conversations.",
+    productDefinition,
   path: siteConfig.routes.home,
 });
 
@@ -62,9 +62,7 @@ export default function HomePage() {
             <p className="eyebrow eyebrow--dark">Meet your next language</p>
             <h1>Real conversations start with a <em>hello.</em></h1>
             <p className="home-hero__lede">
-              Language learning with a guide by your side. Meet HeyYusuf, our
-              Arabic companion for useful words, confident speaking, and
-              everyday conversations.
+              {productDefinition} Learn with a friendly guide by your side.
             </p>
             <div className="button-row">
               <ButtonLink href={siteConfig.routes.heyyusuf}>Explore HeyYusuf</ButtonLink>
@@ -111,7 +109,7 @@ export default function HomePage() {
             <div className="phone-frame phone-frame--home">
               <div className="phone-frame__bar" aria-hidden="true" />
               <Image
-                alt="HeyYusuf pronunciation practice showing Arabic, a pronunciation guide, listening, and speaking controls"
+                alt="HeyYusuf Egyptian Arabic pronunciation lesson showing a phrase, pronunciation guide, and listening and speaking controls"
                 height={productAssets.pronunciation.height}
                 sizes="(max-width: 767px) 72vw, 360px"
                 src={productAssets.pronunciation.src}
@@ -140,11 +138,10 @@ export default function HomePage() {
               Meet useful phrases, hear how they sound, practice speaking, then
               use familiar material in guided conversations. Yusuf keeps the
               path clear without making your first lesson feel like a textbook.
+              Choose from three separate learning paths.
             </p>
             <div className="dialect-line" aria-label="Arabic varieties available">
-              <span>MSA</span>
-              <span>Egyptian</span>
-              <span>Gulf</span>
+              {learningPaths.map((path) => <span key={path.id}>{path.label}</span>)}
             </div>
             <ul className="feature-ticks">
               <li>English meanings and pronunciation guides</li>

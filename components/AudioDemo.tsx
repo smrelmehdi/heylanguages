@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { audioSamples, type DialectKey } from "@/lib/product";
+import { learningPaths, type DialectKey } from "@/lib/product";
 
 type PlayerState = "idle" | "loading" | "playing" | "error";
 
@@ -12,7 +12,7 @@ export function AudioDemo() {
   const demoRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selected =
-    audioSamples.find((sample) => sample.id === selectedId) ?? audioSamples[0];
+    learningPaths.find((sample) => sample.id === selectedId) ?? learningPaths[0];
 
   const stopPlayback = useCallback(() => {
     const audio = audioRef.current;
@@ -52,9 +52,31 @@ export function AudioDemo() {
     };
   }, [stopPlayback]);
 
+  useEffect(() => {
+    const syncHash = () => {
+      const hash = window.location.hash;
+      const path = learningPaths.find((item) => `#${item.sampleTarget}` === hash)
+        ?? (["", "#try-arabic"].includes(hash) ? learningPaths.find((item) => item.id === "msa") : undefined);
+      if (path) {
+        stopPlayback();
+        setSelectedId(path.id);
+      }
+    };
+    const frame = requestAnimationFrame(syncHash);
+    window.addEventListener("hashchange", syncHash);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", syncHash);
+    };
+  }, [stopPlayback]);
+
   const selectSample = (id: DialectKey) => {
     stopPlayback();
     setSelectedId(id);
+    const path = learningPaths.find((item) => item.id === id)!;
+    if (window.location.hash !== `#${path.sampleTarget}`) {
+      window.history.pushState(null, "", `#${path.sampleTarget}`);
+    }
   };
 
   const handleTabKeyDown = (
@@ -67,13 +89,13 @@ export function AudioDemo() {
 
     event.preventDefault();
     let nextIndex = index;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % audioSamples.length;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % learningPaths.length;
     if (event.key === "ArrowLeft") {
-      nextIndex = (index - 1 + audioSamples.length) % audioSamples.length;
+      nextIndex = (index - 1 + learningPaths.length) % learningPaths.length;
     }
     if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = audioSamples.length - 1;
-    selectSample(audioSamples[nextIndex].id);
+    if (event.key === "End") nextIndex = learningPaths.length - 1;
+    selectSample(learningPaths[nextIndex].id);
     tabRefs.current[nextIndex]?.focus();
   };
 
@@ -89,12 +111,15 @@ export function AudioDemo() {
     audioRef.current = audio;
     setPlayerState("loading");
 
-    audio.addEventListener("playing", () => setPlayerState("playing"), {
+    audio.addEventListener("playing", () => {
+      if (audioRef.current === audio) setPlayerState("playing");
+    }, {
       once: true,
     });
     audio.addEventListener(
       "ended",
       () => {
+        if (audioRef.current !== audio) return;
         audioRef.current = null;
         setPlayerState("idle");
       },
@@ -103,12 +128,14 @@ export function AudioDemo() {
     audio.addEventListener(
       "error",
       () => {
+        if (audioRef.current !== audio) return;
         audioRef.current = null;
         setPlayerState("error");
       },
       { once: true },
     );
     void audio.play().catch(() => {
+      if (audioRef.current !== audio) return;
       audioRef.current = null;
       setPlayerState("error");
     });
@@ -123,8 +150,9 @@ export function AudioDemo() {
 
   return (
     <div className="audio-demo" ref={demoRef}>
+      {learningPaths.map((path) => <span id={path.sampleTarget} key={path.id} />)}
       <div aria-label="Choose an Arabic variety" className="audio-tabs" role="tablist">
-        {audioSamples.map((sample, index) => (
+        {learningPaths.map((sample, index) => (
           <button
             aria-controls={`audio-panel-${sample.id}`}
             aria-selected={sample.id === selected.id}

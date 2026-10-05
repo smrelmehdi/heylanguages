@@ -1,3 +1,4 @@
+import { learningPathList } from "@/lib/product";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { ButtonLink } from "@/components/ButtonLink";
 import { getDraftPosts, getPublishedPosts } from "@/lib/blog";
@@ -8,7 +9,7 @@ import styles from "@/components/blog/blog.module.css";
 export const metadata = createPageMetadata({
   title: "Arabic Learning Blog | HeyLanguages",
   absoluteTitle: true,
-  description: "The HeyLanguages journal for learning Arabic: practical language guides, pronunciation, and everyday conversations with HeyYusuf.",
+  description: `Explore ${learningPathList} with HeyLanguages, alongside comparisons and guides to other Arabic varieties.`,
   path: siteConfig.routes.blog,
 });
 
@@ -21,7 +22,7 @@ export default function BlogPage() {
         <div className="page-shell">
           <p className="eyebrow eyebrow--dark">The HeyLanguages journal</p>
           <h1>A little clarity.<br />A better <em>conversation.</em></h1>
-          <p className={styles.intro}>A space for useful Arabic, thoughtful practice, and the everyday moments that bring a language to life.</p>
+          <p className={styles.intro}>Guides to {learningPathList}, with other Arabic varieties discussed where relevant.</p>
         </div>
       </header>
       <div className={`page-shell ${styles.indexContent}`}>

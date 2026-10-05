@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { entityIds } from "./entities";
 import { blogPosts } from "../content/blog";
 import type { BlogPost, InlineContent, PublishedPost } from "./blog-types";
 import { createPageMetadata } from "./metadata";
@@ -116,8 +117,10 @@ export function createBlogPosting(post: BlogPost) {
     description: post.description,
     url,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
-    author: { "@type": post.author.type, name: post.author.name, ...(post.author.url ? { url: post.author.url } : {}) },
-    publisher: { "@type": "Organization", name: siteConfig.name, url: siteConfig.domain },
+    author: post.author.type === "Organization" && post.author.url === siteConfig.domain
+      ? { "@id": entityIds.organization }
+      : { "@type": post.author.type, name: post.author.name, ...(post.author.url ? { url: post.author.url } : {}) },
+    publisher: { "@id": entityIds.organization },
     // Draft previews have never been published and must not claim a publication date.
     ...(post.status === "published" ? { datePublished: post.datePublished } : {}),
     dateModified: post.dateModified,

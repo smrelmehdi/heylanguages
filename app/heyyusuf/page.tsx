@@ -4,11 +4,9 @@ import { Availability } from "@/components/Availability";
 import { ButtonLink } from "@/components/ButtonLink";
 import { FAQ } from "@/components/FAQ";
 import { createPageMetadata } from "@/lib/metadata";
-import { audioSamples, everydayScenes, productAssets } from "@/lib/product";
+import { learningPaths, learningPathList, productDefinition, productDescription, everydayScenes, productAssets } from "@/lib/product";
 import { absoluteUrl, siteConfig } from "@/lib/site";
-
-const productDescription =
-  "Learn Arabic for real life with HeyYusuf. Practice MSA, Gulf and Egyptian Arabic through guided lessons, pronunciation practice and everyday conversations.";
+import { entityIds } from "@/lib/entities";
 
 export const metadata = createPageMetadata({
   title: "HeyYusuf: Learn Arabic | Gulf, Egyptian & MSA",
@@ -21,20 +19,19 @@ export const metadata = createPageMetadata({
 const softwareApplication = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "@id": `${absoluteUrl(siteConfig.routes.heyyusuf)}#software-application`,
+  "@id": entityIds.softwareApplication,
   name: siteConfig.productName,
   url: absoluteUrl(siteConfig.routes.heyyusuf),
-  description: productDescription,
+  description: productDefinition,
+  featureList: learningPaths.map((path) => `${path.label} learning path`),
   applicationCategory: "EducationalApplication",
   operatingSystem: "Android",
   downloadUrl: siteConfig.availability.android.storeUrl,
   image: absoluteUrl(productAssets.logo.src),
-  publisher: {
-    "@type": "Organization",
-    name: siteConfig.name,
-    url: siteConfig.domain,
-  },
+  publisher: { "@id": entityIds.organization },
 };
+
+const heroSample = learningPaths.find((path) => path.id === "msa")!;
 
 const teachingSteps = [
   {
@@ -72,7 +69,7 @@ const faqs = [
   {
     question: "Which Arabic option should I choose?",
     answer:
-      "Choose Modern Standard Arabic for a formal variety used widely in writing, media, and structured settings; Egyptian for everyday speech centered on Egypt; or Gulf for practical Gulf speech with a UAE and Emirati-oriented direction. They are distinct choices, not interchangeable labels.",
+      `HeyYusuf offers three separate learning paths: ${learningPathList}. Choose Modern Standard Arabic for a formal variety used widely in writing, media, and structured settings; Egyptian for everyday speech centered on Egypt; or Gulf for practical Gulf speech with a UAE and Emirati-oriented direction. They are distinct choices, not interchangeable labels.`,
   },
   {
     question: "What does a lesson involve?",
@@ -127,9 +124,8 @@ export default function HeyYusufPage() {
             <p className="eyebrow">Available now on Google Play</p>
             <h1>Your first Arabic conversation starts <em>here.</em></h1>
             <p className="product-hero__lede">
-              Meet Yusuf. Learn useful Arabic through guided lessons,
-              pronunciation practice, and everyday conversations. Choose Modern
-              Standard Arabic, Egyptian, or Gulf Arabic.
+              One app, three separate learning paths: {learningPathList}.
+              Meet Yusuf and practice through guided lessons, pronunciation, and everyday conversations.
             </p>
             <p className="reassurance"><span aria-hidden="true">✓</span> No Arabic reading experience needed to begin.</p>
             <div className="button-row">
@@ -142,13 +138,13 @@ export default function HeyYusufPage() {
           <div className="product-hero__visual">
             <div className="sample-lesson">
               <div className="sample-lesson__topline">
-                <span>Sample lesson</span>
-                <span>MSA</span>
+                <span>One of three learning paths</span>
+                <span>{heroSample.shortLabel} sample</span>
               </div>
               <p className="sample-lesson__prompt">Choose and get ready</p>
-              <p className="sample-lesson__arabic" dir="rtl" lang="ar">أي قميص تريد؟</p>
-              <p className="sample-lesson__pronunciation">ayy qamiis turiid?</p>
-              <p className="sample-lesson__english">Which shirt do you want?</p>
+              <p className="sample-lesson__arabic" dir="rtl" lang="ar">{heroSample.arabic}</p>
+              <p className="sample-lesson__pronunciation">{heroSample.pronunciation}</p>
+              <p className="sample-lesson__english">{heroSample.english}</p>
               <div className="sample-lesson__audio" aria-hidden="true">
                 <span>▶</span>
                 <i /><i /><i /><i /><i /><i /><i /><i />
@@ -216,7 +212,7 @@ export default function HeyYusufPage() {
               <div className="phone-frame phone-frame--product">
                 <div className="phone-frame__bar" aria-hidden="true" />
                 <Image
-                  alt="HeyYusuf pronunciation practice with an Arabic phrase, pronunciation guide, audio playback, and speaking control"
+                  alt="HeyYusuf Egyptian Arabic pronunciation lesson with a phrase, pronunciation guide, audio playback, and speaking control"
                   height={productAssets.pronunciation.height}
                   sizes="(max-width: 767px) 78vw, 390px"
                   src={productAssets.pronunciation.src}
@@ -276,13 +272,13 @@ export default function HeyYusufPage() {
             </p>
           </div>
           <div className="dialect-options">
-            {audioSamples.map((sample, index) => (
+            {learningPaths.map((sample, index) => (
               <article key={sample.id}>
                 <p className="dialect-options__number">0{index + 1}</p>
                 <p className="dialect-options__arabic" dir="rtl" lang="ar">{sample.arabic}</p>
                 <h3>{sample.label}</h3>
                 <p>{sample.description}</p>
-                <a href="#try-arabic">Hear the sample <span aria-hidden="true">↗</span></a>
+                <a href={`#${sample.sampleTarget}`}>Hear the sample <span aria-hidden="true">↗</span></a>
               </article>
             ))}
           </div>

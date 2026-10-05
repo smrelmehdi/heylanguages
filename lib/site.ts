@@ -1,3 +1,5 @@
+import { productDefinition } from "./product";
+
 export type PlatformKey = "android" | "ios";
 export type PlatformReleaseState = "coming-soon" | "available";
 
@@ -15,7 +17,7 @@ export const siteConfig = {
   productName: "HeyYusuf",
   supportEmail: "dev@heylanguages.com",
   description:
-    "Character-led language learning for useful words, confident speaking, and real conversations.",
+    productDefinition,
   legalLastUpdated: "2026-07-16",
   routes: {
     home: "/",
@@ -55,7 +57,7 @@ export const siteConfig = {
   social: {
     title: "HeyLanguages | Language Learning for Real Conversations",
     description:
-      "Learn with a friendly guide through useful phrases, speaking practice, and everyday conversations.",
+      productDefinition,
     image: "/opengraph-image",
   },
 } as const;

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { learningPaths } from "@/lib/product";
 
 export const size = {
   width: 1200,
@@ -61,7 +62,7 @@ export default function Image() {
               marginTop: 38,
             }}
           >
-            <span>MSA</span><span>·</span><span>Egyptian</span><span>·</span><span>Gulf</span>
+            {learningPaths.map((path) => <span key={path.id}>{path.id === "msa" ? path.shortLabel : path.label}</span>)}
           </div>
         </div>
       </div>

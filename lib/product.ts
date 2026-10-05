@@ -1,10 +1,12 @@
 export type DialectKey = "msa" | "egyptian" | "gulf";
 
-export type AudioSample = {
+export type LearningPath = {
   id: DialectKey;
   shortLabel: string;
   label: string;
   description: string;
+  futureSlug: string;
+  sampleTarget: string;
   arabic: string;
   pronunciation: string;
   english: string;
@@ -46,11 +48,13 @@ export const productAssets = {
   },
 } as const;
 
-export const audioSamples: readonly AudioSample[] = [
+export const learningPaths: readonly LearningPath[] = [
   {
     id: "msa",
     shortLabel: "MSA",
-    label: "Modern Standard Arabic",
+    label: "Modern Standard Arabic (MSA)",
+    futureSlug: "/heyyusuf/msa",
+    sampleTarget: "try-arabic-msa",
     description: "A widely understood formal variety used across media, writing, and many structured settings.",
     arabic: "أي قميص تريد؟",
     pronunciation: "ayy qamiis turiid?",
@@ -58,26 +62,35 @@ export const audioSamples: readonly AudioSample[] = [
     audioSrc: "/audio/msa-which-shirt.mp3",
   },
   {
-    id: "egyptian",
-    shortLabel: "Egyptian",
-    label: "Egyptian Arabic",
-    description: "Everyday spoken Arabic centered on how people communicate in Egypt.",
-    arabic: "عايز أنهي قميص؟",
-    pronunciation: "ʿaayiz anhi ʾamiiṣ?",
-    english: "Which shirt do you want?",
-    audioSrc: "/audio/egyptian-which-shirt.mp3",
-  },
-  {
     id: "gulf",
     shortLabel: "Gulf",
     label: "Gulf Arabic",
+    futureSlug: "/heyyusuf/gulf-arabic",
+    sampleTarget: "try-arabic-gulf",
     description: "Practical Gulf speech with a UAE and Emirati-oriented direction.",
     arabic: "أي قميص تبا؟",
     pronunciation: "ayy gamiiṣ tabaa?",
     english: "Which shirt do you want?",
     audioSrc: "/audio/gulf-which-shirt.mp3",
   },
+  {
+    id: "egyptian",
+    shortLabel: "Egyptian",
+    label: "Egyptian Arabic",
+    futureSlug: "/heyyusuf/egyptian-arabic",
+    sampleTarget: "try-arabic-egyptian",
+    description: "Everyday spoken Arabic centered on how people communicate in Egypt.",
+    arabic: "عايز أنهي قميص؟",
+    pronunciation: "ʿaayiz anhi ʾamiiṣ?",
+    english: "Which shirt do you want?",
+    audioSrc: "/audio/egyptian-which-shirt.mp3",
+  },
 ] as const;
+
+export const learningPathNames = learningPaths.map((path) => path.label);
+export const learningPathList = `${learningPathNames.slice(0, -1).join(", ")} and ${learningPathNames.at(-1)}`;
+export const productDefinition = `HeyYusuf is an Arabic-learning app with three separate learning paths: ${learningPathList}.`;
+export const productDescription = `Learn Arabic with HeyYusuf through three separate learning paths: ${learningPathList}. Practice with guided lessons and pronunciation support.`;
 
 export const everydayScenes = [
   {
