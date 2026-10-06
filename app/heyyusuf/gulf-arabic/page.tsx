@@ -144,7 +144,7 @@ export default function GulfArabicPage() {
         <section className={styles.section} aria-labelledby="three-paths">
           <h2 id="three-paths">One app, three Arabic paths.</h2>
           <p>{productDefinition}</p>
-          <ul className={styles.paths}>{learningPaths.map((path) => <li key={path.id} className={path.id === gulf.id ? styles.currentPath : undefined}>{path.label}{path.id === gulf.id ? <small>Current path</small> : null}</li>)}</ul>
+          <ul className={styles.paths}>{learningPaths.map((path) => <li key={path.id} className={path.id === gulf.id ? styles.currentPath : undefined}>{path.pageLastModified && path.id !== gulf.id ? <Link href={path.futureSlug}>{path.label}</Link> : path.label}{path.id === gulf.id ? <small>Current path</small> : null}</li>)}</ul>
           <p><Link href="/heyyusuf">Explore the full HeyYusuf experience</Link> to decide which path fits your goals.</p>
         </section>
 

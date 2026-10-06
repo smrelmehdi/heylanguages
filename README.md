@@ -123,8 +123,7 @@ real sample text/audio, and reserved future page slugs. Reuse `learningPaths`
 and the derived product descriptions rather than maintaining separate lists.
 `futureSlug` reserves each dedicated page URL. Set `pageLastModified` only once
 the page is implemented and approved for publication; this enables its homepage
-and product links and sitemap entry. Gulf Arabic and Egyptian Arabic are implemented; MSA
-remains unlinked and excluded. Update that date for substantive page changes.
+and product links and sitemap entry. All three dedicated path pages are implemented, linked and included in the sitemap. Update that date for substantive page changes.
 
 Samples use `/heyyusuf#try-arabic-msa`, `#try-arabic-gulf`, and
 `#try-arabic-egyptian`. Path-card links, direct visits, player tabs, and browser
@@ -136,7 +135,7 @@ The root layout defines HeyLanguages once per document. App publisher and
 HeyLanguages-authored blog schema reference that same Organization ID. Learning
 paths belong to one app; they must not become separate SoftwareApplication entities.
 
-The Gulf and Egyptian pages reuse `AudioDemo` with `pathId="gulf"` and
-`pathId="egyptian"` respectively, rendering the real sample on the server and
+The MSA, Gulf and Egyptian pages reuse `AudioDemo` with `pathId="msa"`,
+`pathId="gulf"` and `pathId="egyptian"` respectively, rendering the real sample on the server and
 keeping playback fixed to the chosen path. The product overview
 continues to offer all three tabs and their shareable sample anchors.
