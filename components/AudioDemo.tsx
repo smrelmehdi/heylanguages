@@ -5,14 +5,14 @@ import { learningPaths, type DialectKey } from "@/lib/product";
 
 type PlayerState = "idle" | "loading" | "playing" | "error";
 
-export function AudioDemo() {
-  const [selectedId, setSelectedId] = useState<DialectKey>("msa");
+export function AudioDemo({ pathId }: { pathId?: DialectKey } = {}) {
+  const [selectedId, setSelectedId] = useState<DialectKey>(pathId ?? "msa");
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const demoRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const selected =
-    learningPaths.find((sample) => sample.id === selectedId) ?? learningPaths[0];
+    learningPaths.find((sample) => sample.id === (pathId ?? selectedId)) ?? learningPaths[0];
 
   const stopPlayback = useCallback(() => {
     const audio = audioRef.current;
@@ -55,8 +55,8 @@ export function AudioDemo() {
   useEffect(() => {
     const syncHash = () => {
       const hash = window.location.hash;
-      const path = learningPaths.find((item) => `#${item.sampleTarget}` === hash)
-        ?? (["", "#try-arabic"].includes(hash) ? learningPaths.find((item) => item.id === "msa") : undefined);
+      const path = learningPaths.find((item) => (!pathId || item.id === pathId) && `#${item.sampleTarget}` === hash)
+        ?? (["", "#try-arabic"].includes(hash) ? learningPaths.find((item) => item.id === (pathId ?? "msa")) : undefined);
       if (path) {
         stopPlayback();
         setSelectedId(path.id);
@@ -68,7 +68,7 @@ export function AudioDemo() {
       cancelAnimationFrame(frame);
       window.removeEventListener("hashchange", syncHash);
     };
-  }, [stopPlayback]);
+  }, [pathId, stopPlayback]);
 
   const selectSample = (id: DialectKey) => {
     stopPlayback();
@@ -150,8 +150,8 @@ export function AudioDemo() {
 
   return (
     <div className="audio-demo" ref={demoRef}>
-      {learningPaths.map((path) => <span id={path.sampleTarget} key={path.id} />)}
-      <div aria-label="Choose an Arabic variety" className="audio-tabs" role="tablist">
+      {learningPaths.filter((path) => !pathId || path.id === pathId).map((path) => <span id={path.sampleTarget} key={path.id} style={{ display: "block", scrollMarginTop: 100 }} />)}
+      {!pathId && <div aria-label="Choose an Arabic variety" className="audio-tabs" role="tablist">
         {learningPaths.map((sample, index) => (
           <button
             aria-controls={`audio-panel-${sample.id}`}
@@ -170,13 +170,14 @@ export function AudioDemo() {
             {sample.shortLabel}
           </button>
         ))}
-      </div>
+      </div>}
 
       <div
-        aria-labelledby={`audio-tab-${selected.id}`}
+        aria-label={pathId ? `${selected.label} sample` : undefined}
+        aria-labelledby={pathId ? undefined : `audio-tab-${selected.id}`}
         className="audio-panel"
         id={`audio-panel-${selected.id}`}
-        role="tabpanel"
+        role={pathId ? "region" : "tabpanel"}
       >
         <div className="audio-panel__copy">
           <p className="audio-panel__variety">{selected.label}</p>
@@ -228,7 +229,7 @@ export function AudioDemo() {
         </p>
       </div>
       <p className="audio-demo__note">
-        Website sample · Tap to play · Audio stops when you change variety or leave this section.
+        Website sample · Tap to play · Audio stops when you {pathId ? "leave this section." : "change variety or leave this section."}
       </p>
     </div>
   );

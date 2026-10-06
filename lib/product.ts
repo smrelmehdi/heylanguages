@@ -6,6 +6,8 @@ export type LearningPath = {
   label: string;
   description: string;
   futureSlug: string;
+  /** Set only when the dedicated page exists; controls links and sitemap inclusion. */
+  pageLastModified?: string;
   sampleTarget: string;
   arabic: string;
   pronunciation: string;
@@ -66,6 +68,7 @@ export const learningPaths: readonly LearningPath[] = [
     shortLabel: "Gulf",
     label: "Gulf Arabic",
     futureSlug: "/heyyusuf/gulf-arabic",
+    pageLastModified: "2026-10-05",
     sampleTarget: "try-arabic-gulf",
     description: "Practical Gulf speech with a UAE and Emirati-oriented direction.",
     arabic: "أي قميص تبا؟",

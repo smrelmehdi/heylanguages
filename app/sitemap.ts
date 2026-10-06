@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { learningPaths } from "@/lib/product";
 import { getBlogSitemapEntries } from "@/lib/blog";
 import { absoluteUrl, publicRoutes, siteConfig } from "@/lib/site";
 
@@ -15,5 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: marketingRoutes.has(route) ? "monthly" : "yearly",
     priority: route === "/" ? 1 : route === siteConfig.routes.heyyusuf ? 0.95 : 0.7,
   }));
-  return [...pages, ...getBlogSitemapEntries()];
+  return [...pages, ...learningPaths.filter((path) => path.pageLastModified).map((path) => ({
+    url: absoluteUrl(path.futureSlug),
+    lastModified: path.pageLastModified!,
+  })), ...getBlogSitemapEntries()];
 }

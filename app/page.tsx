@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ButtonLink } from "@/components/ButtonLink";
 import { Availability } from "@/components/Availability";
 import { createPageMetadata } from "@/lib/metadata";
@@ -141,7 +142,7 @@ export default function HomePage() {
               Choose from three separate learning paths.
             </p>
             <div className="dialect-line" aria-label="Arabic varieties available">
-              {learningPaths.map((path) => <span key={path.id}>{path.label}</span>)}
+              {learningPaths.map((path) => <span key={path.id}>{path.pageLastModified ? <Link href={path.futureSlug}>{path.label}</Link> : path.label}</span>)}
             </div>
             <ul className="feature-ticks">
               <li>English meanings and pronunciation guides</li>

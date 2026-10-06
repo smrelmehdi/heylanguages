@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { AudioDemo } from "@/components/AudioDemo";
 import { Availability } from "@/components/Availability";
 import { ButtonLink } from "@/components/ButtonLink";
@@ -279,6 +280,7 @@ export default function HeyYusufPage() {
                 <h3>{sample.label}</h3>
                 <p>{sample.description}</p>
                 <a href={`#${sample.sampleTarget}`}>Hear the sample <span aria-hidden="true">↗</span></a>
+                {sample.pageLastModified ? <p><Link href={sample.futureSlug}>Explore {sample.label} <span aria-hidden="true">→</span></Link></p> : null}
               </article>
             ))}
           </div>
