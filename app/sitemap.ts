@@ -11,8 +11,8 @@ const marketingRoutes = new Set<string>([
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = publicRoutes.map((route) => ({
     url: absoluteUrl(route),
-    // Both marketing pages render the corrected HeyYusuf availability component.
-    lastModified: new Date(marketingRoutes.has(route) ? "2026-10-05" : siteConfig.legalLastUpdated),
+    // Both marketing pages now link to the Egyptian Arabic learning path.
+    lastModified: new Date(marketingRoutes.has(route) ? "2026-10-06" : siteConfig.legalLastUpdated),
     changeFrequency: marketingRoutes.has(route) ? "monthly" : "yearly",
     priority: route === "/" ? 1 : route === siteConfig.routes.heyyusuf ? 0.95 : 0.7,
   }));

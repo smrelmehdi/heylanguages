@@ -81,6 +81,7 @@ export const learningPaths: readonly LearningPath[] = [
     shortLabel: "Egyptian",
     label: "Egyptian Arabic",
     futureSlug: "/heyyusuf/egyptian-arabic",
+    pageLastModified: "2026-10-06",
     sampleTarget: "try-arabic-egyptian",
     description: "Everyday spoken Arabic centered on how people communicate in Egypt.",
     arabic: "عايز أنهي قميص؟",
