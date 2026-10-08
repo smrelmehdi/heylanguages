@@ -5,6 +5,7 @@ export const verifiedProductFeatures = [
   "Vocabulary with Arabic text, English meanings and pronunciation guides",
   "Guided conversations",
   "Arabic audio and pronunciation practice",
+  "Real human Arabic voices for MSA, Gulf Arabic and Egyptian Arabic",
   "Voice recording and online pronunciation feedback",
   "Quizzes and challenges",
   "Arabic alphabet learning",

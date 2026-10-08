@@ -145,6 +145,7 @@ export default function HomePage() {
               {learningPaths.map((path) => <span key={path.id}>{path.pageLastModified ? <Link href={path.futureSlug}>{path.label}</Link> : path.label}</span>)}
             </div>
             <ul className="feature-ticks">
+              <li>Real human Arabic voices across MSA, Gulf and Egyptian.</li>
               <li>English meanings and pronunciation guides</li>
               <li>Everyday scenes with clear outcomes</li>
               <li>A guided path from recognition to conversation</li>

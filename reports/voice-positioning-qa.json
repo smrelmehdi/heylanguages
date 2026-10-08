@@ -1,0 +1,573 @@
+{
+  "origin": "http://127.0.0.1:3114",
+  "date": "2026-10-08",
+  "viewports": [
+    {
+      "width": 360,
+      "checks": [
+        {
+          "route": "/",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/msa",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/gulf-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/egyptian-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "checks": [
+        {
+          "route": "/",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/msa",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/gulf-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/egyptian-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 768,
+      "checks": [
+        {
+          "route": "/",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/msa",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/gulf-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/egyptian-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "checks": [
+        {
+          "route": "/",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "msa",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "gulf",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "audio": "egyptian",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        },
+        {
+          "route": "/heyyusuf/features",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/msa",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/gulf-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "route": "/heyyusuf/egyptian-arabic",
+          "status": 200,
+          "metadataUnchanged": true,
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "links": [
+    {
+      "href": "http://127.0.0.1:3114/#main-content",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/features",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/gulf-arabic",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/egyptian-arabic",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/msa",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/#approach",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/blog",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/support",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf#try-arabic",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/privacy",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/terms",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/delete-account",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf#main-content",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf#how-it-works",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf#try-arabic-msa",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf#try-arabic-gulf",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf#try-arabic-egyptian",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/features#main-content",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/features#arabic-paths",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/product/features/home-progress.jpeg",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/product/features/learning-path.jpeg",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/product/features/pronunciation-feedback.jpeg",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/product/features/conversation-challenge.jpeg",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/product/features/alphabet-overview.jpeg",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/product/features/alphabet-vowels.jpeg",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/blog/best-arabic-learning-apps",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/msa#main-content",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/msa#try-arabic-msa",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/gulf-arabic#main-content",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/gulf-arabic#try-arabic-gulf",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/egyptian-arabic#main-content",
+      "status": 200
+    },
+    {
+      "href": "http://127.0.0.1:3114/heyyusuf/egyptian-arabic#try-arabic-egyptian",
+      "status": 200
+    }
+  ],
+  "audioAssets": [
+    {
+      "path": "/audio/msa-which-shirt.mp3",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "path": "/audio/gulf-which-shirt.mp3",
+      "status": 200,
+      "unchanged": true
+    },
+    {
+      "path": "/audio/egyptian-which-shirt.mp3",
+      "status": 200,
+      "unchanged": true
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "public/product/features/pronunciation-feedback.jpeg",
+      "unchanged": true,
+      "status": 200
+    },
+    {
+      "file": "public/product/features/alphabet-vowels.jpeg",
+      "unchanged": true,
+      "status": 200
+    },
+    {
+      "file": "public/product/features/conversation-challenge.jpeg",
+      "unchanged": true,
+      "status": 200
+    },
+    {
+      "file": "public/product/features/learning-path.jpeg",
+      "unchanged": true,
+      "status": 200
+    },
+    {
+      "file": "public/product/features/home-progress.jpeg",
+      "unchanged": true,
+      "status": 200
+    },
+    {
+      "file": "public/product/features/alphabet-overview.jpeg",
+      "unchanged": true,
+      "status": 200
+    }
+  ],
+  "failures": [],
+  "sitemap": {
+    "faqAbsent": true,
+    "onlyHomepageAndProductDatesChanged": true
+  },
+  "faqStatus": 404,
+  "serverHTML": {
+    "/": true,
+    "/heyyusuf": true,
+    "/heyyusuf/features": true
+  },
+  "source": "Explicit owner-approved voice positioning supplied on 2026-10-08. Public wording does not claim a recording method or identify a provider.",
+  "baseCommit": "4ac46b25618ca1b492f51fdebf0755a33f0dc020",
+  "filesChanged": [
+    "app/page.tsx",
+    "app/heyyusuf/page.tsx",
+    "app/heyyusuf/features/page.tsx",
+    "lib/features.ts",
+    "app/sitemap.ts",
+    "reports/features-audit.json",
+    "reports/voice-positioning-qa.json"
+  ],
+  "build": "pass: npm run build",
+  "typescript": "pass: npx tsc --noEmit --incremental false",
+  "lint": "pass: npm run lint",
+  "whitespace": "pass: git diff --check and changed-text whitespace scan",
+  "audit": {
+    "conflictingPublicWording": [],
+    "normalized": "The features audio section previously used clear Arabic audio; replaced with the owner-approved voice message.",
+    "internalOnly": "A historical handoff report has a technical audio reference; it is not public page copy and was left unchanged.",
+    "pathPages": "No contradictory wording found; all three path pages unchanged.",
+    "faq": "No direct factual conflict found; all local FAQ work unchanged and excluded from the isolated build."
+  },
+  "wording": {
+    "headline": "Real human voices. Natural local Arabic.",
+    "productSupporting": "Hear natural Arabic voices across MSA, Gulf and Egyptian lessons, with clear pronunciation and none of the robotic-sounding audio common in basic language tools.",
+    "productInvitation": "Choose a learning path to hear a sample from HeyYusuf.",
+    "featuresSupporting": "HeyYusuf uses real human voices across three separate learning paths: Modern Standard Arabic (MSA), Gulf Arabic and Egyptian Arabic. Natural pronunciation and consistent voices give you clear listening references, without robotic-sounding audio.",
+    "featuresInvitation": "Listen to “Which shirt do you want?” in each path below. Hear the voice alongside Arabic text, a pronunciation guide and an English meaning.",
+    "homepage": "Real human Arabic voices across MSA, Gulf and Egyptian.",
+    "softwareApplicationFeature": "Real human Arabic voices for MSA, Gulf Arabic and Egyptian Arabic"
+  },
+  "preservation": "Titles, descriptions, canonicals, navigation, styles, path pages, screenshot walkthrough, screenshot files and audio files unchanged. Only homepage/product sitemap lastModified dates updated to 2026-10-08.",
+  "visualReview": "Desktop and mobile voice sections and homepage benefit list inspected; no layout overflow or overcrowded new section."
+}

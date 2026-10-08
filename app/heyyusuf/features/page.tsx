@@ -112,8 +112,9 @@ export default function FeaturesPage() {
 
         <section id="try-arabic" className={styles.section} aria-labelledby="audio-title">
           <div className={styles.copy}>
-            <h2 id="audio-title">Hear the three Arabic paths.</h2>
-            <p>Listen to “Which shirt do you want?” in MSA, Gulf Arabic and Egyptian Arabic. These website samples pair clear Arabic audio with Arabic text, a pronunciation guide and an English meaning.</p>
+            <h2 id="audio-title">Real human voices. Natural local Arabic.</h2>
+            <p>HeyYusuf uses real human voices across three separate learning paths: Modern Standard Arabic (MSA), Gulf Arabic and Egyptian Arabic. Natural pronunciation and consistent voices give you clear listening references, without robotic-sounding audio.</p>
+            <p>Listen to “Which shirt do you want?” in each path below. Hear the voice alongside Arabic text, a pronunciation guide and an English meaning.</p>
           </div>
           <div className={styles.audio}><AudioDemo /></div>
         </section>

@@ -171,11 +171,13 @@ export default function HeyYusufPage() {
         <div className="page-shell audio-section__grid">
           <div className="audio-section__intro">
             <p className="eyebrow eyebrow--dark">A website sample</p>
-            <h2 id="audio-title">Try a little Arabic.</h2>
+            <h2 id="audio-title">Real human voices. Natural local Arabic.</h2>
             <p>
-              Hear how the same everyday question changes across three distinct
-              Arabic choices. This is a small preview, not the full mobile course.
+              Hear natural Arabic voices across MSA, Gulf and Egyptian lessons,
+              with clear pronunciation and none of the robotic-sounding audio
+              common in basic language tools.
             </p>
+            <p>Choose a learning path to hear a sample from HeyYusuf.</p>
             <div className="audio-context">
               <span>In this scene</span>
               <p>You are choosing what to wear. Yusuf asks: “Which shirt do you want?”</p>

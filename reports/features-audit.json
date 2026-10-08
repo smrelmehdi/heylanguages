@@ -39,6 +39,12 @@
       "visual": "pronunciation-feedback.jpeg and existing audio demo"
     },
     {
+      "feature": "Real human Arabic voices",
+      "decision": "Included using owner-approved voice positioning on 2026-10-08",
+      "evidence": "Explicit product-owner instruction: Real human voices. Natural local Arabic. Applies to MSA, Gulf Arabic and Egyptian Arabic; existing playable samples remain unchanged. No independent recording-method or provider verification claimed.",
+      "visual": "Existing three playable audio samples directly accompany the public voice section."
+    },
+    {
       "feature": "Recording and automated online feedback",
       "decision": "Included with connection/access caveat",
       "evidence": "utils/pronunciation.ts evaluatePronunciation; website privacy voice section; owner-confirmed current public Google Play build screenshots where noted",
@@ -145,7 +151,8 @@
     "Alphabet copy now describes the visible first-word sequence and vowel exploration instead of broad letter-family/quiz claims.",
     "XP, progress, 95% feedback, question count and 13-step introduction are described as captured examples, not general performance or curriculum guarantees.",
     "Existing main product page September pronunciation screenshot remains outside this change.",
-    "Features page has no FAQ dependency. FAQ files and route configuration remain local and uncommitted; FAQ is absent from the committed sitemap and release checkout."
+    "Features page has no FAQ dependency. FAQ files and route configuration remain local and uncommitted; FAQ is absent from the committed sitemap and release checkout.",
+    "2026-10-08 voice-positioning update: uses the product owner’s approved real-human-voices promise. No provider or recording-method claims added to public copy."
   ],
   "appChanges": "None",
   "committed": true,
@@ -186,13 +193,14 @@
     "consoleRuntimeErrors": 0,
     "horizontalOverflow": false,
     "linksAndAudio": "24 internal/asset/audio targets return 200; anchors exist. All three samples play and stop; keyboard tab navigation passes at every viewport.",
-    "schema": "WebPage + BreadcrumbList reference existing SoftwareApplication and Organization; main application featureList unchanged.",
+    "schema": "WebPage + BreadcrumbList retain the existing SoftwareApplication and Organization references. One owner-approved voice feature added to the existing SoftwareApplication featureList; no duplicate entity.",
     "sitemap": "Features entry preserved with lastModified 2026-10-08; FAQ entry removed before the approved features commit.",
     "serverHTML": "Six figures, descriptive content and public Google Play screenshot provenance present without requiring client-side rendering.",
     "sourceIntegrity": "All six destination files match original source bytes and recorded SHA-256 hashes.",
     "remaining": "All final release checks passed in an isolated checkout containing only committed features work and the provenance corrections. FAQ returned 404 and was absent from the sitemap.",
     "releaseCheckout": "Isolated checkout of 13908aef039eab189d1d586d27cdaa215b8838c6 plus this provenance-only correction; no local FAQ files, FAQ route addition or unrelated files included.",
-    "publicBuildProvenance": "Confirmed by the product owner on 2026-10-08; no independent app binary comparison claimed."
+    "publicBuildProvenance": "Confirmed by the product owner on 2026-10-08; no independent app binary comparison claimed.",
+    "voicePositioning": "Voice positioning follows the explicit product-owner wording approved on 2026-10-08. Final browser/build checks are recorded in reports/voice-positioning-qa.json."
   },
   "screenshots": [
     {
