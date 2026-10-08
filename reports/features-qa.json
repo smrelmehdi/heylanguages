@@ -1,7 +1,7 @@
 {
   "date": "2026-10-08",
-  "origin": "http://127.0.0.1:3108",
-  "build": "Local production website build; owner-supplied QA app screenshots",
+  "origin": "http://127.0.0.1:3110",
+  "build": "Local production website build; owner-confirmed current public Google Play app screenshots",
   "browsers": [
     {
       "width": 360,
@@ -1072,7 +1072,7 @@
     "hasHeading": true,
     "hasAlphabet": true,
     "figures": 6,
-    "hasQABuildDisclosure": true,
+    "hasPublicBuildDisclosure": true,
     "hasSpeakingText": true
   },
   "productLinks": {
@@ -1081,5 +1081,47 @@
   },
   "productIssues": [],
   "sitemapIncludesFeatures": true,
+  "sitemapExcludesFAQ": true,
+  "faqStatus": 404,
+  "featuresStatus": 200,
+  "screenshotIntegrity": [
+    {
+      "file": "public/product/features/pronunciation-feedback.jpeg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "public/product/features/alphabet-vowels.jpeg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "public/product/features/conversation-challenge.jpeg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "public/product/features/learning-path.jpeg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "public/product/features/home-progress.jpeg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "public/product/features/alphabet-overview.jpeg",
+      "status": 200,
+      "hashMatches": true
+    }
+  ],
+  "expectedMetadata": {
+    "title": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+    "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+    "canonical": "https://heylanguages.com/heyyusuf/features",
+    "openGraphAndTwitter": "Matching title and description; existing HeyYusuf social image"
+  },
+  "softwareApplicationUnchanged": true,
   "failures": []
 }

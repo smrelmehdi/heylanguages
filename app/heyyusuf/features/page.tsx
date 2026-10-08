@@ -63,7 +63,7 @@ export default function FeaturesPage() {
           <p className="eyebrow">Lessons, conversations and practice</p>
           <h1>Inside <em>HeyYusuf</em></h1>
           <p className={styles.lede}>A closer look at how HeyYusuf teaches Arabic through separate MSA, Gulf and Egyptian paths, practical lessons, pronunciation practice and guided conversations.</p>
-          <p className={styles.provenance}>Screenshots from the current QA build of HeyYusuf. The public app may differ.</p>
+          <p className={styles.provenance}>Screenshots from the current publicly available Google Play version of HeyYusuf.</p>
           <a href="#arabic-paths" className={styles.heroLink}>Explore the learning experience <span aria-hidden="true">↓</span></a>
         </div>
       </header>

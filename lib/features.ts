@@ -28,8 +28,8 @@ export const featureArtwork = {
   },
 } as const;
 
-// Unedited screenshots supplied by the owner from the current QA build.
-// These are not asserted to represent the public Play Store build.
+// Unedited screenshots supplied by the owner, who confirmed on 2026-10-08
+// that they come from the current publicly available Google Play build.
 export const featureScreenshots = {
   home: {
     src: "/product/features/home-progress.jpeg", width: 826, height: 1599,
