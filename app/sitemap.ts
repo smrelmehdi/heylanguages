@@ -19,5 +19,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [...pages, ...learningPaths.filter((path) => path.pageLastModified).map((path) => ({
     url: absoluteUrl(path.futureSlug),
     lastModified: path.pageLastModified!,
-  })), ...getBlogSitemapEntries()];
+  })), {
+    url: absoluteUrl(siteConfig.routes.features),
+    lastModified: "2026-10-08",
+  }, ...getBlogSitemapEntries()];
 }

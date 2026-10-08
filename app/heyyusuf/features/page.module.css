@@ -1,0 +1,29 @@
+.page { background: var(--color-paper); color: var(--color-text); }
+.hero, .final { background: var(--color-ink); color: var(--color-cream); padding-block: clamp(3rem, 7vw, 6rem); }
+.breadcrumb { display: flex; flex-wrap: wrap; gap: .7rem; color: var(--color-muted); font-size: .8rem; margin-bottom: 3rem; }
+.breadcrumb a, .heroLink { text-decoration: underline; text-underline-offset: .25em; }
+.hero h1 { font-size: clamp(3rem, 8vw, 6.5rem); font-weight: 800; line-height: 1.05; letter-spacing: -.05em; margin: 1rem 0 1.5rem; }
+.hero h1 em { color: var(--color-teal); font-family: Georgia, serif; font-weight: 400; }
+.lede { max-width: 760px; color: var(--color-muted); font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.8; }
+.heroLink { display: inline-block; margin-top: 2rem; color: var(--color-teal); }
+.walkthrough { max-width: 1100px; }
+.section { padding-block: clamp(2.5rem, 6vw, 4.5rem); border-bottom: 1px solid rgba(25,34,31,.15); scroll-margin-top: 100px; }
+.copy { max-width: 720px; }
+.section h2, .final h2 { font-size: clamp(1.9rem, 3.8vw, 3rem); line-height: 1.15; font-weight: 800; letter-spacing: -.035em; margin: 0 0 1.5rem; }
+.section h3 { font-size: 1.3rem; line-height: 1.4; font-weight: 750; margin: 2rem 0 .8rem; }
+.copy > p:not(:global(.eyebrow)), .paths p, .related, .final p { line-height: 1.8; color: var(--color-text-soft); margin-block: 1rem; }
+.copy a, .related a { color: var(--color-teal-dark); text-decoration: underline; text-underline-offset: .2em; }
+.paths { list-style: none; padding: 0; margin: 2rem 0 0; }
+.paths li { padding: 1rem 0; border-top: 1px solid rgba(25,34,31,.15); }
+.paths a { font-weight: 750; }
+.paths p { margin: .4rem 0 0; }
+.visual { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .8fr); gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+.figure { margin: 0; min-width: 0; width: 100%; max-width: 420px; justify-self: center; }
+.figure img { display: block; width: 100%; height: auto; border-radius: 12px; }
+.figure figcaption { font-size: .85rem; color: var(--color-text-soft); line-height: 1.7; margin-top: 1rem; }
+.audio { max-width: 760px; margin-top: 2rem; padding: clamp(1rem, 3vw, 2rem); background: var(--color-ivory); border-radius: 20px; color: var(--color-text); }
+.related { padding-block: 1.5rem 2rem; font-size: .95rem; max-width: 720px; }
+.final p { color: var(--color-muted); margin-bottom: 2rem; }
+@media (max-width: 760px) { .visual { grid-template-columns: 1fr; } }
+
+.provenance { max-width: 760px; color: var(--color-muted); font-size: .85rem; line-height: 1.7; margin-top: 1rem; }

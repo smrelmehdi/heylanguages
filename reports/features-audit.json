@@ -1,0 +1,287 @@
+{
+  "date": "2026-10-08",
+  "route": "/heyyusuf/features",
+  "sources": {
+    "appProject": "/Users/mehdi/Desktop/HeyYusuf",
+    "liveListing": "https://play.google.com/store/apps/details?id=com.heylanguages.heyyusuf",
+    "liveListingUpdated": "2026-10-03",
+    "qaScreenshots": "Six exact Desktop filenames supplied by the owner; visually inspected and copied without transformation on 2026-10-08."
+  },
+  "inventory": [
+    {
+      "feature": "Three separate Arabic paths",
+      "decision": "Included",
+      "evidence": "lib/product.ts; app source data/curriculum/v2/types.ts; Google Play description; owner-supplied current QA-build screenshots where noted",
+      "visual": "home-progress.jpeg (Gulf path label); other paths retain prior source evidence"
+    },
+    {
+      "feature": "Guided units and lessons",
+      "decision": "Included",
+      "evidence": "app/(tabs)/index.tsx; data/curriculum/v2/release-boundary.ts; Google Play description and release notes; owner-supplied current QA-build screenshots where noted",
+      "visual": "learning-path.jpeg"
+    },
+    {
+      "feature": "Vocabulary and phrases",
+      "decision": "Included",
+      "evidence": "data/curriculum/v2/onboarding/content.ts; data/curriculum/v2/types.ts; Google Play description; owner-supplied current QA-build screenshots where noted",
+      "visual": "pronunciation-feedback.jpeg"
+    },
+    {
+      "feature": "Guided conversations",
+      "decision": "Included",
+      "evidence": "data/curriculum/v2/onboarding/content.ts; Google Play description; owner-supplied current QA-build screenshots where noted",
+      "visual": "learning-path.jpeg and pronunciation-feedback.jpeg"
+    },
+    {
+      "feature": "Listening and pronunciation practice",
+      "decision": "Included",
+      "evidence": "utils/pronunciation.ts; website lib/product.ts audio assets; Google Play description; owner-supplied current QA-build screenshots where noted",
+      "visual": "pronunciation-feedback.jpeg and existing audio demo"
+    },
+    {
+      "feature": "Recording and automated online feedback",
+      "decision": "Included with connection/access caveat",
+      "evidence": "utils/pronunciation.ts evaluatePronunciation; website privacy voice section; owner-supplied current QA-build screenshots where noted",
+      "visual": "pronunciation-feedback.jpeg; automated evaluation corroborated by utils/pronunciation.ts"
+    },
+    {
+      "feature": "Quizzes, practice and challenges",
+      "decision": "Included without exact question counts",
+      "evidence": "data/curriculum/v2/onboarding/content.ts; Google Play release notes; owner-supplied current QA-build screenshots where noted",
+      "visual": "conversation-challenge.jpeg"
+    },
+    {
+      "feature": "Alphabet learning",
+      "decision": "Included: 13-step first-word introduction and ba/bi/bu exploration shown in current QA build; no total alphabet count",
+      "evidence": "app/writing.tsx; live store alphabet promotional image corroborates letter families, forms, audio and example words; owner-supplied current QA-build screenshots where noted",
+      "visual": "alphabet-overview.jpeg and alphabet-vowels.jpeg"
+    },
+    {
+      "feature": "Visual scenario learning",
+      "decision": "Included",
+      "evidence": "constants/v2-beginner-scene-images.production.ts; data/curriculum/v2/onboarding/content.ts; owner-supplied current QA-build screenshots where noted",
+      "visual": "Illustration visible in pronunciation-feedback.jpeg"
+    },
+    {
+      "feature": "Progress and Continue",
+      "decision": "Included at general level",
+      "evidence": "app/(tabs)/index.tsx lines 501 onward; website privacy progress disclosure; owner-supplied current QA-build screenshots where noted",
+      "visual": "home-progress.jpeg"
+    },
+    {
+      "feature": "XP",
+      "decision": "Included as in-app activity rewards, no proficiency promise",
+      "evidence": "constants/levels.ts; app/(tabs)/index.tsx; website privacy; store progress artwork; owner-supplied current QA-build screenshots where noted",
+      "visual": "home-progress.jpeg"
+    },
+    {
+      "feature": "Numbers and prices",
+      "decision": "Included without exact range",
+      "evidence": "data/curriculum/v2/msa-unit4.ts; unit4/dialect-payloads.ts; live store listening image includes number answers; owner-supplied current QA-build screenshots where noted",
+      "visual": "Understand the Price visible in home-progress.jpeg; number activities retain prior curriculum evidence"
+    },
+    {
+      "feature": "Exact alphabet checkpoint/resume/tracing rules",
+      "decision": "Exact checkpoint/resume/tracing rules remain omitted; screenshot-specific 13-step first-word introduction now included",
+      "evidence": "utils/alphabet-progress.ts and app/writing.tsx confirm local implementation, not exact installed public build",
+      "visual": "No suitable current screenshot"
+    },
+    {
+      "feature": "Exact numbers range and unit count",
+      "decision": "Exact numbers range and total unit count remain omitted; visible challenge count is explicitly scoped to the captured challenge",
+      "evidence": "Local production-boundary.ts is 12; live listing says Units 1–11; local numbers-expansion-install is newer than store update",
+      "visual": "No suitable current screenshot"
+    },
+    {
+      "feature": "AI provider/model and speech scoring accuracy",
+      "decision": "Omitted",
+      "evidence": "Client confirms online automated evaluation but does not establish live provider/model or accuracy",
+      "visual": "None"
+    },
+    {
+      "feature": "Premium chat/offline/account details",
+      "decision": "Premium chat/account/offline behavior remains outside scope; home screenshot and copy only state that the offline audio card is labeled premium",
+      "evidence": "Existing product page covers these; live entitlements and behavior not revalidated in this task",
+      "visual": "None verified for this page"
+    }
+  ],
+  "assets": [
+    {
+      "file": "public/product/features/first-cafe-conversation.png",
+      "source": "/Users/mehdi/Desktop/HeyYusuf/assets/images/unit1-first-cafe-conversation.png",
+      "sha256": "0e7eaa6614377f0f7e77868c0eac7338fb835132d038d8edc16a6eff27021e74",
+      "kind": "Production lesson illustration, not an app screenshot",
+      "transformation": "None: byte-for-byte copy",
+      "registration": "constants/v2-beginner-scene-images.production.ts",
+      "content": "data/curriculum/v2/onboarding/content.ts",
+      "pageUsage": "Retained on disk as prior evidence; standalone illustration block removed from page on 2026-10-08."
+    },
+    {
+      "file": "public/product/features/choose-with-yusuf.png",
+      "source": "/Users/mehdi/Desktop/HeyYusuf/assets/images/unit3-choose-with-yusuf.png",
+      "sha256": "f05e3fe22c10d1e48e2979be8e46f7bd4ef6aa7d72db4c28b6afea79ac874922",
+      "kind": "Production lesson illustration, not an app screenshot",
+      "transformation": "None: byte-for-byte copy",
+      "registration": "constants/v2-beginner-scene-images.production.ts",
+      "content": "data/curriculum/v2/onboarding/content.ts",
+      "pageUsage": "Retained on disk as prior evidence; standalone illustration block removed from page on 2026-10-08."
+    }
+  ],
+  "screenshotAudit": {
+    "usableCurrentAppScreenshots": 6,
+    "excluded": [
+      "reports/app-store-screenshots/01-home.png and 02-learning-path.png: September legacy lesson layout",
+      "reports/app-store-screenshots/04-pronunciation.png: September capture, production currency unconfirmed",
+      "reports/v2-beginner-challenges/visual-qa: controlled component fixtures, not app captures",
+      "reports/unit4-production-review and tmp/*review: development content-preview UI",
+      "Live Google Play images: promotional composites with device frames and copy; not unedited screens"
+    ],
+    "schemaScreenshotProperty": "Not added. Existing SoftwareApplication entity preserved; screenshot figures and explanatory HTML supply the visible evidence.",
+    "scope": "Six owner-supplied current QA-build screenshots, not verified public Play Store captures."
+  },
+  "editorialReview": [
+    "Six current QA-build screenshots now replace the illustration-only walkthrough. They are not asserted to be public Play Store build captures.",
+    "Both standalone illustration blocks removed; original PNG assets and definitions retained without changes.",
+    "Alphabet copy now describes the visible first-word sequence and vowel exploration instead of broad letter-family/quiz claims.",
+    "XP, progress, 95% feedback, question count and 13-step introduction are described as captured examples, not general performance or curriculum guarantees.",
+    "Existing main product page September pronunciation screenshot remains outside this change.",
+    "Features page has no FAQ dependency. Pre-existing uncommitted FAQ route and sitemap entry preserved; FAQ deployment scope still needs separate resolution."
+  ],
+  "appChanges": "None",
+  "committed": false,
+  "deployed": false,
+  "filesChangedThisTask": [
+    "app/heyyusuf/features/page.tsx",
+    "app/heyyusuf/features/page.module.css",
+    "lib/features.ts",
+    "app/sitemap.ts",
+    "public/product/features/pronunciation-feedback.jpeg",
+    "public/product/features/alphabet-vowels.jpeg",
+    "public/product/features/conversation-challenge.jpeg",
+    "public/product/features/learning-path.jpeg",
+    "public/product/features/home-progress.jpeg",
+    "public/product/features/alphabet-overview.jpeg",
+    "reports/features-audit.json",
+    "reports/features-qa.json"
+  ],
+  "metadata": {
+    "title": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+    "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+    "canonical": "https://heylanguages.com/heyyusuf/features",
+    "openGraphAndTwitter": "Matching title and description; existing HeyYusuf social image"
+  },
+  "validation": {
+    "productionBuild": "pass: npm run build",
+    "typescript": "pass: npx tsc --noEmit --incremental false",
+    "lint": "pass: npm run lint",
+    "whitespace": "pass: git diff --check; additional untracked text whitespace scan",
+    "browserWidths": [
+      360,
+      390,
+      768,
+      1440
+    ],
+    "screenshots": "All six load at every viewport, have alt text, captions and two explanatory HTML paragraphs, preserve source proportions and link to full-size originals.",
+    "accessibilityViolations": 0,
+    "consoleRuntimeErrors": 0,
+    "horizontalOverflow": false,
+    "linksAndAudio": "24 internal/asset/audio targets return 200; anchors exist. All three samples play and stop; keyboard tab navigation passes at every viewport.",
+    "schema": "WebPage + BreadcrumbList reference existing SoftwareApplication and Organization; main application featureList unchanged.",
+    "sitemap": "Features entry preserved with lastModified 2026-10-08. Pre-existing FAQ entry untouched.",
+    "serverHTML": "Six figures, descriptive content and QA-build disclosure present without requiring client-side rendering.",
+    "sourceIntegrity": "All six destination files match original source bytes and recorded SHA-256 hashes.",
+    "remaining": "No failed checks. QA-build provenance is explicit; public Play Store build equivalence is not claimed. Separate pre-existing FAQ rollout remains outside this task."
+  },
+  "screenshots": [
+    {
+      "sourceFilename": "alaykumsalam.jpeg",
+      "source": "/Users/mehdi/Desktop/alaykumsalam.jpeg",
+      "destinationFilename": "pronunciation-feedback.jpeg",
+      "file": "public/product/features/pronunciation-feedback.jpeg",
+      "section": "Pronunciation and speaking practice",
+      "demonstrates": "Gulf Arabic Meet Yusuf lesson; Arabic, transliteration, meaning, listening, hold-to-speak and 95% feedback",
+      "buildProvenance": "Current QA build, supplied and identified by the product owner on 2026-10-08. Public Play Store build equivalence not verified.",
+      "transformation": "None: byte-for-byte copy; source unchanged",
+      "sha256": "22f97fdd62ecbe7507e749a2268c99d863f8cbc72a34212a1f35c90294d3b3ff",
+      "visuallyVerified": true,
+      "alt": "Meet Yusuf Gulf Arabic lesson with an Arabic greeting, transliteration, English meaning, listening and hold-to-speak controls, and a 95% pronunciation result",
+      "caption": "Speaking practice: listen, hold to speak and review pronunciation feedback.",
+      "sourceUnchangedVerified": true
+    },
+    {
+      "sourceFilename": "babubi.jpeg",
+      "source": "/Users/mehdi/Desktop/babubi.jpeg",
+      "destinationFilename": "alphabet-vowels.jpeg",
+      "file": "public/product/features/alphabet-vowels.jpeg",
+      "section": "Letters, vowel marks and sound",
+      "demonstrates": "Build & Read step 3 of 13; ba/bi/bu, Listen and vowel exploration counter",
+      "buildProvenance": "Current QA build, supplied and identified by the product owner on 2026-10-08. Public Play Store build equivalence not verified.",
+      "transformation": "None: byte-for-byte copy; source unchanged",
+      "sha256": "b1035240ae42e6a41f12a3ac9c2553944447919b4ff1cf349b10ecf8f7ca8f24",
+      "visuallyVerified": true,
+      "alt": "Build and Read step 3 of 13 showing the letter baa with ba, bi and bu vowel marks, a Listen button and an exploration counter",
+      "caption": "One letter, three sounds: explore ba, bi and bu with audio support.",
+      "sourceUnchangedVerified": true
+    },
+    {
+      "sourceFilename": "quiz.jpeg",
+      "source": "/Users/mehdi/Desktop/quiz.jpeg",
+      "destinationFilename": "conversation-challenge.jpeg",
+      "file": "public/product/features/conversation-challenge.jpeg",
+      "section": "Quizzes, challenges and active recall",
+      "demonstrates": "Greeting fill-in-the-blank; Arabic choices, transliteration, Show English and question 2 of 20",
+      "buildProvenance": "Current QA build, supplied and identified by the product owner on 2026-10-08. Public Play Store build equivalence not verified.",
+      "transformation": "None: byte-for-byte copy; source unchanged",
+      "sha256": "5efe6070f060a61a5dc2ccd8955c9f140aa29bcbc6a99c95c7cb537205c5ee7f",
+      "visuallyVerified": true,
+      "alt": "Your First Arabic Conversation Challenge at question 2 of 20, asking for a greeting reply with three Arabic and transliterated answer choices",
+      "caption": "Conversation challenge: choose the missing reply using Arabic and transliteration.",
+      "sourceUnchangedVerified": true
+    },
+    {
+      "sourceFilename": "path.jpeg",
+      "source": "/Users/mehdi/Desktop/path.jpeg",
+      "destinationFilename": "learning-path.jpeg",
+      "file": "public/product/features/learning-path.jpeg",
+      "section": "Structured units and lessons",
+      "demonstrates": "Unit 1 sequence; lesson/conversation/practice icons, numbered activities and completion checkmarks",
+      "buildProvenance": "Current QA build, supplied and identified by the product owner on 2026-10-08. Public Play Store build equivalence not verified.",
+      "transformation": "None: byte-for-byte copy; source unchanged",
+      "sha256": "4cfbf9fa30f142b53a40badc9f8ff8f4d0c8e70f521f8e0569b1f91525be5f73",
+      "visuallyVerified": true,
+      "alt": "Unit 1, Your First Arabic Conversation, showing sequenced activities including Say Hello, Meet Yusuf and Order a Drink with completion checkmarks",
+      "caption": "Unit 1: a sequence of lessons and conversation activities with completion checkmarks.",
+      "sourceUnchangedVerified": true
+    },
+    {
+      "sourceFilename": "ahlanjoe.jpeg",
+      "source": "/Users/mehdi/Desktop/ahlanjoe.jpeg",
+      "destinationFilename": "home-progress.jpeg",
+      "file": "public/product/features/home-progress.jpeg",
+      "section": "Home, progress and continue learning",
+      "demonstrates": "Gulf Arabic label; Intermediate, 2730 XP, Continue Learning at 29%, optional alphabet and premium offline audio card",
+      "buildProvenance": "Current QA build, supplied and identified by the product owner on 2026-10-08. Public Play Store build equivalence not verified.",
+      "transformation": "None: byte-for-byte copy; source unchanged",
+      "sha256": "5898f120e7d06bf962af92c538dcd91e7204a0de9510df36f8406d1737fd4481",
+      "visuallyVerified": true,
+      "alt": "HeyYusuf home screen showing Gulf Arabic, Intermediate level, 2730 XP and Continue Learning at 29%",
+      "caption": "Home: your selected path, XP and a shortcut to continue learning.",
+      "sourceUnchangedVerified": true
+    },
+    {
+      "sourceFilename": "baab.jpeg",
+      "source": "/Users/mehdi/Desktop/baab.jpeg",
+      "destinationFilename": "alphabet-overview.jpeg",
+      "file": "public/product/features/alphabet-overview.jpeg",
+      "section": "Arabic alphabet and reading path",
+      "demonstrates": "Make sense of the script; 13-step first-word Build & Read introduction to baab/door",
+      "buildProvenance": "Current QA build, supplied and identified by the product owner on 2026-10-08. Public Play Store build equivalence not verified.",
+      "transformation": "None: byte-for-byte copy; source unchanged",
+      "sha256": "b092b438730a226161fe0e2c0cf7817ffe378526a379f8160c6ba930f362e4d8",
+      "visuallyVerified": true,
+      "alt": "Alphabet screen titled Make sense of the script, with a 13-step Build and Read introduction to baab, meaning door",
+      "caption": "Alphabet practice: a 13-step introduction from letters to the word baab, meaning door.",
+      "sourceUnchangedVerified": true
+    }
+  ]
+}

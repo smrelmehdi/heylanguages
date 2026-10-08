@@ -1,0 +1,1085 @@
+{
+  "date": "2026-10-08",
+  "origin": "http://127.0.0.1:3108",
+  "build": "Local production website build; owner-supplied QA app screenshots",
+  "browsers": [
+    {
+      "width": 360,
+      "inspection": {
+        "title": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+        "h1": "Inside HeyYusuf",
+        "width": 360,
+        "height": 900,
+        "scrollWidth": 360,
+        "scrollHeight": 11786,
+        "horizontalOverflow": false,
+        "brokenImages": [],
+        "emptyLinks": [],
+        "canonical": "https://heylanguages.com/heyyusuf/features",
+        "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features."
+      },
+      "details": {
+        "h2": [
+          "Choose your Arabic path.",
+          "Home, progress and continue learning.",
+          "Structured units and lessons.",
+          "Pronunciation and speaking practice.",
+          "Hear the three Arabic paths.",
+          "Quizzes, challenges and active recall.",
+          "Arabic alphabet and reading path.",
+          "Letters, vowel marks and sound.",
+          "Find your first conversation."
+        ],
+        "images": [
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fhome-progress.jpeg&w=3840&q=75",
+            "alt": "HeyYusuf home screen showing Gulf Arabic, Intermediate level, 2730 XP and Continue Learning at 29%",
+            "width": 332,
+            "height": 642,
+            "naturalWidth": 320,
+            "naturalHeight": 619,
+            "complete": true,
+            "caption": "Home: your selected path, XP and a shortcut to continue learning.",
+            "paragraphs": [
+              "The home screen brings your selected path, learner level and XP together. This example shows Gulf Arabic, an Intermediate level label and 2730 XP. Continue Learning returns you to “Understand the Price”, with 29% progress shown for this learner.",
+              "You can also open Start Alphabet for optional practice with Arabic letters. The screen labels offline audio as premium. XP and the level label reflect in-app progress; they are not a language qualification."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Flearning-path.jpeg&w=3840&q=75",
+            "alt": "Unit 1, Your First Arabic Conversation, showing sequenced activities including Say Hello, Meet Yusuf and Order a Drink with completion checkmarks",
+            "width": 332,
+            "height": 642,
+            "naturalWidth": 320,
+            "naturalHeight": 618,
+            "complete": true,
+            "caption": "Unit 1: a sequence of lessons and conversation activities with completion checkmarks.",
+            "paragraphs": [
+              "Follow a sequence of activities toward a practical conversation. Unit 1, “Your First Arabic Conversation”, introduces greetings and names before activities such as Meet Yusuf and Order a Drink. Lesson, conversation and practice icons distinguish the activity types.",
+              "Each activity has a numbered place in the unit, and checkmarks show completed activities. This screen shows how individual lessons fit into a path toward an introduction and a café conversation."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fpronunciation-feedback.jpeg&w=3840&q=75",
+            "alt": "Meet Yusuf Gulf Arabic lesson with an Arabic greeting, transliteration, English meaning, listening and hold-to-speak controls, and a 95% pronunciation result",
+            "width": 332,
+            "height": 643,
+            "naturalWidth": 320,
+            "naturalHeight": 620,
+            "complete": true,
+            "caption": "Speaking practice: listen, hold to speak and review pronunciation feedback.",
+            "paragraphs": [
+              "In the Gulf Arabic Meet Yusuf lesson, read the Arabic greeting alongside its transliteration and English meaning, “And peace be upon you”. The illustrated scene gives the exchange a setting. Use the listening control for audio support, then hold the microphone button to say the phrase.",
+              "Online pronunciation checks provide automated feedback on your recording. This example shows “Good pronunciation” and a 95% result for one attempt, not a measure of overall fluency. Checks require an internet connection and are subject to in-app access and usage limits."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fconversation-challenge.jpeg&w=3840&q=75",
+            "alt": "Your First Arabic Conversation Challenge at question 2 of 20, asking for a greeting reply with three Arabic and transliterated answer choices",
+            "width": 332,
+            "height": 644,
+            "naturalWidth": 320,
+            "naturalHeight": 620,
+            "complete": true,
+            "caption": "Conversation challenge: choose the missing reply using Arabic and transliteration.",
+            "paragraphs": [
+              "“Your First Arabic Conversation Challenge” asks you to choose the missing reply to a greeting. Read the prompt, compare the Arabic answer choices and their transliterations, then select a response. A Show English control offers meaning support.",
+              "The progress indicator shows question 2 of 20 in this captured challenge. Practice also includes number and price activities, such as the “Understand the Price” activity shown on the home screen above."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-overview.jpeg&w=3840&q=75",
+            "alt": "Alphabet screen titled Make sense of the script, with a 13-step Build and Read introduction to baab, meaning door",
+            "width": 332,
+            "height": 648,
+            "naturalWidth": 320,
+            "naturalHeight": 625,
+            "complete": true,
+            "caption": "Alphabet practice: a 13-step introduction from letters to the word baab, meaning door.",
+            "paragraphs": [
+              "The dedicated alphabet screen invites you to “Make sense of the script”. Choose Read your first word to begin the Build & Read introduction: meet baa and alif, hear the vowels and see how letters connect to form بَاب — baab, meaning “door”.",
+              "The introduction shown here has 13 steps. That count describes this first-word sequence, not the entire alphabet curriculum. Alphabet practice is available as an optional entry point from the home screen."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-vowels.jpeg&w=3840&q=75",
+            "alt": "Build and Read step 3 of 13 showing the letter baa with ba, bi and bu vowel marks, a Listen button and an exploration counter",
+            "width": 332,
+            "height": 644,
+            "naturalWidth": 320,
+            "naturalHeight": 620,
+            "complete": true,
+            "caption": "One letter, three sounds: explore ba, bi and bu with audio support.",
+            "paragraphs": [
+              "At step 3 of this Build & Read introduction, explore one letter with three short vowel marks: ba, bi and bu. Tap a form to compare how the mark changes the sound while the letter stays the same, and use Listen to hear the selected form.",
+              "The screen highlights the selected form, shows its short vowel sound and tracks how many of the three marks you have explored. Previous and Continue controls place this exploration within the step-by-step reading sequence."
+            ]
+          }
+        ],
+        "faqLinks": 0,
+        "schemas": [
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://heylanguages.com/#organization",
+            "name": "HeyLanguages",
+            "url": "https://heylanguages.com"
+          },
+          {
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebPage",
+                "@id": "https://heylanguages.com/heyyusuf/features#webpage",
+                "url": "https://heylanguages.com/heyyusuf/features",
+                "name": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+                "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+                "inLanguage": "en",
+                "dateModified": "2026-10-08",
+                "about": {
+                  "@id": "https://heylanguages.com/heyyusuf#software-application"
+                },
+                "publisher": {
+                  "@id": "https://heylanguages.com/#organization"
+                },
+                "breadcrumb": {
+                  "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb"
+                }
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://heylanguages.com"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "HeyYusuf",
+                    "item": "https://heylanguages.com/heyyusuf"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": "Features",
+                    "item": "https://heylanguages.com/heyyusuf/features"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "hrefs": [
+          "#main-content",
+          "/",
+          "/heyyusuf",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "#arabic-paths",
+          "/heyyusuf/msa",
+          "/heyyusuf/gulf-arabic",
+          "/heyyusuf/egyptian-arabic",
+          "/product/features/home-progress.jpeg",
+          "/product/features/learning-path.jpeg",
+          "/product/features/pronunciation-feedback.jpeg",
+          "/product/features/conversation-challenge.jpeg",
+          "/product/features/alphabet-overview.jpeg",
+          "/product/features/alphabet-vowels.jpeg",
+          "/blog/best-arabic-learning-apps",
+          "/blog",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "/heyyusuf#try-arabic",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf/privacy",
+          "/heyyusuf/terms",
+          "/heyyusuf/delete-account",
+          "mailto:dev@heylanguages.com?subject=HeyYusuf%20Support"
+        ]
+      },
+      "accessibility": [],
+      "audio": [
+        {
+          "path": "Modern Standard Arabic (MSA)",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "path": "Gulf Arabic",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "path": "Egyptian Arabic",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        }
+      ],
+      "keyboardAudio": true,
+      "issues": []
+    },
+    {
+      "width": 390,
+      "inspection": {
+        "title": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+        "h1": "Inside HeyYusuf",
+        "width": 390,
+        "height": 900,
+        "scrollWidth": 390,
+        "scrollHeight": 11868,
+        "horizontalOverflow": false,
+        "brokenImages": [],
+        "emptyLinks": [],
+        "canonical": "https://heylanguages.com/heyyusuf/features",
+        "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features."
+      },
+      "details": {
+        "h2": [
+          "Choose your Arabic path.",
+          "Home, progress and continue learning.",
+          "Structured units and lessons.",
+          "Pronunciation and speaking practice.",
+          "Hear the three Arabic paths.",
+          "Quizzes, challenges and active recall.",
+          "Arabic alphabet and reading path.",
+          "Letters, vowel marks and sound.",
+          "Find your first conversation."
+        ],
+        "images": [
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fhome-progress.jpeg&w=3840&q=75",
+            "alt": "HeyYusuf home screen showing Gulf Arabic, Intermediate level, 2730 XP and Continue Learning at 29%",
+            "width": 362,
+            "height": 700,
+            "naturalWidth": 350,
+            "naturalHeight": 677,
+            "complete": true,
+            "caption": "Home: your selected path, XP and a shortcut to continue learning.",
+            "paragraphs": [
+              "The home screen brings your selected path, learner level and XP together. This example shows Gulf Arabic, an Intermediate level label and 2730 XP. Continue Learning returns you to “Understand the Price”, with 29% progress shown for this learner.",
+              "You can also open Start Alphabet for optional practice with Arabic letters. The screen labels offline audio as premium. XP and the level label reflect in-app progress; they are not a language qualification."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Flearning-path.jpeg&w=3840&q=75",
+            "alt": "Unit 1, Your First Arabic Conversation, showing sequenced activities including Say Hello, Meet Yusuf and Order a Drink with completion checkmarks",
+            "width": 362,
+            "height": 699,
+            "naturalWidth": 350,
+            "naturalHeight": 676,
+            "complete": true,
+            "caption": "Unit 1: a sequence of lessons and conversation activities with completion checkmarks.",
+            "paragraphs": [
+              "Follow a sequence of activities toward a practical conversation. Unit 1, “Your First Arabic Conversation”, introduces greetings and names before activities such as Meet Yusuf and Order a Drink. Lesson, conversation and practice icons distinguish the activity types.",
+              "Each activity has a numbered place in the unit, and checkmarks show completed activities. This screen shows how individual lessons fit into a path toward an introduction and a café conversation."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fpronunciation-feedback.jpeg&w=3840&q=75",
+            "alt": "Meet Yusuf Gulf Arabic lesson with an Arabic greeting, transliteration, English meaning, listening and hold-to-speak controls, and a 95% pronunciation result",
+            "width": 362,
+            "height": 701,
+            "naturalWidth": 350,
+            "naturalHeight": 678,
+            "complete": true,
+            "caption": "Speaking practice: listen, hold to speak and review pronunciation feedback.",
+            "paragraphs": [
+              "In the Gulf Arabic Meet Yusuf lesson, read the Arabic greeting alongside its transliteration and English meaning, “And peace be upon you”. The illustrated scene gives the exchange a setting. Use the listening control for audio support, then hold the microphone button to say the phrase.",
+              "Online pronunciation checks provide automated feedback on your recording. This example shows “Good pronunciation” and a 95% result for one attempt, not a measure of overall fluency. Checks require an internet connection and are subject to in-app access and usage limits."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fconversation-challenge.jpeg&w=3840&q=75",
+            "alt": "Your First Arabic Conversation Challenge at question 2 of 20, asking for a greeting reply with three Arabic and transliterated answer choices",
+            "width": 362,
+            "height": 702,
+            "naturalWidth": 350,
+            "naturalHeight": 679,
+            "complete": true,
+            "caption": "Conversation challenge: choose the missing reply using Arabic and transliteration.",
+            "paragraphs": [
+              "“Your First Arabic Conversation Challenge” asks you to choose the missing reply to a greeting. Read the prompt, compare the Arabic answer choices and their transliterations, then select a response. A Show English control offers meaning support.",
+              "The progress indicator shows question 2 of 20 in this captured challenge. Practice also includes number and price activities, such as the “Understand the Price” activity shown on the home screen above."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-overview.jpeg&w=3840&q=75",
+            "alt": "Alphabet screen titled Make sense of the script, with a 13-step Build and Read introduction to baab, meaning door",
+            "width": 362,
+            "height": 707,
+            "naturalWidth": 350,
+            "naturalHeight": 683,
+            "complete": true,
+            "caption": "Alphabet practice: a 13-step introduction from letters to the word baab, meaning door.",
+            "paragraphs": [
+              "The dedicated alphabet screen invites you to “Make sense of the script”. Choose Read your first word to begin the Build & Read introduction: meet baa and alif, hear the vowels and see how letters connect to form بَاب — baab, meaning “door”.",
+              "The introduction shown here has 13 steps. That count describes this first-word sequence, not the entire alphabet curriculum. Alphabet practice is available as an optional entry point from the home screen."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-vowels.jpeg&w=3840&q=75",
+            "alt": "Build and Read step 3 of 13 showing the letter baa with ba, bi and bu vowel marks, a Listen button and an exploration counter",
+            "width": 362,
+            "height": 702,
+            "naturalWidth": 350,
+            "naturalHeight": 679,
+            "complete": true,
+            "caption": "One letter, three sounds: explore ba, bi and bu with audio support.",
+            "paragraphs": [
+              "At step 3 of this Build & Read introduction, explore one letter with three short vowel marks: ba, bi and bu. Tap a form to compare how the mark changes the sound while the letter stays the same, and use Listen to hear the selected form.",
+              "The screen highlights the selected form, shows its short vowel sound and tracks how many of the three marks you have explored. Previous and Continue controls place this exploration within the step-by-step reading sequence."
+            ]
+          }
+        ],
+        "faqLinks": 0,
+        "schemas": [
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://heylanguages.com/#organization",
+            "name": "HeyLanguages",
+            "url": "https://heylanguages.com"
+          },
+          {
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebPage",
+                "@id": "https://heylanguages.com/heyyusuf/features#webpage",
+                "url": "https://heylanguages.com/heyyusuf/features",
+                "name": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+                "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+                "inLanguage": "en",
+                "dateModified": "2026-10-08",
+                "about": {
+                  "@id": "https://heylanguages.com/heyyusuf#software-application"
+                },
+                "publisher": {
+                  "@id": "https://heylanguages.com/#organization"
+                },
+                "breadcrumb": {
+                  "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb"
+                }
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://heylanguages.com"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "HeyYusuf",
+                    "item": "https://heylanguages.com/heyyusuf"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": "Features",
+                    "item": "https://heylanguages.com/heyyusuf/features"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "hrefs": [
+          "#main-content",
+          "/",
+          "/heyyusuf",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "#arabic-paths",
+          "/heyyusuf/msa",
+          "/heyyusuf/gulf-arabic",
+          "/heyyusuf/egyptian-arabic",
+          "/product/features/home-progress.jpeg",
+          "/product/features/learning-path.jpeg",
+          "/product/features/pronunciation-feedback.jpeg",
+          "/product/features/conversation-challenge.jpeg",
+          "/product/features/alphabet-overview.jpeg",
+          "/product/features/alphabet-vowels.jpeg",
+          "/blog/best-arabic-learning-apps",
+          "/blog",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "/heyyusuf#try-arabic",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf/privacy",
+          "/heyyusuf/terms",
+          "/heyyusuf/delete-account",
+          "mailto:dev@heylanguages.com?subject=HeyYusuf%20Support"
+        ]
+      },
+      "accessibility": [],
+      "audio": [
+        {
+          "path": "Modern Standard Arabic (MSA)",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "path": "Gulf Arabic",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "path": "Egyptian Arabic",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        }
+      ],
+      "keyboardAudio": true,
+      "issues": []
+    },
+    {
+      "width": 768,
+      "inspection": {
+        "title": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+        "h1": "Inside HeyYusuf",
+        "width": 768,
+        "height": 900,
+        "scrollWidth": 768,
+        "scrollHeight": 7212,
+        "horizontalOverflow": false,
+        "brokenImages": [],
+        "emptyLinks": [],
+        "canonical": "https://heylanguages.com/heyyusuf/features",
+        "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features."
+      },
+      "details": {
+        "h2": [
+          "Choose your Arabic path.",
+          "Home, progress and continue learning.",
+          "Structured units and lessons.",
+          "Pronunciation and speaking practice.",
+          "Hear the three Arabic paths.",
+          "Quizzes, challenges and active recall.",
+          "Arabic alphabet and reading path.",
+          "Letters, vowel marks and sound.",
+          "Find your first conversation."
+        ],
+        "images": [
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fhome-progress.jpeg&w=3840&q=75",
+            "alt": "HeyYusuf home screen showing Gulf Arabic, Intermediate level, 2730 XP and Continue Learning at 29%",
+            "width": 307,
+            "height": 593,
+            "naturalWidth": 291,
+            "naturalHeight": 564,
+            "complete": true,
+            "caption": "Home: your selected path, XP and a shortcut to continue learning.",
+            "paragraphs": [
+              "The home screen brings your selected path, learner level and XP together. This example shows Gulf Arabic, an Intermediate level label and 2730 XP. Continue Learning returns you to “Understand the Price”, with 29% progress shown for this learner.",
+              "You can also open Start Alphabet for optional practice with Arabic letters. The screen labels offline audio as premium. XP and the level label reflect in-app progress; they are not a language qualification."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Flearning-path.jpeg&w=3840&q=75",
+            "alt": "Unit 1, Your First Arabic Conversation, showing sequenced activities including Say Hello, Meet Yusuf and Order a Drink with completion checkmarks",
+            "width": 307,
+            "height": 592,
+            "naturalWidth": 291,
+            "naturalHeight": 563,
+            "complete": true,
+            "caption": "Unit 1: a sequence of lessons and conversation activities with completion checkmarks.",
+            "paragraphs": [
+              "Follow a sequence of activities toward a practical conversation. Unit 1, “Your First Arabic Conversation”, introduces greetings and names before activities such as Meet Yusuf and Order a Drink. Lesson, conversation and practice icons distinguish the activity types.",
+              "Each activity has a numbered place in the unit, and checkmarks show completed activities. This screen shows how individual lessons fit into a path toward an introduction and a café conversation."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fpronunciation-feedback.jpeg&w=3840&q=75",
+            "alt": "Meet Yusuf Gulf Arabic lesson with an Arabic greeting, transliteration, English meaning, listening and hold-to-speak controls, and a 95% pronunciation result",
+            "width": 307,
+            "height": 594,
+            "naturalWidth": 291,
+            "naturalHeight": 565,
+            "complete": true,
+            "caption": "Speaking practice: listen, hold to speak and review pronunciation feedback.",
+            "paragraphs": [
+              "In the Gulf Arabic Meet Yusuf lesson, read the Arabic greeting alongside its transliteration and English meaning, “And peace be upon you”. The illustrated scene gives the exchange a setting. Use the listening control for audio support, then hold the microphone button to say the phrase.",
+              "Online pronunciation checks provide automated feedback on your recording. This example shows “Good pronunciation” and a 95% result for one attempt, not a measure of overall fluency. Checks require an internet connection and are subject to in-app access and usage limits."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fconversation-challenge.jpeg&w=3840&q=75",
+            "alt": "Your First Arabic Conversation Challenge at question 2 of 20, asking for a greeting reply with three Arabic and transliterated answer choices",
+            "width": 307,
+            "height": 595,
+            "naturalWidth": 291,
+            "naturalHeight": 566,
+            "complete": true,
+            "caption": "Conversation challenge: choose the missing reply using Arabic and transliteration.",
+            "paragraphs": [
+              "“Your First Arabic Conversation Challenge” asks you to choose the missing reply to a greeting. Read the prompt, compare the Arabic answer choices and their transliterations, then select a response. A Show English control offers meaning support.",
+              "The progress indicator shows question 2 of 20 in this captured challenge. Practice also includes number and price activities, such as the “Understand the Price” activity shown on the home screen above."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-overview.jpeg&w=3840&q=75",
+            "alt": "Alphabet screen titled Make sense of the script, with a 13-step Build and Read introduction to baab, meaning door",
+            "width": 307,
+            "height": 599,
+            "naturalWidth": 291,
+            "naturalHeight": 570,
+            "complete": true,
+            "caption": "Alphabet practice: a 13-step introduction from letters to the word baab, meaning door.",
+            "paragraphs": [
+              "The dedicated alphabet screen invites you to “Make sense of the script”. Choose Read your first word to begin the Build & Read introduction: meet baa and alif, hear the vowels and see how letters connect to form بَاب — baab, meaning “door”.",
+              "The introduction shown here has 13 steps. That count describes this first-word sequence, not the entire alphabet curriculum. Alphabet practice is available as an optional entry point from the home screen."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-vowels.jpeg&w=3840&q=75",
+            "alt": "Build and Read step 3 of 13 showing the letter baa with ba, bi and bu vowel marks, a Listen button and an exploration counter",
+            "width": 307,
+            "height": 595,
+            "naturalWidth": 291,
+            "naturalHeight": 566,
+            "complete": true,
+            "caption": "One letter, three sounds: explore ba, bi and bu with audio support.",
+            "paragraphs": [
+              "At step 3 of this Build & Read introduction, explore one letter with three short vowel marks: ba, bi and bu. Tap a form to compare how the mark changes the sound while the letter stays the same, and use Listen to hear the selected form.",
+              "The screen highlights the selected form, shows its short vowel sound and tracks how many of the three marks you have explored. Previous and Continue controls place this exploration within the step-by-step reading sequence."
+            ]
+          }
+        ],
+        "faqLinks": 0,
+        "schemas": [
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://heylanguages.com/#organization",
+            "name": "HeyLanguages",
+            "url": "https://heylanguages.com"
+          },
+          {
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebPage",
+                "@id": "https://heylanguages.com/heyyusuf/features#webpage",
+                "url": "https://heylanguages.com/heyyusuf/features",
+                "name": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+                "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+                "inLanguage": "en",
+                "dateModified": "2026-10-08",
+                "about": {
+                  "@id": "https://heylanguages.com/heyyusuf#software-application"
+                },
+                "publisher": {
+                  "@id": "https://heylanguages.com/#organization"
+                },
+                "breadcrumb": {
+                  "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb"
+                }
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://heylanguages.com"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "HeyYusuf",
+                    "item": "https://heylanguages.com/heyyusuf"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": "Features",
+                    "item": "https://heylanguages.com/heyyusuf/features"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "hrefs": [
+          "#main-content",
+          "/",
+          "/heyyusuf",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "#arabic-paths",
+          "/heyyusuf/msa",
+          "/heyyusuf/gulf-arabic",
+          "/heyyusuf/egyptian-arabic",
+          "/product/features/home-progress.jpeg",
+          "/product/features/learning-path.jpeg",
+          "/product/features/pronunciation-feedback.jpeg",
+          "/product/features/conversation-challenge.jpeg",
+          "/product/features/alphabet-overview.jpeg",
+          "/product/features/alphabet-vowels.jpeg",
+          "/blog/best-arabic-learning-apps",
+          "/blog",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "/heyyusuf#try-arabic",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf/privacy",
+          "/heyyusuf/terms",
+          "/heyyusuf/delete-account",
+          "mailto:dev@heylanguages.com?subject=HeyYusuf%20Support"
+        ]
+      },
+      "accessibility": [],
+      "audio": [
+        {
+          "path": "Modern Standard Arabic (MSA)",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "path": "Gulf Arabic",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "path": "Egyptian Arabic",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        }
+      ],
+      "keyboardAudio": true,
+      "issues": []
+    },
+    {
+      "width": 1440,
+      "inspection": {
+        "title": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+        "h1": "Inside HeyYusuf",
+        "width": 1440,
+        "height": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 9261,
+        "horizontalOverflow": false,
+        "brokenImages": [],
+        "emptyLinks": [],
+        "canonical": "https://heylanguages.com/heyyusuf/features",
+        "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features."
+      },
+      "details": {
+        "h2": [
+          "Choose your Arabic path.",
+          "Home, progress and continue learning.",
+          "Structured units and lessons.",
+          "Pronunciation and speaking practice.",
+          "Hear the three Arabic paths.",
+          "Quizzes, challenges and active recall.",
+          "Arabic alphabet and reading path.",
+          "Letters, vowel marks and sound.",
+          "Find your first conversation."
+        ],
+        "images": [
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fhome-progress.jpeg&w=3840&q=75",
+            "alt": "HeyYusuf home screen showing Gulf Arabic, Intermediate level, 2730 XP and Continue Learning at 29%",
+            "width": 420,
+            "height": 813,
+            "naturalWidth": 420,
+            "naturalHeight": 813,
+            "complete": true,
+            "caption": "Home: your selected path, XP and a shortcut to continue learning.",
+            "paragraphs": [
+              "The home screen brings your selected path, learner level and XP together. This example shows Gulf Arabic, an Intermediate level label and 2730 XP. Continue Learning returns you to “Understand the Price”, with 29% progress shown for this learner.",
+              "You can also open Start Alphabet for optional practice with Arabic letters. The screen labels offline audio as premium. XP and the level label reflect in-app progress; they are not a language qualification."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Flearning-path.jpeg&w=3840&q=75",
+            "alt": "Unit 1, Your First Arabic Conversation, showing sequenced activities including Say Hello, Meet Yusuf and Order a Drink with completion checkmarks",
+            "width": 420,
+            "height": 812,
+            "naturalWidth": 420,
+            "naturalHeight": 811,
+            "complete": true,
+            "caption": "Unit 1: a sequence of lessons and conversation activities with completion checkmarks.",
+            "paragraphs": [
+              "Follow a sequence of activities toward a practical conversation. Unit 1, “Your First Arabic Conversation”, introduces greetings and names before activities such as Meet Yusuf and Order a Drink. Lesson, conversation and practice icons distinguish the activity types.",
+              "Each activity has a numbered place in the unit, and checkmarks show completed activities. This screen shows how individual lessons fit into a path toward an introduction and a café conversation."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fpronunciation-feedback.jpeg&w=3840&q=75",
+            "alt": "Meet Yusuf Gulf Arabic lesson with an Arabic greeting, transliteration, English meaning, listening and hold-to-speak controls, and a 95% pronunciation result",
+            "width": 420,
+            "height": 814,
+            "naturalWidth": 420,
+            "naturalHeight": 813,
+            "complete": true,
+            "caption": "Speaking practice: listen, hold to speak and review pronunciation feedback.",
+            "paragraphs": [
+              "In the Gulf Arabic Meet Yusuf lesson, read the Arabic greeting alongside its transliteration and English meaning, “And peace be upon you”. The illustrated scene gives the exchange a setting. Use the listening control for audio support, then hold the microphone button to say the phrase.",
+              "Online pronunciation checks provide automated feedback on your recording. This example shows “Good pronunciation” and a 95% result for one attempt, not a measure of overall fluency. Checks require an internet connection and are subject to in-app access and usage limits."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Fconversation-challenge.jpeg&w=3840&q=75",
+            "alt": "Your First Arabic Conversation Challenge at question 2 of 20, asking for a greeting reply with three Arabic and transliterated answer choices",
+            "width": 420,
+            "height": 815,
+            "naturalWidth": 420,
+            "naturalHeight": 815,
+            "complete": true,
+            "caption": "Conversation challenge: choose the missing reply using Arabic and transliteration.",
+            "paragraphs": [
+              "“Your First Arabic Conversation Challenge” asks you to choose the missing reply to a greeting. Read the prompt, compare the Arabic answer choices and their transliterations, then select a response. A Show English control offers meaning support.",
+              "The progress indicator shows question 2 of 20 in this captured challenge. Practice also includes number and price activities, such as the “Understand the Price” activity shown on the home screen above."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-overview.jpeg&w=3840&q=75",
+            "alt": "Alphabet screen titled Make sense of the script, with a 13-step Build and Read introduction to baab, meaning door",
+            "width": 420,
+            "height": 820,
+            "naturalWidth": 420,
+            "naturalHeight": 820,
+            "complete": true,
+            "caption": "Alphabet practice: a 13-step introduction from letters to the word baab, meaning door.",
+            "paragraphs": [
+              "The dedicated alphabet screen invites you to “Make sense of the script”. Choose Read your first word to begin the Build & Read introduction: meet baa and alif, hear the vowels and see how letters connect to form بَاب — baab, meaning “door”.",
+              "The introduction shown here has 13 steps. That count describes this first-word sequence, not the entire alphabet curriculum. Alphabet practice is available as an optional entry point from the home screen."
+            ]
+          },
+          {
+            "src": "/_next/image?url=%2Fproduct%2Ffeatures%2Falphabet-vowels.jpeg&w=3840&q=75",
+            "alt": "Build and Read step 3 of 13 showing the letter baa with ba, bi and bu vowel marks, a Listen button and an exploration counter",
+            "width": 420,
+            "height": 815,
+            "naturalWidth": 420,
+            "naturalHeight": 815,
+            "complete": true,
+            "caption": "One letter, three sounds: explore ba, bi and bu with audio support.",
+            "paragraphs": [
+              "At step 3 of this Build & Read introduction, explore one letter with three short vowel marks: ba, bi and bu. Tap a form to compare how the mark changes the sound while the letter stays the same, and use Listen to hear the selected form.",
+              "The screen highlights the selected form, shows its short vowel sound and tracks how many of the three marks you have explored. Previous and Continue controls place this exploration within the step-by-step reading sequence."
+            ]
+          }
+        ],
+        "faqLinks": 0,
+        "schemas": [
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": "https://heylanguages.com/#organization",
+            "name": "HeyLanguages",
+            "url": "https://heylanguages.com"
+          },
+          {
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebPage",
+                "@id": "https://heylanguages.com/heyyusuf/features#webpage",
+                "url": "https://heylanguages.com/heyyusuf/features",
+                "name": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+                "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+                "inLanguage": "en",
+                "dateModified": "2026-10-08",
+                "about": {
+                  "@id": "https://heylanguages.com/heyyusuf#software-application"
+                },
+                "publisher": {
+                  "@id": "https://heylanguages.com/#organization"
+                },
+                "breadcrumb": {
+                  "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb"
+                }
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://heylanguages.com"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "HeyYusuf",
+                    "item": "https://heylanguages.com/heyyusuf"
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": "Features",
+                    "item": "https://heylanguages.com/heyyusuf/features"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "hrefs": [
+          "#main-content",
+          "/",
+          "/heyyusuf",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "#arabic-paths",
+          "/heyyusuf/msa",
+          "/heyyusuf/gulf-arabic",
+          "/heyyusuf/egyptian-arabic",
+          "/product/features/home-progress.jpeg",
+          "/product/features/learning-path.jpeg",
+          "/product/features/pronunciation-feedback.jpeg",
+          "/product/features/conversation-challenge.jpeg",
+          "/product/features/alphabet-overview.jpeg",
+          "/product/features/alphabet-vowels.jpeg",
+          "/blog/best-arabic-learning-apps",
+          "/blog",
+          "/heyyusuf",
+          "/",
+          "/heyyusuf",
+          "/heyyusuf#try-arabic",
+          "/#approach",
+          "/blog",
+          "/heyyusuf/support",
+          "/heyyusuf/privacy",
+          "/heyyusuf/terms",
+          "/heyyusuf/delete-account",
+          "mailto:dev@heylanguages.com?subject=HeyYusuf%20Support"
+        ]
+      },
+      "accessibility": [],
+      "audio": [
+        {
+          "path": "Modern Standard Arabic (MSA)",
+          "status": "Playing Modern Standard Arabic (MSA).",
+          "stopped": true
+        },
+        {
+          "path": "Gulf Arabic",
+          "status": "Playing Gulf Arabic.",
+          "stopped": true
+        },
+        {
+          "path": "Egyptian Arabic",
+          "status": "Playing Egyptian Arabic.",
+          "stopped": true
+        }
+      ],
+      "keyboardAudio": true,
+      "issues": []
+    }
+  ],
+  "links": [
+    {
+      "href": "#main-content",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "/",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/#approach",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "/blog",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf/support",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "#arabic-paths",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "/heyyusuf/msa",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf/gulf-arabic",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf/egyptian-arabic",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/product/features/home-progress.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/product/features/learning-path.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/product/features/pronunciation-feedback.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/product/features/conversation-challenge.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/product/features/alphabet-overview.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/product/features/alphabet-vowels.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/blog/best-arabic-learning-apps",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf#try-arabic",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "/heyyusuf/privacy",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf/terms",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/heyyusuf/delete-account",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "/audio/msa-which-shirt.mp3",
+      "status": 200
+    },
+    {
+      "href": "/audio/gulf-which-shirt.mp3",
+      "status": 200
+    },
+    {
+      "href": "/audio/egyptian-which-shirt.mp3",
+      "status": 200
+    }
+  ],
+  "schema": {
+    "product": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://heylanguages.com/#organization",
+        "name": "HeyLanguages",
+        "url": "https://heylanguages.com"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://heylanguages.com/heyyusuf#software-application",
+        "name": "HeyYusuf",
+        "url": "https://heylanguages.com/heyyusuf",
+        "description": "HeyYusuf is an Arabic-learning app with three separate learning paths: Modern Standard Arabic (MSA), Gulf Arabic and Egyptian Arabic.",
+        "featureList": [
+          "Modern Standard Arabic (MSA) learning path",
+          "Gulf Arabic learning path",
+          "Egyptian Arabic learning path",
+          "Guided lessons and learning units",
+          "Vocabulary with Arabic text, English meanings and pronunciation guides",
+          "Guided conversations",
+          "Arabic audio and pronunciation practice",
+          "Voice recording and online pronunciation feedback",
+          "Quizzes and challenges",
+          "Arabic alphabet learning",
+          "Illustrated learning scenarios",
+          "Learning progress and a Continue activity",
+          "Number and price practice"
+        ],
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Android",
+        "downloadUrl": "https://play.google.com/store/apps/details?id=com.heylanguages.heyyusuf",
+        "image": "https://heylanguages.com/product/heyyusuf-logo.png",
+        "publisher": {
+          "@id": "https://heylanguages.com/#organization"
+        }
+      }
+    ]
+  },
+  "serverHTML": {
+    "hasHeading": true,
+    "hasAlphabet": true,
+    "figures": 6,
+    "hasQABuildDisclosure": true,
+    "hasSpeakingText": true
+  },
+  "productLinks": {
+    "features": 1,
+    "faq": 0
+  },
+  "productIssues": [],
+  "sitemapIncludesFeatures": true,
+  "failures": []
+}

@@ -8,6 +8,7 @@ import { createPageMetadata } from "@/lib/metadata";
 import { learningPaths, learningPathList, productDefinition, productDescription, everydayScenes, productAssets } from "@/lib/product";
 import { absoluteUrl, siteConfig } from "@/lib/site";
 import { entityIds } from "@/lib/entities";
+import { verifiedProductFeatures } from "@/lib/features";
 
 export const metadata = createPageMetadata({
   title: "HeyYusuf: Learn Arabic | Gulf, Egyptian & MSA",
@@ -24,7 +25,7 @@ const softwareApplication = {
   name: siteConfig.productName,
   url: absoluteUrl(siteConfig.routes.heyyusuf),
   description: productDefinition,
-  featureList: learningPaths.map((path) => `${path.label} learning path`),
+  featureList: [...learningPaths.map((path) => `${path.label} learning path`), ...verifiedProductFeatures],
   applicationCategory: "EducationalApplication",
   operatingSystem: "Android",
   downloadUrl: siteConfig.availability.android.storeUrl,
@@ -223,6 +224,7 @@ export default function HeyYusufPage() {
               <figcaption><span>Real app preview</span> Pronunciation practice in context</figcaption>
             </figure>
           </div>
+          <p className="mt-8"><Link href={siteConfig.routes.features} className="underline underline-offset-4">See inside HeyYusuf: lessons, conversations and practice →</Link></p>
         </div>
       </section>
 
