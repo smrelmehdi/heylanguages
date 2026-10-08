@@ -241,7 +241,8 @@ summary:focus-visible {
   gap: 0.2rem;
 }
 
-.desktop-nav a {
+.desktop-nav a,
+.desktop-nav .heyyusuf-menu__trigger {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -253,7 +254,8 @@ summary:focus-visible {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
-.desktop-nav a:hover {
+.desktop-nav a:hover,
+.desktop-nav .heyyusuf-menu__trigger:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--color-cream);
 }
@@ -306,7 +308,9 @@ summary:focus-visible {
   z-index: 102;
   display: flex;
   width: min(88vw, 390px);
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   flex-direction: column;
   background: var(--color-paper);
   color: var(--color-text);
@@ -372,6 +376,57 @@ summary:focus-visible {
   padding: 0.85rem 1.2rem;
   font-weight: 800;
 }
+
+/* HeyYusuf navigation disclosure: native links retain normal Tab navigation. */
+.heyyusuf-menu { position: relative; }
+.heyyusuf-menu__trigger {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.heyyusuf-menu__chevron { flex-shrink: 0; }
+.heyyusuf-menu__trigger[aria-expanded="true"] .heyyusuf-menu__chevron { transform: rotate(180deg); }
+.heyyusuf-menu__links { list-style: none; margin: 0; padding: .5rem; }
+.heyyusuf-menu__links[hidden] { display: none; }
+.desktop-nav .heyyusuf-menu__links {
+  position: absolute;
+  top: calc(100% + .5rem);
+  left: 0;
+  width: 250px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 14px;
+  background: var(--color-ink);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .24);
+}
+.desktop-nav .heyyusuf-menu__links a { display: flex; border-radius: 8px; }
+.mobile-menu__panel .heyyusuf-menu__trigger {
+  width: 100%;
+  min-height: 67px;
+  padding: 0;
+  gap: 1.2rem;
+  border-bottom: 1px solid rgba(25, 34, 31, .1);
+  font-size: 1.55rem;
+  font-weight: 750;
+  letter-spacing: -.035em;
+}
+.heyyusuf-menu__number { color: var(--color-teal-dark); font-size: .7rem; letter-spacing: .08em; }
+.heyyusuf-menu--mobile .heyyusuf-menu__chevron { margin-left: auto; }
+.heyyusuf-menu--mobile .heyyusuf-menu__links { padding: .4rem 0 .6rem 2rem; }
+.mobile-menu__panel .heyyusuf-menu__links a {
+  min-height: 44px;
+  padding-block: .5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 650;
+  letter-spacing: normal;
+}
+.mobile-menu__panel > * { flex-shrink: 0; }
+.mobile-menu__panel .mobile-menu__cta { margin-top: 1.5rem; }
 
 /* Shared section language */
 .section-intro h2,
@@ -1909,8 +1964,8 @@ summary:focus-visible {
   display: grid;
   width: min(1180px, calc(100% - 40px));
   margin-inline: auto;
-  grid-template-columns: 0.75fr 1.25fr;
-  gap: clamp(3rem, 10vw, 10rem);
+  grid-template-columns: 0.6fr 1.8fr;
+  gap: clamp(2rem, 5vw, 5rem);
   padding-block: 4.5rem;
 }
 
@@ -1936,7 +1991,7 @@ summary:focus-visible {
 
 .site-footer__links {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1.25fr 1fr 1fr 1.2fr;
   gap: 2rem;
 }
 
@@ -2074,6 +2129,11 @@ summary:focus-visible {
   .dialect-options article {
     padding-inline: 1.3rem;
   }
+}
+
+@media (max-width: 1100px) {
+  .site-footer__top { grid-template-columns: 1fr; gap: 2.5rem; }
+  .site-footer__links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -2454,7 +2514,7 @@ summary:focus-visible {
   }
 
   .site-footer__links > div:last-child {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .site-footer__bottom {

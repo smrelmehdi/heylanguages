@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
+import { HeyYusufMenu } from "./HeyYusufMenu";
 import { siteConfig } from "@/lib/site";
 
 const items = [
-  { href: siteConfig.routes.heyyusuf, label: "HeyYusuf" },
   { href: siteConfig.routes.approach, label: "Our approach" },
   { href: siteConfig.routes.blog, label: "Blog" },
   { href: siteConfig.routes.support, label: "Support" },
@@ -21,32 +21,20 @@ export function MobileMenu() {
     if (!open) return;
 
     const panel = panelRef.current;
-    const focusable = panel?.querySelectorAll<HTMLElement>(
+    const getFocusable = () => Array.from(panel?.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled])',
-    );
-    focusable?.[0]?.focus();
+    ) ?? []).filter((element) => element.getClientRects().length > 0);
+    getFocusable()[0]?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const breakpoint = window.matchMedia("(min-width: 901px)");
+    const onResize = () => setOpen(false);
+    breakpoint.addEventListener("change", onResize);
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        triggerRef.current?.focus();
-        return;
-      }
-
-      if (event.key !== "Tab" || !focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
+    return () => {
+      breakpoint.removeEventListener("change", onResize);
+      document.body.style.overflow = previousOverflow;
     };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   return (
@@ -70,7 +58,10 @@ export function MobileMenu() {
           <button
             aria-label="Close navigation menu"
             className="mobile-menu__scrim"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              triggerRef.current?.focus();
+            }}
             tabIndex={-1}
             type="button"
           />
@@ -81,6 +72,27 @@ export function MobileMenu() {
             id={panelId}
             ref={panelRef}
             role="dialog"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setOpen(false);
+                triggerRef.current?.focus();
+                return;
+              }
+              if (event.key !== "Tab") return;
+              const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+                'a[href], button:not([disabled])',
+              )).filter((element) => element.getClientRects().length > 0);
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+              }
+            }}
           >
             <div className="mobile-menu__heading">
               <span>Navigate</span>
@@ -96,9 +108,10 @@ export function MobileMenu() {
               </button>
             </div>
             <nav aria-label="Mobile navigation links">
+              <HeyYusufMenu mobile onNavigate={() => setOpen(false)} />
               {items.map((item, index) => (
                 <Link href={item.href} key={item.href} onClick={() => setOpen(false)}>
-                  <span>0{index + 1}</span>
+                  <span aria-hidden="true">0{index + 2}</span>
                   {item.label}
                 </Link>
               ))}

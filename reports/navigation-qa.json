@@ -1,0 +1,687 @@
+{
+  "origin": "http://127.0.0.1:3112",
+  "viewports": [
+    {
+      "width": 360,
+      "tests": [
+        {
+          "label": "closed navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "expanded HeyYusuf navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "footer",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/features",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/gulf-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/egyptian-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/msa",
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "keyboard": true,
+      "touch": true,
+      "allHeaderDestinations": true,
+      "allFooterDestinations": true,
+      "issues": []
+    },
+    {
+      "width": 390,
+      "tests": [
+        {
+          "label": "closed navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "expanded HeyYusuf navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "footer",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/features",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/gulf-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/egyptian-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/msa",
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "keyboard": true,
+      "touch": true,
+      "allHeaderDestinations": true,
+      "allFooterDestinations": true,
+      "issues": []
+    },
+    {
+      "width": 768,
+      "tests": [
+        {
+          "label": "closed navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "expanded HeyYusuf navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "footer",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/features",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/gulf-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/egyptian-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/msa",
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "keyboard": true,
+      "touch": true,
+      "allHeaderDestinations": true,
+      "allFooterDestinations": true,
+      "issues": []
+    },
+    {
+      "width": 1440,
+      "tests": [
+        {
+          "label": "closed navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "expanded HeyYusuf navigation",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "footer",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/features",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/gulf-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/egyptian-arabic",
+          "violations": [],
+          "overflow": false
+        },
+        {
+          "label": "/heyyusuf/msa",
+          "violations": [],
+          "overflow": false
+        }
+      ],
+      "keyboard": true,
+      "touch": true,
+      "allHeaderDestinations": true,
+      "allFooterDestinations": true,
+      "issues": []
+    }
+  ],
+  "links": [
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf#main-content",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/features",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/gulf-arabic",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/egyptian-arabic",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/msa",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/#approach",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/blog",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/support",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf#try-arabic",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf#how-it-works",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf#try-arabic-msa",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf#try-arabic-gulf",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf#try-arabic-egyptian",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/privacy",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/terms",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/delete-account",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/features#main-content",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/features#arabic-paths",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/product/features/home-progress.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/product/features/learning-path.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/product/features/pronunciation-feedback.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/product/features/conversation-challenge.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/product/features/alphabet-overview.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/product/features/alphabet-vowels.jpeg",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/blog/best-arabic-learning-apps",
+      "status": 200,
+      "anchorExists": null
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/gulf-arabic#main-content",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/gulf-arabic#try-arabic-gulf",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/egyptian-arabic#main-content",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/egyptian-arabic#try-arabic-egyptian",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/msa#main-content",
+      "status": 200,
+      "anchorExists": true
+    },
+    {
+      "href": "http://127.0.0.1:3112/heyyusuf/msa#try-arabic-msa",
+      "status": 200,
+      "anchorExists": true
+    }
+  ],
+  "failures": [],
+  "faqStatus": 404,
+  "sitemap": {
+    "requiredRoutesPresent": true,
+    "faqAbsent": true,
+    "unchangedFromPreviousRelease": true
+  },
+  "schemas": {
+    "/heyyusuf": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://heylanguages.com/#organization",
+        "name": "HeyLanguages",
+        "url": "https://heylanguages.com"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://heylanguages.com/heyyusuf#software-application",
+        "name": "HeyYusuf",
+        "url": "https://heylanguages.com/heyyusuf",
+        "description": "HeyYusuf is an Arabic-learning app with three separate learning paths: Modern Standard Arabic (MSA), Gulf Arabic and Egyptian Arabic.",
+        "featureList": [
+          "Modern Standard Arabic (MSA) learning path",
+          "Gulf Arabic learning path",
+          "Egyptian Arabic learning path",
+          "Guided lessons and learning units",
+          "Vocabulary with Arabic text, English meanings and pronunciation guides",
+          "Guided conversations",
+          "Arabic audio and pronunciation practice",
+          "Voice recording and online pronunciation feedback",
+          "Quizzes and challenges",
+          "Arabic alphabet learning",
+          "Illustrated learning scenarios",
+          "Learning progress and a Continue activity",
+          "Number and price practice"
+        ],
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Android",
+        "downloadUrl": "https://play.google.com/store/apps/details?id=com.heylanguages.heyyusuf",
+        "image": "https://heylanguages.com/product/heyyusuf-logo.png",
+        "publisher": {
+          "@id": "https://heylanguages.com/#organization"
+        }
+      }
+    ],
+    "/heyyusuf/features": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://heylanguages.com/#organization",
+        "name": "HeyLanguages",
+        "url": "https://heylanguages.com"
+      },
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            "@id": "https://heylanguages.com/heyyusuf/features#webpage",
+            "url": "https://heylanguages.com/heyyusuf/features",
+            "name": "HeyYusuf Features | Arabic Lessons, Conversations & Pronunciation",
+            "description": "See inside HeyYusuf: separate MSA, Gulf and Egyptian Arabic paths, guided lessons, conversations, pronunciation practice, alphabet learning and progress features.",
+            "inLanguage": "en",
+            "dateModified": "2026-10-08",
+            "about": {
+              "@id": "https://heylanguages.com/heyyusuf#software-application"
+            },
+            "publisher": {
+              "@id": "https://heylanguages.com/#organization"
+            },
+            "breadcrumb": {
+              "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://heylanguages.com/heyyusuf/features#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://heylanguages.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "HeyYusuf",
+                "item": "https://heylanguages.com/heyyusuf"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Features",
+                "item": "https://heylanguages.com/heyyusuf/features"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "/heyyusuf/gulf-arabic": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://heylanguages.com/#organization",
+        "name": "HeyLanguages",
+        "url": "https://heylanguages.com"
+      },
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            "@id": "https://heylanguages.com/heyyusuf/gulf-arabic#webpage",
+            "url": "https://heylanguages.com/heyyusuf/gulf-arabic",
+            "name": "Learn Gulf Arabic for Beginners | HeyYusuf",
+            "description": "Learn Gulf Arabic with HeyYusuf through practical beginner lessons, pronunciation practice and real-life conversations, with a UAE-oriented learning path.",
+            "inLanguage": "en",
+            "dateModified": "2026-10-06",
+            "about": {
+              "@id": "https://heylanguages.com/heyyusuf#software-application"
+            },
+            "publisher": {
+              "@id": "https://heylanguages.com/#organization"
+            },
+            "breadcrumb": {
+              "@id": "https://heylanguages.com/heyyusuf/gulf-arabic#breadcrumb"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://heylanguages.com/heyyusuf/gulf-arabic#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://heylanguages.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "HeyYusuf",
+                "item": "https://heylanguages.com/heyyusuf"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Gulf Arabic",
+                "item": "https://heylanguages.com/heyyusuf/gulf-arabic"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "/heyyusuf/egyptian-arabic": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://heylanguages.com/#organization",
+        "name": "HeyLanguages",
+        "url": "https://heylanguages.com"
+      },
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            "@id": "https://heylanguages.com/heyyusuf/egyptian-arabic#webpage",
+            "url": "https://heylanguages.com/heyyusuf/egyptian-arabic",
+            "name": "Learn Egyptian Arabic for Beginners | HeyYusuf",
+            "description": "Learn Egyptian Arabic with HeyYusuf through practical beginner lessons, pronunciation practice and everyday conversations in a dedicated learning path.",
+            "inLanguage": "en",
+            "dateModified": "2026-10-06",
+            "about": {
+              "@id": "https://heylanguages.com/heyyusuf#software-application"
+            },
+            "publisher": {
+              "@id": "https://heylanguages.com/#organization"
+            },
+            "breadcrumb": {
+              "@id": "https://heylanguages.com/heyyusuf/egyptian-arabic#breadcrumb"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://heylanguages.com/heyyusuf/egyptian-arabic#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://heylanguages.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "HeyYusuf",
+                "item": "https://heylanguages.com/heyyusuf"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Egyptian Arabic",
+                "item": "https://heylanguages.com/heyyusuf/egyptian-arabic"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "/heyyusuf/msa": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://heylanguages.com/#organization",
+        "name": "HeyLanguages",
+        "url": "https://heylanguages.com"
+      },
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            "@id": "https://heylanguages.com/heyyusuf/msa#webpage",
+            "url": "https://heylanguages.com/heyyusuf/msa",
+            "name": "Learn Modern Standard Arabic (MSA) | HeyYusuf",
+            "description": "Learn Modern Standard Arabic with HeyYusuf through structured beginner lessons, pronunciation practice and practical conversations in a separate MSA learning path.",
+            "inLanguage": "en",
+            "dateModified": "2026-10-06",
+            "about": {
+              "@id": "https://heylanguages.com/heyyusuf#software-application"
+            },
+            "publisher": {
+              "@id": "https://heylanguages.com/#organization"
+            },
+            "breadcrumb": {
+              "@id": "https://heylanguages.com/heyyusuf/msa#breadcrumb"
+            }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://heylanguages.com/heyyusuf/msa#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://heylanguages.com"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "HeyYusuf",
+                "item": "https://heylanguages.com/heyyusuf"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Modern Standard Arabic",
+                "item": "https://heylanguages.com/heyyusuf/msa"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "serverHTML": true,
+  "date": "2026-10-08",
+  "baseCommit": "d6f229df331c4764724730c82cff4cb05590e768",
+  "validationScope": "Isolated production build of committed website plus the six navigation implementation files; existing local FAQ work excluded without modifying it.",
+  "build": "pass: npm run build",
+  "typescript": "pass: npx tsc --noEmit --incremental false",
+  "lint": "pass: npm run lint",
+  "whitespace": "pass: git diff --check and untracked text whitespace scan",
+  "schemaUnchangedFromPreviousRelease": true,
+  "preservation": "All page content, screenshot assets, entity definitions, sitemap source, FAQ files and unrelated local files retain their pre-task hashes.",
+  "interactionChecks": [
+    "Native button Enter/Space activation",
+    "Keyboard Tab through all five child links",
+    "Collapsed child links excluded from Tab order",
+    "Visible keyboard focus outline",
+    "Escape closes group and restores trigger focus",
+    "Mobile dialog stays open after group Escape; dialog Escape restores hamburger focus",
+    "Mobile focus trap wraps in both directions",
+    "Desktop outside click and Tab outside close disclosure",
+    "Touch navigation to all five destinations",
+    "All five footer destinations clicked successfully",
+    "Mobile scroll lock released when closing or crossing desktop breakpoint"
+  ],
+  "visualReview": "Reviewed desktop dropdown, mobile expanded menu and desktop/tablet footer captures; preserved existing typography, colors and header structure.",
+  "screenshots": [
+    "/tmp/heylanguages-navigation-qa/navigation-360.png",
+    "/tmp/heylanguages-navigation-qa/footer-360.png",
+    "/tmp/heylanguages-navigation-qa/navigation-390.png",
+    "/tmp/heylanguages-navigation-qa/footer-390.png",
+    "/tmp/heylanguages-navigation-qa/navigation-768.png",
+    "/tmp/heylanguages-navigation-qa/footer-768.png",
+    "/tmp/heylanguages-navigation-qa/navigation-1440.png",
+    "/tmp/heylanguages-navigation-qa/footer-1440.png"
+  ],
+  "filesChanged": [
+    "app/globals.css",
+    "components/Header.tsx",
+    "components/Footer.tsx",
+    "components/MobileMenu.tsx",
+    "components/HeyYusufMenu.tsx",
+    "lib/navigation.ts",
+    "reports/navigation-qa.json"
+  ]
+}

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { mailtoSupport, siteConfig } from "@/lib/site";
+import { heyYusufNavItems } from "@/lib/navigation";
 import { BrandMark } from "./BrandMark";
 
 const productLinks = [
-  { href: siteConfig.routes.heyyusuf, label: "HeyYusuf" },
   { href: siteConfig.routes.audioDemo, label: "Try the audio sample" },
   { href: siteConfig.routes.approach, label: "Our approach" },
   { href: siteConfig.routes.blog, label: "Blog" },
@@ -31,6 +31,14 @@ export function Footer() {
         </div>
 
         <div className="site-footer__links">
+          <div>
+            <p className="site-footer__label">HeyYusuf / Learn Arabic</p>
+            {heyYusufNavItems.map((link) => (
+              <Link href={link.href} key={link.href}>
+                {link.label === "Overview" ? "HeyYusuf Overview" : link.label}
+              </Link>
+            ))}
+          </div>
           <div>
             <p className="site-footer__label">Explore</p>
             {productLinks.map((link) => (
