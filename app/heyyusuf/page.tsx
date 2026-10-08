@@ -39,13 +39,13 @@ const teachingSteps = [
   {
     number: "01",
     title: "Meet useful language",
-    body: "Start with words and phrases connected to a situation you can picture—not a disconnected vocabulary dump.",
+    body: "Start with words and phrases connected to a situation you can picture.",
     tag: "Words + meaning",
   },
   {
     number: "02",
     title: "Listen and practice",
-    body: "Keep the Arabic, English meaning, and pronunciation guide together while you listen and practice speaking.",
+    body: "Listen to the phrase, hold the microphone button and say it yourself. Get automated pronunciation feedback on your recording.",
     tag: "Audio + speaking",
   },
   {
@@ -57,7 +57,7 @@ const teachingSteps = [
   {
     number: "04",
     title: "Reinforce and continue",
-    body: "Simple assessments and a clear path help you revisit material and see what comes next.",
+    body: "Practise with quizzes and conversation challenges, track your XP and use Continue Learning to pick up where you left off.",
     tag: "Review + progress",
   },
 ];
@@ -76,7 +76,7 @@ const faqs = [
   {
     question: "What does a lesson involve?",
     answer:
-      "You meet useful words and phrases, listen to them, practice recall or speaking, and then use familiar material in guided conversations and simple assessments.",
+      "You meet useful words and phrases, listen to them, practice recall or speaking, and then use familiar material in guided conversations, quizzes and conversation challenges.",
   },
   {
     question: "Can I start without an account?",
@@ -86,12 +86,12 @@ const faqs = [
   {
     question: "What is included with Premium?",
     answer:
-      "Premium removes commercial locks from currently available lessons, scenarios, and practice as you progress. It also includes downloadable offline audio packs and online chat for signed-in members, subject to usage limits. An account is required to continue beyond the guest path; normal lesson order still applies.",
+      "Premium includes access to currently available lessons, scenarios, and practice as you progress. It also includes downloadable offline audio packs and online chat for signed-in members, subject to usage limits. An account is required to continue beyond the guest path; normal lesson order still applies.",
   },
   {
     question: "What works offline?",
     answer:
-      "Premium learners can download an MSA, Egyptian, or Gulf audio pack and continue non-AI practice offline. Account syncing resumes after reconnecting. Chat, pronunciation checking, purchases, restore, and account deletion require a connection.",
+      "Premium learners can download an MSA, Egyptian, or Gulf audio pack and continue non-AI practice offline. Account syncing resumes after reconnecting. Chat, pronunciation checking, purchases, restore, and account deletion require a connection. Pronunciation checks are subject to in-app access and usage limits.",
   },
   {
     question: "Where can I get the app?",
@@ -171,11 +171,9 @@ export default function HeyYusufPage() {
         <div className="page-shell audio-section__grid">
           <div className="audio-section__intro">
             <p className="eyebrow eyebrow--dark">A website sample</p>
-            <h2 id="audio-title">Real human voices. Natural local Arabic.</h2>
+            <h2 id="audio-title">Natural-sounding Arabic voices. Hear the difference.</h2>
             <p>
-              Hear natural Arabic voices across MSA, Gulf and Egyptian lessons,
-              with clear pronunciation and none of the robotic-sounding audio
-              common in basic language tools.
+              Listen to MSA, Gulf and Egyptian Arabic, then practise saying the phrases yourself.
             </p>
             <p>Choose a learning path to hear a sample from HeyYusuf.</p>
             <div className="audio-context">
@@ -226,6 +224,7 @@ export default function HeyYusufPage() {
               <figcaption><span>Real app preview</span> Pronunciation practice in context</figcaption>
             </figure>
           </div>
+          <p className="mt-8"><a href="#app-access" className="underline underline-offset-4">See “What works offline?” for pronunciation access and usage details.</a></p>
           <p className="mt-8"><Link href={siteConfig.routes.features} className="underline underline-offset-4">See inside HeyYusuf: lessons, conversations and practice →</Link></p>
         </div>
       </section>
@@ -238,8 +237,7 @@ export default function HeyYusufPage() {
               <h2 id="scenes-title">Language has somewhere to go.</h2>
             </div>
             <p>
-              Each scene gives new language a purpose. You are not memorizing a
-              phrase in a vacuum—you are preparing to use it.
+              Each scene gives new language a purpose and a setting in which to use it.
             </p>
           </div>
           <div className="scene-gallery">
@@ -289,7 +287,7 @@ export default function HeyYusufPage() {
             ))}
           </div>
           <p className="dialects-section__note">
-            These varieties are taught as distinct choices. HeyYusuf does not present one as a substitute for every Arabic-speaking situation.
+            MSA, Gulf Arabic and Egyptian Arabic are taught as three separate learning paths.
           </p>
         </div>
       </section>
@@ -303,6 +301,7 @@ export default function HeyYusufPage() {
               Begin with meaning, sound, and a clear visual cue. Keep moving
               through a structured path instead of wondering what to learn next.
             </p>
+            <p>Explore <Link href="/heyyusuf/features#alphabet-title" className="underline underline-offset-4">alphabet and reading practice</Link> to connect letters, vowel marks and sounds as you read your first word.</p>
             <div className="beginner-note">
               <strong>Start free as a guest.</strong>
               <span>The first three units in each variety are free. Guest progress stays on that device; sign in there to migrate it to an account and continue further.</span>
@@ -328,13 +327,11 @@ export default function HeyYusufPage() {
             <p className="eyebrow eyebrow--dark">Premium</p>
             <h2 id="premium-title">More room to keep learning.</h2>
             <p>
-              Premium removes commercial locks from currently available lessons,
-              scenarios, and practice as you progress. Account gates and lesson
-              order still apply.
+              Premium includes access to currently available lessons, scenarios and practice as you progress. An account is required beyond the guest path, and lessons follow their normal order.
             </p>
             <ul className="premium-list">
               <li>Premium lessons, scenarios, and practice in the learning path</li>
-              <li>Downloadable dialect audio packs and non-AI practice offline</li>
+              <li>Downloadable Arabic audio packs for offline listening</li>
               <li>Online chat for signed-in Premium members, with usage limits</li>
             </ul>
             <p className="premium-caveat">
@@ -345,7 +342,7 @@ export default function HeyYusufPage() {
         </div>
       </section>
 
-      <section className="faq-section" aria-labelledby="faq-title">
+      <section className="faq-section" id="app-access" aria-labelledby="faq-title">
         <div className="page-shell faq-grid">
           <div className="faq-intro">
             <p className="eyebrow eyebrow--dark">Questions, answered</p>

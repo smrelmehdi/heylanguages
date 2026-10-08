@@ -84,8 +84,8 @@ export default function FeaturesPage() {
           <div className={styles.copy}>
             <p className="eyebrow eyebrow--dark">02 / Pick up where you left off</p>
             <h2 id="progress-title">Home, progress and continue learning.</h2>
-            <p>The home screen brings your selected path, learner level and XP together. This example shows Gulf Arabic, an Intermediate level label and 2730 XP. Continue Learning returns you to “Understand the Price”, with 29% progress shown for this learner.</p>
-            <p>You can also open Start Alphabet for optional practice with Arabic letters. The screen labels offline audio as premium. XP and the level label reflect in-app progress; they are not a language qualification.</p>
+            <p>The home screen brings your selected path, in-app level and XP together. This example shows Gulf Arabic, an Intermediate level label and 2730 XP. Continue Learning returns you to “Understand the Price”, with 29% progress shown for this learner.</p>
+            <p>You can also open Start Alphabet for optional practice with Arabic letters. Premium includes downloadable Arabic audio packs for offline listening.</p>
           </div>
           <Screenshot item={featureScreenshots.home} />
         </section>
@@ -104,16 +104,17 @@ export default function FeaturesPage() {
           <div className={styles.copy}>
             <p className="eyebrow eyebrow--dark">04 / Listen, then speak</p>
             <h2 id="speaking-title">Pronunciation and speaking practice.</h2>
-            <p>In the Gulf Arabic Meet Yusuf lesson, read the Arabic greeting alongside its transliteration and English meaning, “And peace be upon you”. The illustrated scene gives the exchange a setting. Use the listening control for audio support, then hold the microphone button to say the phrase.</p>
-            <p>Online pronunciation checks provide automated feedback on your recording. This example shows “Good pronunciation” and a 95% result for one attempt, not a measure of overall fluency. Checks require an internet connection and are subject to in-app access and usage limits.</p>
+            <p>Listen to the phrase, hold the microphone button and say it yourself. Get automated pronunciation feedback on your recording. In the Gulf Arabic Meet Yusuf lesson, the Arabic greeting appears alongside its transliteration and English meaning, “And peace be upon you”. The illustrated scene gives the exchange a setting.</p>
+            <p>This example shows a 95% pronunciation result for one recorded attempt.</p>
+            <p><Link href="/heyyusuf#app-access">See “What works offline?” for pronunciation access and usage details.</Link></p>
           </div>
           <Screenshot item={featureScreenshots.pronunciation} />
         </section>
 
         <section id="try-arabic" className={styles.section} aria-labelledby="audio-title">
           <div className={styles.copy}>
-            <h2 id="audio-title">Real human voices. Natural local Arabic.</h2>
-            <p>HeyYusuf uses real human voices across three separate learning paths: Modern Standard Arabic (MSA), Gulf Arabic and Egyptian Arabic. Natural pronunciation and consistent voices give you clear listening references, without robotic-sounding audio.</p>
+            <h2 id="audio-title">Natural-sounding Arabic voices. Hear the difference.</h2>
+            <p>Listen to MSA, Gulf and Egyptian Arabic, then practise saying the phrases yourself.</p>
             <p>Listen to “Which shirt do you want?” in each path below. Hear the voice alongside Arabic text, a pronunciation guide and an English meaning.</p>
           </div>
           <div className={styles.audio}><AudioDemo /></div>
@@ -134,7 +135,7 @@ export default function FeaturesPage() {
             <p className="eyebrow eyebrow--dark">06 / Get to know the script</p>
             <h2 id="alphabet-title">Arabic alphabet and reading path.</h2>
             <p>The dedicated alphabet screen invites you to “Make sense of the script”. Choose Read your first word to begin the Build &amp; Read introduction: meet baa and alif, hear the vowels and see how letters connect to form <span lang="ar" dir="rtl">بَاب</span> — baab, meaning “door”.</p>
-            <p>The introduction shown here has 13 steps. That count describes this first-word sequence, not the entire alphabet curriculum. Alphabet practice is available as an optional entry point from the home screen.</p>
+            <p>Alphabet practice is available as an optional entry point from the home screen.</p>
           </div>
           <Screenshot item={featureScreenshots.alphabet} />
         </section>

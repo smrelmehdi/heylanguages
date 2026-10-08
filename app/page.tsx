@@ -30,7 +30,7 @@ const approach = [
   {
     number: "02",
     title: "Say it.",
-    body: "Practice speaking when you are ready, with the phrase still in view and Yusuf alongside you.",
+    body: "Listen to the phrase, hold the microphone button and say it yourself. Get automated pronunciation feedback on your recording.",
     evidence: (
       <div className="approach-evidence approach-evidence--say" aria-label="Speaking practice example">
         <span className="approach-evidence__mic" aria-hidden="true">
@@ -137,15 +137,14 @@ export default function HomePage() {
             <h2 id="flagship-title">Arabic that starts where you are.</h2>
             <p>
               Meet useful phrases, hear how they sound, practice speaking, then
-              use familiar material in guided conversations. Yusuf keeps the
-              path clear without making your first lesson feel like a textbook.
+              use familiar material in guided conversations. Yusuf guides you through practical scenes, one step at a time.
               Choose from three separate learning paths.
             </p>
             <div className="dialect-line" aria-label="Arabic varieties available">
               {learningPaths.map((path) => <span key={path.id}>{path.pageLastModified ? <Link href={path.futureSlug}>{path.label}</Link> : path.label}</span>)}
             </div>
             <ul className="feature-ticks">
-              <li>Real human Arabic voices across MSA, Gulf and Egyptian.</li>
+              <li>Natural-sounding Arabic voices across MSA, Gulf and Egyptian.</li>
               <li>English meanings and pronunciation guides</li>
               <li>Everyday scenes with clear outcomes</li>
               <li>A guided path from recognition to conversation</li>

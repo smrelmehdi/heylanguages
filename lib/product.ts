@@ -95,7 +95,7 @@ export const learningPaths: readonly LearningPath[] = [
 export const learningPathNames = learningPaths.map((path) => path.label);
 export const learningPathList = `${learningPathNames.slice(0, -1).join(", ")} and ${learningPathNames.at(-1)}`;
 export const productDefinition = `HeyYusuf is an Arabic-learning app with three separate learning paths: ${learningPathList}.`;
-export const productDescription = `Learn Arabic with HeyYusuf through three separate learning paths: ${learningPathList}. Practice with guided lessons and pronunciation support.`;
+export const productDescription = `Learn Arabic with HeyYusuf through three separate learning paths: ${learningPathList}. Practise with guided lessons and automated pronunciation feedback.`;
 
 export const everydayScenes = [
   {

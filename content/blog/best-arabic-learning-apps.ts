@@ -166,13 +166,15 @@ export const bestArabicLearningApps = {
     ]),
     paragraph([
       strong("Strengths: "),
-      "lessons connect useful words and phrases to listening, pronunciation practice, guided conversations, and review. Arabic text, English meanings, and pronunciation guides support beginners who are still learning to read the script. The learning path moves from supported recognition toward recall and use in everyday scenes. You can ",
+      "lessons connect useful words and phrases to listening audio, automated pronunciation feedback and guided conversations. Quizzes and conversation challenges reinforce familiar language, while alphabet practice supports reading. Arabic text, English meanings and pronunciation guides support beginners. XP and Continue Learning help learners track progress and resume practice. See ",
+      link("the app screenshots and feature walkthrough", "/heyyusuf/features"),
+      " or ",
       link("hear the three varieties in the website sample", "/heyyusuf#try-arabic"),
       " before choosing a path.",
     ]),
     paragraph([
       strong("Things to consider: "),
-      "HeyYusuf is newer and does not yet have the long public track record or review volume of large established language platforms. It does not currently offer a Levantine path. Android is available on Google Play; iPhone is still coming soon. A Gulf course with an Emirati orientation should not be treated as a promise to cover every local Gulf variety.",
+      "It does not currently offer a Levantine path. Android is available on Google Play; iPhone is still coming soon. The Gulf path focuses on everyday speech in the UAE, with an emphasis on Emirati Arabic.",
     ]),
     paragraph([strong("Choose it if: "), "you want practical beginner progression with explicitly separated Arabic varieties, especially Gulf and MSA. If your priority is Levantine Arabic, compare Pimsleur and Mango instead."]),
 
@@ -209,7 +211,7 @@ export const bestArabicLearningApps = {
       link("Al Ramsa Institute explains the MSA–Emirati distinction", sources.emirati),
       ".",
     ]),
-    heading("beginner-dialect", "Which Arabic dialect should beginners learn?", 3),
+    heading("beginner-dialect", "Which Arabic variety should beginners learn?", 3),
     paragraph([
       "Start with the people you want to speak to: Egyptian for an Egyptian context, Levantine for a Levantine context, or Gulf/Emirati for your intended Gulf setting. If reading and formal communication come first, consider MSA. There is no single first choice for every beginner; ",
       link("Al Ramsa’s guidance on choosing MSA or Emirati", sources.emirati),

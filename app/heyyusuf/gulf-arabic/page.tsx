@@ -50,7 +50,7 @@ const comparisons = [
 
 const faqs = [
   { question: "Does HeyYusuf teach Gulf Arabic?", answer: "Yes. HeyYusuf has a dedicated Gulf Arabic learning path with beginner lessons, pronunciation practice and guided conversations." },
-  { question: "Is Gulf Arabic the same as Emirati Arabic?", answer: "Emirati Arabic is a local variety within the broader Gulf Arabic context. Speech varies by country and community, so the terms are not exact substitutes." },
+  { question: "Is Gulf Arabic the same as Emirati Arabic?", answer: "Emirati Arabic is a local variety within the broader Gulf Arabic context. HeyYusuf’s Gulf path focuses on everyday speech in the UAE, with an emphasis on Emirati Arabic." },
   { question: "Is Gulf Arabic different from MSA?", answer: "Yes. Gulf Arabic refers to regional spoken varieties, while Modern Standard Arabic is used widely in formal writing, news and structured settings. They serve different purposes." },
   { question: "Is this useful if I live in Dubai or the UAE?", answer: "The Gulf path is relevant if your goal is to begin using Arabic in everyday exchanges with Emirati speakers. In Dubai or elsewhere in the UAE, choose your path around the people you want to speak with." },
   { question: "Can beginners start with Gulf Arabic?", answer: "Yes. HeyYusuf supports beginners with Arabic text, English meanings, pronunciation guides and audio. You do not need to be comfortable reading Arabic before starting." },
@@ -84,12 +84,12 @@ export default function GulfArabicPage() {
           <p className="eyebrow eyebrow--dark">The variety matters</p>
           <h2 id="what-is-gulf">What is Gulf Arabic?</h2>
           <p>Gulf Arabic, also called Khaleeji Arabic, refers broadly to spoken varieties used across parts of the Arabian Gulf. Local speech varies by country and community; there is no single identical dialect used everywhere in the Gulf.</p>
-          <p>HeyYusuf’s current Gulf path focuses on <strong>everyday speech in the UAE, with an emphasis on Emirati Arabic</strong>. It does not aim to represent every local Gulf variety.</p>
+          <p>HeyYusuf’s current Gulf path focuses on <strong>everyday speech in the UAE, with an emphasis on Emirati Arabic</strong>.</p>
         </section>
 
         <section className={styles.section} aria-labelledby="gulf-vs-msa">
           <h2 id="gulf-vs-msa">Gulf Arabic and MSA serve different purposes.</h2>
-          <p>Choose around the situations you want to handle. Everyday conversation with Gulf Arabic speakers and reading formal Arabic are different goals; working on one does not make the other less useful.</p>
+          <p>Choose around the situations you want to handle. Everyday conversation with Gulf Arabic speakers and reading formal Arabic are different goals.</p>
           <div className={styles.tableWrap} role="region" aria-label="Gulf Arabic and MSA comparison" tabIndex={0}>
             <table><caption>Gulf Arabic and MSA in everyday and formal contexts</caption>
               <thead><tr><th scope="col">Your context</th><th scope="col">Gulf Arabic</th><th scope="col">MSA</th></tr></thead>
@@ -106,7 +106,7 @@ export default function GulfArabicPage() {
             <li>A UAE resident or expat interested in everyday exchanges with Emirati speakers.</li>
             <li>Working with Gulf Arabic speakers and looking for a beginner starting point for informal conversation.</li>
             <li>Building family or social connections in the Gulf.</li>
-            <li>Travelling in the region and wanting to begin with useful spoken language, while allowing for local differences.</li>
+            <li>Travelling in the region and wanting to begin with useful spoken language.</li>
             <li>Already familiar with some MSA and looking to explore a regional spoken variety.</li>
           </ul>
           <p>For life in Dubai or elsewhere in the UAE, let your intended conversations guide your choice. The focus here is beginner practice for everyday exchanges.</p>
@@ -118,7 +118,7 @@ export default function GulfArabicPage() {
           <div className="audio-section__intro">
             <p className="eyebrow eyebrow--dark">Hear the actual language</p>
             <h2 id="gulf-sample-title">A real Gulf Arabic sample.</h2>
-            <p>This existing HeyYusuf website sample brings the Arabic, pronunciation guide and English meaning together. Listen to the Gulf recording, then try saying the phrase yourself.</p>
+            <p>This HeyYusuf sample brings the Arabic, pronunciation guide and English meaning together. Listen to the Gulf recording, then try saying the phrase yourself.</p>
             <div className="audio-context"><span>Choosing what to wear</span><p>Yusuf asks: “{gulf.english}”</p></div>
           </div>
           <AudioDemo pathId="gulf" />

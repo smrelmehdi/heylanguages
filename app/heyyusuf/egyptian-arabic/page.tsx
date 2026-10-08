@@ -119,7 +119,7 @@ export default function EgyptianArabicPage() {
           <div className="audio-section__intro">
             <p className="eyebrow eyebrow--dark">Hear the actual language</p>
             <h2 id="egyptian-sample-title">A real Egyptian Arabic sample.</h2>
-            <p>This existing HeyYusuf website sample brings the Arabic, pronunciation guide and English meaning together. Listen to the Egyptian recording, then try saying the phrase yourself.</p>
+            <p>This HeyYusuf sample brings the Arabic, pronunciation guide and English meaning together. Listen to the Egyptian recording, then try saying the phrase yourself.</p>
             <div className="audio-context"><span>Choosing what to wear</span><p>Yusuf asks: “{egyptian.english}”</p></div>
           </div>
           <AudioDemo pathId="egyptian" />
@@ -132,12 +132,12 @@ export default function EgyptianArabicPage() {
             <p className="eyebrow eyebrow--dark">Inside the Egyptian path</p>
             <h2 id="inside-path">See the language. Hear it. Try saying it.</h2>
             <p>HeyYusuf combines structured beginner learning with practical vocabulary, pronunciation practice and guided conversations in everyday scenarios. Arabic text, English meanings and pronunciation guides help you connect the written phrase with what you hear and say.</p>
-            <p>The existing app screenshot shows an Egyptian Arabic lesson labelled “Describing Pain”. It brings the phrase, pronunciation guide and English meaning together with listening and speaking controls.</p>
+            <p>In the Egyptian Arabic lesson “Describing Pain”, read the phrase alongside its pronunciation guide and English meaning, then use the listening and speaking controls to practise.</p>
             <p>The <Link href="/heyyusuf#how-it-works">HeyYusuf overview explains the lesson format</Link> across listening, speaking, recall and review.</p>
           </div>
           <figure className={styles.screenshot}>
             <Image {...productAssets.pronunciation} alt="HeyYusuf Egyptian Arabic lesson titled Describing Pain, showing Arabic text, a pronunciation guide, English meaning, and listening and speaking controls" sizes="(max-width: 760px) 280px, 310px" />
-            <figcaption>An existing Egyptian Arabic lesson in HeyYusuf.</figcaption>
+            <figcaption>“Describing Pain”: an Egyptian Arabic lesson with listening and speaking practice.</figcaption>
           </figure>
         </div>
       </section>
